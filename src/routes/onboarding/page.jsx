@@ -1,0 +1,141 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PersonalInfoStep } from "./steps/PersonalInfoStep";
+import { BusinessInfoStep } from "./steps/BusinessInfoStep";
+import { ContactInfoStep } from "./steps/ContactInfoStep";
+import { BranchesStep } from "./steps/BranchesStep";
+import { SocialLinksStep } from "./steps/SocialLinksStep";
+import { SwotStep } from "./steps/SwotStep";
+import { SegmentsStep } from "./steps/SegmentsStep";
+import { CompetitorsStep } from "./steps/CompetitorsStep";
+
+const steps = [
+    { id: 1, name: "Personal Info", component: PersonalInfoStep },
+    { id: 2, name: "Business Info", component: BusinessInfoStep },
+    { id: 3, name: "Contact Info", component: ContactInfoStep },
+    { id: 4, name: "Branches", component: BranchesStep },
+    { id: 5, name: "Social Links", component: SocialLinksStep },
+    { id: 6, name: "SWOT Analysis", component: SwotStep },
+    { id: 7, name: "Target Segments", component: SegmentsStep },
+    { id: 8, name: "Competitors", component: CompetitorsStep },
+];
+
+const OnboardingPage = () => {
+    const navigate = useNavigate();
+    const [currentStep, setCurrentStep] = useState(0);
+    const [formData, setFormData] = useState({
+        personal: {},
+        business: {},
+        contact: {},
+        branches: [],
+        socialLinks: { business: [], personal: [] },
+        swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+        segments: [],
+        competitors: [],
+    });
+
+    const CurrentStepComponent = steps[currentStep].component;
+
+    const handleNext = (stepData) => {
+        const stepKey = Object.keys(stepData)[0];
+        const updatedFormData = { ...formData, [stepKey]: stepData[stepKey] };
+        setFormData(updatedFormData);
+
+        if (currentStep < steps.length - 1) {
+            setCurrentStep(currentStep + 1);
+        } else {
+            // Generate unique ID for the client
+            const clientId = `client_${Date.now()}`;
+
+            // Create client object with ID
+            const newClient = {
+                id: clientId,
+                ...updatedFormData,
+                createdAt: new Date().toISOString(),
+            };
+
+            // Load existing clients
+            const storedClients = localStorage.getItem("clients");
+            const clients = storedClients ? JSON.parse(storedClients) : [];
+
+            // Add new client to array
+            clients.push(newClient);
+
+            // Save back to localStorage
+            localStorage.setItem("clients", JSON.stringify(clients));
+
+            console.log("✅ Saved client data:", newClient);
+            console.log("Total clients:", clients.length);
+            console.log("Segments count:", updatedFormData.segments?.length || 0);
+            console.log("Competitors count:", updatedFormData.competitors?.length || 0);
+
+            alert("Client added successfully!");
+
+            // Redirect to clients page
+            navigate("/clients");
+        }
+    };
+
+    const handlePrevious = () => {
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    return (
+        <div className="mx-auto max-w-4xl">
+            <div className="card">
+                <div className="card-header">
+                    <h1 className="card-title text-2xl">Client Onboarding</h1>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-6">
+                    <div className="mb-2 flex items-center justify-between">
+                        {steps.map((step, index) => (
+                            <div
+                                key={step.id}
+                                className="flex flex-1 items-center"
+                            >
+                                <div
+                                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                                        index <= currentStep
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                                    }`}
+                                >
+                                    {index + 1}
+                                </div>
+                                {index < steps.length - 1 && (
+                                    <div
+                                        className={`h-1 flex-1 transition-colors ${
+                                            index < currentStep ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"
+                                        }`}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-2 text-center">
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                            Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Step Content */}
+                <div className="card-body">
+                    <CurrentStepComponent
+                        data={formData}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                        isFirst={currentStep === 0}
+                        isLast={currentStep === steps.length - 1}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OnboardingPage;
