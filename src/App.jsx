@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "./contexts/themeContext";
+import { LangProvider } from "./contexts/langContext";
 import Layout from "./routes/Layout";
 import DashboardPage from "./routes/dashboard/page";
 import OnboardingPage from "./routes/onboarding/page";
@@ -53,9 +54,11 @@ function App() {
         },
     );
     return (
-        <ThemeProvider storageKey="theme">
-            <RouterProvider router={router}></RouterProvider>
-        </ThemeProvider>
+        <LangProvider>
+            <ThemeProvider storageKey="theme">
+                <RouterProvider router={router}></RouterProvider>
+            </ThemeProvider>
+        </LangProvider>
     );
 }
 

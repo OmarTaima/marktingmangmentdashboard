@@ -1,5 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { useLang } from "@/hooks/useLang";
+import { dirFor } from "@/utils/direction";
 
 // Egyptian phone validation: accepts +20, 20, or 01 followed by 9 digits
 const validateEgyptianPhone = (phone) => {
@@ -14,6 +16,7 @@ const validateEgyptianPhone = (phone) => {
 };
 
 export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
+    const { t, lang } = useLang();
     const [formData, setFormData] = useState(
         data.contact || {
             businessPhone: "",
@@ -34,12 +37,12 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
 
         // Validate business phone
         if (!validateEgyptianPhone(formData.businessPhone)) {
-            errors.businessPhone = "Please enter a valid Egyptian phone number";
+            errors.businessPhone = t("phone_error");
         }
 
         // Validate WhatsApp
         if (!validateEgyptianPhone(formData.businessWhatsApp)) {
-            errors.businessWhatsApp = "Please enter a valid Egyptian phone number";
+            errors.businessWhatsApp = t("phone_error");
         }
 
         if (Object.keys(errors).length > 0) {
@@ -63,38 +66,40 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Contact Information</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("contact_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business Phone *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_phone")} *</label>
                 <input
                     type="tel"
                     name="businessPhone"
                     value={formData.businessPhone}
                     onChange={handleChange}
-                    placeholder="01012345678 or +201012345678"
+                    placeholder={t("phone_placeholder")}
                     required
-                    className={`w-full rounded-lg border ${phoneErrors.businessPhone ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    dir={dirFor(t("phone_placeholder"))}
+                    className={`w-full rounded-lg border ${phoneErrors.businessPhone ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
                 />
                 {phoneErrors.businessPhone && <p className="mt-1 text-sm text-red-500">{phoneErrors.businessPhone}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business WhatsApp *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_whatsapp")} *</label>
                 <input
                     type="tel"
                     name="businessWhatsApp"
                     value={formData.businessWhatsApp}
                     onChange={handleChange}
-                    placeholder="01012345678 or +201012345678"
+                    placeholder={t("phone_placeholder")}
                     required
-                    className={`w-full rounded-lg border ${phoneErrors.businessWhatsApp ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    dir={dirFor(t("phone_placeholder"))}
+                    className={`w-full rounded-lg border ${phoneErrors.businessWhatsApp ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
                 />
                 {phoneErrors.businessWhatsApp && <p className="mt-1 text-sm text-red-500">{phoneErrors.businessWhatsApp}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business Email *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_email")} *</label>
                 <input
                     type="email"
                     name="businessEmail"
@@ -106,13 +111,14 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Website URL</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("website_url")}</label>
                 <input
                     type="url"
                     name="website"
                     value={formData.website}
                     onChange={handleChange}
-                    placeholder="https://example.com"
+                    placeholder={t("website_placeholder")}
+                    dir={dirFor(t("website_placeholder"))}
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                 />
             </div>
@@ -123,13 +129,13 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

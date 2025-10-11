@@ -1,9 +1,10 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
 
 // Move SwotSection outside the main component to prevent re-renders
-const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot, handleAdd, handleRemove }) => (
+const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot, handleAdd, handleRemove, placeholder }) => (
     <div className="space-y-2">
         <h3 className={`text-md font-medium ${color}`}>{title}</h3>
         <div className="flex gap-2">
@@ -20,7 +21,7 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
                         handleAdd(category, inputKey);
                     }
                 }}
-                placeholder={`Add ${title.toLowerCase()}...`}
+                placeholder={placeholder}
                 className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
             />
             <button
@@ -64,6 +65,7 @@ SwotSection.propTypes = {
 };
 
 export const SwotStep = ({ data, onNext, onPrevious }) => {
+    const { t } = useLang();
     const [swot, setSwot] = useState(
         data.swot || {
             strengths: [],
@@ -108,15 +110,13 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-6"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">SWOT Analysis</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("swot_analysis")}</h2>
 
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-                Analyze your business's internal strengths and weaknesses, as well as external opportunities and threats.
-            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{t("swot_help")}</p>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <SwotSection
-                    title="💪 Strengths"
+                    title={t("strengths_title")}
                     category="strengths"
                     inputKey="strength"
                     color="text-green-600 dark:text-green-400"
@@ -125,9 +125,10 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    placeholder={t("swot_add_placeholder", { type: t("strengths") })}
                 />
                 <SwotSection
-                    title="⚠️ Weaknesses"
+                    title={t("weaknesses_title")}
                     category="weaknesses"
                     inputKey="weakness"
                     color="text-red-600 dark:text-red-400"
@@ -136,9 +137,10 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    placeholder={t("swot_add_placeholder", { type: t("weaknesses") })}
                 />
                 <SwotSection
-                    title="🎯 Opportunities"
+                    title={t("opportunities_title")}
                     category="opportunities"
                     inputKey="opportunity"
                     color="text-blue-600 dark:text-blue-400"
@@ -147,9 +149,10 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    placeholder={t("swot_add_placeholder", { type: t("opportunities") })}
                 />
                 <SwotSection
-                    title="⚡ Threats"
+                    title={t("threats_title")}
                     category="threats"
                     inputKey="threat"
                     color="text-orange-600 dark:text-orange-400"
@@ -158,6 +161,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    placeholder={t("swot_add_placeholder", { type: t("threats") })}
                 />
             </div>
 
@@ -167,13 +171,13 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

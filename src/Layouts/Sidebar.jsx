@@ -5,49 +5,84 @@ import DarkLogo from "../assets/logo-dark.svg";
 import PropTypes from "prop-types";
 import { navbarLinks } from "../constants";
 import { NavLink } from "react-router-dom";
-import { Home, Users, BarChart2, Briefcase, FileText, PieChart, Calendar, Box, Settings } from "lucide-react";
+import { useLang } from "../hooks/useLang";
 
 export const Sidebar = forwardRef(({ collapsed }, ref) => {
+    const { lang, t } = useLang();
+    const isArabic = lang === "ar";
+
+    const borderSide = isArabic ? "border-l" : "border-r";
+    const desktopPosition = isArabic ? "right-0 left-auto" : "left-0 right-auto";
+    const mobileOffset = isArabic ? (collapsed ? "max-md:-right-full" : "max-md:right-0") : collapsed ? "max-md:-left-full" : "max-md:left-0";
+
     return (
         <aside
             ref={ref}
+            dir={isArabic ? "rtl" : "ltr"}
             className={cn(
-                "shadow:sm fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden border-r border-slate-300 bg-white [transition:_width_300ms_cubic-bezier(0.4,_0,_0.2,_1),_left_300ms_cubic-bezier(0.4,_0,_0.2,_1),_background-color_150ms_cubic-bezier(0.4,_0,_0.2,_1),_border_150ms_cubic-bezier(0.4,_0,_0.2,_1)] dark:border-slate-700 dark:bg-slate-900",
+                "shadow:sm fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden bg-white transition-all dark:bg-slate-900",
+                borderSide,
+                "border-slate-300",
+                desktopPosition,
                 collapsed ? "md:w-20 md:items-center" : "md:w-[240px]",
-                collapsed ? "max-md:-left-full" : "max-md:left-0",
+                mobileOffset,
+                // use app default font; don't force Cairo here so it matches Add Client
             )}
         >
-            <div className="flex gap-x-3 p-3">
+            {/* Logo Section */}
+            <div className={cn("flex items-center gap-x-3 p-3", isArabic && "flex-row-reverse")}>
                 <img
                     src={LightLogo}
-                    alt="Vite UI Logo Light"
+                    alt="Logo Light"
                     className="dark:hidden"
                 />
                 <img
                     src={DarkLogo}
-                    alt="Vite UI Logo Dark"
+                    alt="Logo Dark"
                     className="hidden dark:block"
                 />
-                {!collapsed && <p className="translition text-lg font-medium text-slate-900 transition-colors dark:text-slate-50">Vite UI</p>}
+                {!collapsed && (
+                    <p
+                        className={cn(
+                            "w-full text-lg font-medium text-slate-900 transition-colors dark:text-slate-50",
+                            isArabic ? "text-right" : "text-left",
+                        )}
+                    >
+                        {t("app_name")}
+                    </p>
+                )}
             </div>
-            <div className="gap y-4 flex w-full flex-col overflow-x-hidden overflow-y-auto p-3 [scrollbar-width:_thin]">
+
+            {/* Navigation */}
+            <div className="flex w-full flex-col gap-y-4 overflow-x-hidden overflow-y-auto p-3 [scrollbar-width:_thin]">
                 {navbarLinks.map((navbarLink) => (
                     <nav
                         key={navbarLink.title}
                         className={cn("sidebar-group", collapsed && "md:items-center")}
                     >
-                        <p className={cn("sidebar-group-title", collapsed && "md:w-[45px]")}>{navbarLink.title}</p>
+                        <p className={cn("sidebar-group-title w-full", collapsed && "md:w-[45px]", isArabic ? "text-right" : "text-left")}>
+                            {t(navbarLink.title)}
+                        </p>
+
                         {navbarLink.links.map((link) => (
                             <NavLink
                                 key={link.label}
                                 to={link.path}
-                                className={cn("sidebar-item", collapsed && "md:w-[45px]")}
+                                className={cn(
+                                    "sidebar-item flex items-center justify-start gap-x-3",
+                                    collapsed && "md:w-[45px]",
+                                    isArabic && "flex-row-reverse justify-end",
+                                )}
                             >
                                 <link.icon
                                     size={22}
-                                    className="flex-shrink-0"
+                                    className={cn("flex-shrink-0", isArabic ? "order-2 ml-2" : "order-1 mr-2")}
                                 />
-                                {!collapsed && <span className="whitespace-nowarp">{link.label}</span>}
+                                {!collapsed && (
+                                    <span className={cn("w-full whitespace-nowrap", isArabic ? "order-1 text-right" : "order-2 text-left")}>
+                                        {t(link.label)}
+                                    </span>
+                                )}
                             </NavLink>
                         ))}
                     </nav>
@@ -56,8 +91,9 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
         </aside>
     );
 });
+
 Sidebar.displayName = "Sidebar";
 
 Sidebar.propTypes = {
-    collapesd: PropTypes.bool,
+    collapsed: PropTypes.bool,
 };

@@ -2,6 +2,9 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2, Facebook, Instagram } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
+import { useLang } from "@/hooks/useLang";
+import { dirFor } from "@/utils/direction";
+import { cn } from "@/utils/cn";
 
 const mainPlatforms = [
     {
@@ -43,6 +46,7 @@ const validatePlatformUrl = (url, platform) => {
 };
 
 export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
+    const { t, lang } = useLang();
     const [businessLinks, setBusinessLinks] = useState(() => {
         if (data.socialLinks?.business) {
             return data.socialLinks.business;
@@ -108,29 +112,44 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-6"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Social Media Links</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("social_media_links")}</h2>
 
             <div>
-                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Main Marketing Platforms</h3>
+                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">{t("main_marketing_platforms")}</h3>
                 <div className="space-y-4">
                     {mainPlatforms.map((platform, index) => {
                         const Icon = platform.icon;
                         return (
                             <div
                                 key={index}
-                                className="flex items-center gap-3"
+                                className={cn("flex items-center gap-3", lang === "ar" ? "flex-row-reverse" : "")}
                             >
-                                <div className="flex w-40 items-center gap-2">
+                                <div className={cn("flex w-40 items-center gap-2", lang === "ar" ? "flex-row-reverse" : "")}>
                                     <Icon className={`${platform.color} h-5 w-5`} />
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{platform.name}</label>
+                                    <label
+                                        className={cn(
+                                            "text-sm font-medium text-slate-700 dark:text-slate-300",
+                                            dirFor(platform.name) === "rtl" ? "text-right" : "text-left",
+                                        )}
+                                    >
+                                        {platform.name}
+                                    </label>
                                 </div>
                                 <div className="flex-1">
                                     <input
                                         type="url"
                                         value={businessLinks[index]?.url || ""}
                                         onChange={(e) => handleBusinessLinkChange(index, e.target.value)}
-                                        placeholder={`https://${platform.name.toLowerCase().replace(/\s+/g, "")}.com/yourpage`}
-                                        className={`w-full rounded-lg border ${urlErrors[index] ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                                        placeholder={t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") })}
+                                        dir={dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") }))}
+                                        className={cn(
+                                            "w-full rounded-lg border px-4 py-2 focus:border-blue-500 focus:outline-none",
+                                            urlErrors[index] ? "border-red-500" : "border-slate-300",
+                                            dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") })) === "rtl"
+                                                ? "text-right"
+                                                : "text-left",
+                                            "bg-white text-slate-900 dark:bg-slate-800 dark:text-slate-50",
+                                        )}
                                     />
                                     {urlErrors[index] && <p className="mt-1 text-xs text-red-500">{urlErrors[index]}</p>}
                                 </div>
@@ -141,11 +160,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Other Platforms (Optional)</h3>
+                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">{t("other_platforms")}</h3>
                 <div className="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Platform Name</label>
+                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("platform_name")}</label>
                             <input
                                 type="text"
                                 value={newCustom.platform}
@@ -153,12 +172,12 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     const value = e.target.value;
                                     setNewCustom((prev) => ({ ...prev, platform: value }));
                                 }}
-                                placeholder="e.g., LinkedIn, YouTube"
+                                placeholder={t("platform_name_placeholder")}
                                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                             />
                         </div>
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">URL</label>
+                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("url")}</label>
                             <input
                                 type="url"
                                 value={newCustom.url}
@@ -166,7 +185,8 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     const value = e.target.value;
                                     setNewCustom((prev) => ({ ...prev, url: value }));
                                 }}
-                                placeholder="https://..."
+                                placeholder={t("website_placeholder")}
+                                dir={dirFor(t("website_placeholder"))}
                                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                             />
                         </div>
@@ -177,7 +197,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                         className="btn-ghost flex items-center gap-2"
                     >
                         <Plus size={16} />
-                        Add Platform
+                        {t("add_platform")}
                     </button>
                 </div>
 
@@ -211,13 +231,13 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

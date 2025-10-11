@@ -1,7 +1,9 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { useLang } from "@/hooks/useLang";
 
 export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
+    const { t } = useLang();
     const [formData, setFormData] = useState(
         data.business || {
             businessName: "",
@@ -26,10 +28,10 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Business Information</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("business_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business Name *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_name")} *</label>
                 <input
                     type="text"
                     name="businessName"
@@ -41,7 +43,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business Category *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_category")} *</label>
                 <select
                     name="category"
                     value={formData.category}
@@ -49,22 +51,22 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     required
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                 >
-                    <option value="">Select a category</option>
-                    <option value="retail">Retail</option>
-                    <option value="restaurant">Restaurant/Food Service</option>
-                    <option value="healthcare">Healthcare</option>
-                    <option value="technology">Technology</option>
-                    <option value="education">Education</option>
-                    <option value="real-estate">Real Estate</option>
-                    <option value="automotive">Automotive</option>
-                    <option value="beauty">Beauty & Wellness</option>
-                    <option value="finance">Finance</option>
-                    <option value="other">Other</option>
+                    <option value="">{t("select_category")}</option>
+                    <option value="retail">{t("option_retail")}</option>
+                    <option value="restaurant">{t("option_restaurant")}</option>
+                    <option value="healthcare">{t("option_healthcare")}</option>
+                    <option value="technology">{t("option_technology")}</option>
+                    <option value="education">{t("option_education")}</option>
+                    <option value="real-estate">{t("option_real_estate")}</option>
+                    <option value="automotive">{t("option_automotive")}</option>
+                    <option value="beauty">{t("option_beauty")}</option>
+                    <option value="finance">{t("option_finance")}</option>
+                    <option value="other">{t("option_other")}</option>
                 </select>
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Business Description *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_description")} *</label>
                 <textarea
                     name="description"
                     value={formData.description}
@@ -72,12 +74,12 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     required
                     rows={4}
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
-                    placeholder="Describe your business..."
+                    placeholder={t("describe_business_placeholder")}
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Main Office Address *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("main_office_address")} *</label>
                 <textarea
                     name="mainOfficeAddress"
                     value={formData.mainOfficeAddress}
@@ -89,7 +91,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Established Year</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("established_year")}</label>
                 <input
                     type="number"
                     name="establishedYear"
@@ -107,13 +109,13 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

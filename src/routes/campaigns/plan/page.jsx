@@ -1095,6 +1095,7 @@ const PlanPage = () => {
                                                         setEditingSocialLinks(updated);
                                                     }}
                                                     placeholder={`https://${platform.name.toLowerCase().replace(/\s+/g, "")}.com/yourpage`}
+                                                    dir={dirFor(`https://${platform.name.toLowerCase().replace(/\s+/g, "")}.com/yourpage`)}
                                                     className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                                                 />
                                             </div>
@@ -1118,6 +1119,7 @@ const PlanPage = () => {
                                             type="url"
                                             id="newCustomUrl"
                                             placeholder="https://..."
+                                            dir={dirFor("https://...")}
                                             className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                                         />
                                     </div>

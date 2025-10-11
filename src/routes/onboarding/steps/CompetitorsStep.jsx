@@ -1,8 +1,11 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
+import { dirFor } from "@/utils/direction";
 
 export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
+    const { t } = useLang();
     const [competitors, setCompetitors] = useState(data.competitors || []);
     const [expandedIndex, setExpandedIndex] = useState(null);
     const [currentCompetitor, setCurrentCompetitor] = useState({
@@ -78,16 +81,14 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Competitor Analysis</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("competitor_analysis")}</h2>
 
-            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-                Add information about your main competitors to help us develop a better strategy.
-            </p>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">{t("competitor_analysis_help")}</p>
 
             <div className="space-y-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Competitor Name *</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("competitor_name")} *</label>
                         <input
                             type="text"
                             value={currentCompetitor.name}
@@ -96,19 +97,20 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Website</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("website_url")}</label>
                         <input
                             type="url"
                             value={currentCompetitor.website}
                             onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, website: e.target.value })}
-                            placeholder="https://..."
+                            placeholder={t("website_placeholder")}
+                            dir={dirFor(t("website_placeholder"))}
                             className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Description *</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("description")} *</label>
                     <textarea
                         value={currentCompetitor.description}
                         onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, description: e.target.value })}
@@ -119,38 +121,48 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Facebook</label>
+                        <label
+                            dir="ltr"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            {t("facebook_label")}
+                        </label>
                         <input
                             type="url"
                             value={currentCompetitor.facebook}
                             onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, facebook: e.target.value })}
                             placeholder="https://facebook.com/..."
+                            dir={dirFor("https://facebook.com/...")}
                             className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Instagram</label>
+                        <label
+                            dir="ltr"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            {t("instagram_label")}
+                        </label>
                         <input
                             type="url"
                             value={currentCompetitor.instagram}
                             onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, instagram: e.target.value })}
                             placeholder="https://instagram.com/..."
+                            dir={dirFor("https://instagram.com/...")}
                             className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <h3 className="text-md mb-2 font-medium text-slate-900 dark:text-slate-50">Competitor SWOT</h3>
+                    <h3 className="text-md mb-2 font-medium text-slate-900 dark:text-slate-50">{t("competitor_swot")}</h3>
                     <div className="grid grid-cols-2 gap-2">
                         {["strengths", "weaknesses", "opportunities", "threats"].map((category) => (
                             <div
                                 key={category}
                                 className="space-y-1"
                             >
-                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                                </label>
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">{t(category)}</label>
                                 <div className="flex gap-1">
                                     <input
                                         type="text"
@@ -200,13 +212,15 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                     className="btn-ghost flex items-center gap-2"
                 >
                     <Plus size={16} />
-                    Add Competitor
+                    {t("add_competitor")}
                 </button>
             </div>
 
             {competitors.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Added Competitors ({competitors.length})</h3>
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {t("added_competitors", { count: competitors.length })}
+                    </h3>
                     {competitors.map((competitor, index) => (
                         <div
                             key={index}
@@ -271,13 +285,13 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    {isLast ? "Complete" : "Next"}
+                    {isLast ? t("complete") : t("next")}
                 </button>
             </div>
         </form>

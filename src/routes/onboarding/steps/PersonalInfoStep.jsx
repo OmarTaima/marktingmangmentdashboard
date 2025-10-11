@@ -1,5 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { useLang } from "@/hooks/useLang";
+import { dirFor } from "@/utils/direction";
 
 // Egyptian phone validation: accepts +20, 20, or 01 followed by 9 digits
 const validateEgyptianPhone = (phone) => {
@@ -14,6 +16,7 @@ const validateEgyptianPhone = (phone) => {
 };
 
 export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
+    const { t, lang } = useLang();
     const [formData, setFormData] = useState(
         data.personal || {
             fullName: "",
@@ -29,7 +32,7 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
 
         // Validate Egyptian phone number
         if (!validateEgyptianPhone(formData.phone)) {
-            setPhoneError("Please enter a valid Egyptian phone number (e.g., 01012345678 or +201012345678)");
+            setPhoneError(t("phone_error"));
             return;
         }
 
@@ -49,53 +52,57 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Personal Information</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("personal_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("full_name")} *</label>
                 <input
                     type="text"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
                     required
+                    placeholder={t("full_name_placeholder")}
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("email_address")} *</label>
                 <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    placeholder={t("email_placeholder")}
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number *</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("phone_number")} *</label>
                 <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="01012345678 or +201012345678"
+                    placeholder={t("phone_placeholder")}
                     required
-                    className={`w-full rounded-lg border ${phoneError ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    dir={dirFor(t("phone_placeholder"))}
+                    className={`w-full rounded-lg border ${phoneError ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
                 />
                 {phoneError && <p className="mt-1 text-sm text-red-500">{phoneError}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Position/Role</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("position_role")}</label>
                 <input
                     type="text"
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
+                    placeholder={t("position_placeholder")}
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
                 />
             </div>
@@ -107,14 +114,14 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
                         onClick={onPrevious}
                         className="btn-ghost px-6 py-2"
                     >
-                        Previous
+                        {t("previous")}
                     </button>
                 )}
                 <button
                     type="submit"
                     className="btn-primary ml-auto px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

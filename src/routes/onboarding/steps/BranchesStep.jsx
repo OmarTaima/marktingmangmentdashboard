@@ -1,6 +1,8 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
+import { dirFor } from "@/utils/direction";
 
 // Egyptian phone validation
 const validateEgyptianPhone = (phone) => {
@@ -11,6 +13,7 @@ const validateEgyptianPhone = (phone) => {
 };
 
 export const BranchesStep = ({ data, onNext, onPrevious }) => {
+    const { t, lang } = useLang();
     const [branches, setBranches] = useState(data.branches || []);
     const [currentBranch, setCurrentBranch] = useState({
         name: "",
@@ -47,24 +50,24 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">Business Branches</h2>
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("business_branches")}</h2>
 
-            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">Add all your business branch locations (optional)</p>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">{t("business_branches_help")}</p>
 
             <div className="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Branch Name</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("branch_name")}</label>
                     <input
                         type="text"
                         value={currentBranch.name}
                         onChange={(e) => setCurrentBranch({ ...currentBranch, name: e.target.value })}
                         className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
-                        placeholder="e.g., Downtown Branch"
+                        placeholder={t("branch_name_placeholder")}
                     />
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("branch_address")}</label>
                     <textarea
                         value={currentBranch.address}
                         onChange={(e) => setCurrentBranch({ ...currentBranch, address: e.target.value })}
@@ -74,7 +77,7 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Phone</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("phone_number")}</label>
                     <input
                         type="tel"
                         value={currentBranch.phone}
@@ -82,8 +85,9 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
                             setCurrentBranch({ ...currentBranch, phone: e.target.value });
                             setPhoneError("");
                         }}
-                        placeholder="01012345678 or +201012345678"
-                        className={`w-full rounded-lg border ${phoneError ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                        placeholder={t("phone_placeholder")}
+                        dir={dirFor(t("phone_placeholder"))}
+                        className={`w-full rounded-lg border ${phoneError ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
                     />
                     {phoneError && <p className="mt-1 text-sm text-red-500">{phoneError}</p>}
                 </div>
@@ -94,13 +98,13 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
                     className="btn-ghost flex items-center gap-2"
                 >
                     <Plus size={16} />
-                    Add Branch
+                    {t("add_branch")}
                 </button>
             </div>
 
             {branches.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Added Branches ({branches.length})</h3>
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("added_branches", { count: branches.length })}</h3>
                     {branches.map((branch, index) => (
                         <div
                             key={index}
@@ -129,13 +133,13 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
                     onClick={onPrevious}
                     className="btn-ghost px-6 py-2"
                 >
-                    Previous
+                    {t("previous")}
                 </button>
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
                 >
-                    Next
+                    {t("next")}
                 </button>
             </div>
         </form>

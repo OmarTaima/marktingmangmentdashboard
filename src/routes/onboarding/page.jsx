@@ -9,6 +9,8 @@ import { SwotStep } from "./steps/SwotStep";
 import { SegmentsStep } from "./steps/SegmentsStep";
 import { CompetitorsStep } from "./steps/CompetitorsStep";
 
+import { useLang } from "@/hooks/useLang";
+
 const steps = [
     { id: 1, name: "Personal Info", component: PersonalInfoStep },
     { id: 2, name: "Business Info", component: BusinessInfoStep },
@@ -22,6 +24,7 @@ const steps = [
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
+    const { t } = useLang();
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState({
         personal: {},
@@ -86,7 +89,7 @@ const OnboardingPage = () => {
         <div className="mx-auto max-w-4xl">
             <div className="card">
                 <div className="card-header">
-                    <h1 className="card-title text-2xl">Client Onboarding</h1>
+                    <h1 className="card-title text-2xl">{t("client_onboarding")}</h1>
                 </div>
 
                 {/* Progress Bar */}
@@ -118,7 +121,7 @@ const OnboardingPage = () => {
                     </div>
                     <div className="mt-2 text-center">
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                            Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}
+                            Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].name)}
                         </span>
                     </div>
                 </div>
