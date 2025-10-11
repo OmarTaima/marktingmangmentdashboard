@@ -5,7 +5,6 @@ import DarkLogo from "../assets/logo-dark.svg";
 import PropTypes from "prop-types";
 import { navbarLinks } from "../constants";
 import { NavLink } from "react-router-dom";
-import { Home, Users, BarChart2, Briefcase, FileText, PieChart, Calendar, Box, Settings } from "lucide-react";
 
 export const Sidebar = forwardRef(({ collapsed }, ref) => {
     return (
