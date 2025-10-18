@@ -14,14 +14,14 @@ const DashboardPage = () => {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div className="card">
                     <div className="card-header">
-                        <div className="w-fit rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                        <div className="bg-primary-500/20 text-primary-500 dark:bg-primary-600/20 dark:text-primary-600 w-fit rounded-lg p-2 transition-colors">
                             <Package size={26} />
                         </div>
                         <p className="card-title">Total Products</p>
                     </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">25,154</p>
-                        <span className="flex w-fit items-center gap-x-2 rounded-full border border-blue-500 px-2 py-1 font-medium text-blue-500 dark:border-blue-600 dark:text-blue-600">
+                    <div className="card-body bg-secondary-100 dark:bg-secondary-950 transition-colors">
+                        <p className="text-secondary-900 dark:text-secondary-50 text-3xl font-bold transition-colors">25,154</p>
+                        <span className="border-primary-500 text-primary-500 dark:border-primary-600 dark:text-primary-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 font-medium">
                             <TrendingUp size={18} />
                             25%
                         </span>
@@ -29,14 +29,14 @@ const DashboardPage = () => {
                 </div>
                 <div className="card">
                     <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                        <div className="bg-primary-500/20 text-primary-500 dark:bg-primary-600/20 dark:text-primary-600 rounded-lg p-2 transition-colors">
                             <DollarSign size={26} />
                         </div>
                         <p className="card-title">Total Paid Orders</p>
                     </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">$16,000</p>
-                        <span className="flex w-fit items-center gap-x-2 rounded-full border border-blue-500 px-2 py-1 font-medium text-blue-500 dark:border-blue-600 dark:text-blue-600">
+                    <div className="card-body bg-secondary-100 dark:bg-secondary-950 transition-colors">
+                        <p className="text-secondary-900 dark:text-secondary-50 text-3xl font-bold transition-colors">$16,000</p>
+                        <span className="border-primary-500 text-primary-500 dark:border-primary-600 dark:text-primary-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 font-medium">
                             <TrendingUp size={18} />
                             12%
                         </span>
@@ -44,14 +44,14 @@ const DashboardPage = () => {
                 </div>
                 <div className="card">
                     <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                        <div className="bg-primary-500/20 text-primary-500 dark:bg-primary-600/20 dark:text-primary-600 rounded-lg p-2 transition-colors">
                             <Users size={26} />
                         </div>
                         <p className="card-title">Total Customers</p>
                     </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">15,400k</p>
-                        <span className="flex w-fit items-center gap-x-2 rounded-full border border-blue-500 px-2 py-1 font-medium text-blue-500 dark:border-blue-600 dark:text-blue-600">
+                    <div className="card-body bg-secondary-100 dark:bg-secondary-950 transition-colors">
+                        <p className="text-secondary-900 dark:text-secondary-50 text-3xl font-bold transition-colors">15,400k</p>
+                        <span className="border-primary-500 text-primary-500 dark:border-primary-600 dark:text-primary-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 font-medium">
                             <TrendingUp size={18} />
                             15%
                         </span>
@@ -59,14 +59,14 @@ const DashboardPage = () => {
                 </div>
                 <div className="card">
                     <div className="card-header">
-                        <div className="rounded-lg bg-blue-500/20 p-2 text-blue-500 transition-colors dark:bg-blue-600/20 dark:text-blue-600">
+                        <div className="bg-primary-500/20 text-primary-500 dark:bg-primary-600/20 dark:text-primary-600 rounded-lg p-2 transition-colors">
                             <CreditCard size={26} />
                         </div>
                         <p className="card-title">Sales</p>
                     </div>
-                    <div className="card-body bg-slate-100 transition-colors dark:bg-slate-950">
-                        <p className="text-3xl font-bold text-slate-900 transition-colors dark:text-slate-50">12,340</p>
-                        <span className="flex w-fit items-center gap-x-2 rounded-full border border-blue-500 px-2 py-1 font-medium text-blue-500 dark:border-blue-600 dark:text-blue-600">
+                    <div className="card-body bg-secondary-100 dark:bg-secondary-950 transition-colors">
+                        <p className="text-secondary-900 dark:text-secondary-50 text-3xl font-bold transition-colors">12,340</p>
+                        <span className="border-primary-500 text-primary-500 dark:border-primary-600 dark:text-primary-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 font-medium">
                             <TrendingUp size={18} />
                             19%
                         </span>
@@ -159,11 +159,11 @@ const DashboardPage = () => {
                                         className="size-10 flex-shrink-0 rounded-full object-cover"
                                     />
                                     <div className="flex flex-col gap-y-2">
-                                        <p className="font-medium text-slate-900 dark:text-slate-50">{sale.name}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400">{sale.email}</p>
+                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium">{sale.name}</p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 text-sm">{sale.email}</p>
                                     </div>
                                 </div>
-                                <p className="font-medium text-slate-900 dark:text-slate-50">${sale.total}</p>
+                                <p className="text-secondary-900 dark:text-secondary-50 font-medium">${sale.total}</p>
                             </div>
                         ))}
                     </div>
@@ -202,7 +202,7 @@ const DashboardPage = () => {
                                                 />
                                                 <div className="flex flex-col">
                                                     <p>{product.name}</p>
-                                                    <p className="font-normal text-slate-600 dark:text-slate-400">{product.description}</p>
+                                                    <p className="text-secondary-600 dark:text-secondary-400 font-normal">{product.description}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -219,10 +219,10 @@ const DashboardPage = () => {
                                         </td>
                                         <td className="table-cell">
                                             <div className="flex items-center gap-x-4">
-                                                <button className="text-blue-500 dark:text-blue-600">
+                                                <button className="text-primary-500 dark:text-primary-600">
                                                     <PencilLine size={20} />
                                                 </button>
-                                                <button className="text-red-500">
+                                                <button className="text-danger-500">
                                                     <Trash size={20} />
                                                 </button>
                                             </div>

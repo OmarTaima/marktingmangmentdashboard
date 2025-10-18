@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { TrendingUp, Users, Eye, Heart, Share2, DollarSign, ArrowLeft } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
 
 const ReportsPage = () => {
     const [searchParams] = useSearchParams();
     const clientId = searchParams.get("client") || "0";
     const [selectedMonth, setSelectedMonth] = useState("2025-01");
     const [clientData, setClientData] = useState(null);
+    const { t } = useLang();
 
     useEffect(() => {
         // Load client data
-        const storedData = localStorage.getItem("clientData");
-        if (storedData) {
-            setClientData(JSON.parse(storedData));
+        const stodangerData = localStorage.getItem("clientData");
+        if (stodangerData) {
+            setClientData(JSON.parse(stodangerData));
         }
     }, [clientId]);
 
@@ -30,7 +32,7 @@ const ReportsPage = () => {
             { label: "Shares", value: "1.2K", change: "+15%", icon: Share2 },
         ],
         platforms: [
-            { name: "Facebook", reach: 18500, engagement: 3200, color: "bg-blue-500" },
+            { name: "Facebook", reach: 18500, engagement: 3200, color: "bg-primary-500" },
             { name: "Instagram", reach: 21000, engagement: 4100, color: "bg-pink-500" },
             { name: "TikTok", reach: 15200, engagement: 2800, color: "bg-purple-500" },
             { name: "X (Twitter)", reach: 8900, engagement: 1400, color: "bg-sky-500" },
@@ -77,8 +79,11 @@ const ReportsPage = () => {
                     )}
                     <div>
                         <h1 className="title">{clientData ? `${clientData.business?.businessName} - Monthly Report` : "Campaign Reports"}</h1>
-                        <p className="mt-1 text-slate-600 dark:text-slate-400">
-                            {clientData ? "Track your campaign performance and earnings" : "Select a client to view their monthly report"}
+                        <h1 className="title">
+                            {clientData ? `${clientData.business?.businessName} - ${t("monthly_report")}` : t("campaign_reports")}
+                        </h1>
+                        <p className="text-secondary-600 dark:text-secondary-400 mt-1">
+                            {clientData ? t("reports_subtitle_selected") : t("reports_subtitle")}
                         </p>
                     </div>
                 </div>
@@ -86,7 +91,7 @@ const ReportsPage = () => {
                     type="month"
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
@@ -95,36 +100,35 @@ const ReportsPage = () => {
                     <div className="py-12 text-center">
                         <DollarSign
                             size={48}
-                            className="mx-auto mb-4 text-slate-400"
+                            className="text-secondary-400 mx-auto mb-4"
                         />
-                        <h3 className="mb-2 text-lg font-medium text-slate-900 dark:text-slate-50">No Client Selected</h3>
-                        <p className="mb-4 text-slate-600 dark:text-slate-400">
-                            Please add a client through onboarding first, then view their reports from the campaigns page.
-                        </p>
+                        <h3 className="text-secondary-900 dark:text-secondary-50 mb-2 text-lg font-medium">No Client Selected</h3>
+                        <h3 className="text-secondary-900 dark:text-secondary-50 mb-2 text-lg font-medium">{t("no_client_selected")}</h3>
+                        <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("please_complete_onboarding")}</p>
                         <Link
                             to="/campaigns"
                             className="btn-primary inline-flex items-center gap-2"
                         >
-                            Go to Campaigns
+                            {t("go_to_campaigns")}
                         </Link>
                     </div>
                 </div>
             ) : (
                 <>
                     {/* Earnings Card */}
-                    <div className="card bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <div className="card from-primary-500 bg-gradient-to-br to-purple-600 text-white">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="mb-1 text-blue-100">Total Earnings</p>
+                                <p className="text-primary-100 mb-1">Total Earnings</p>
                                 <h2 className="text-4xl font-bold">{reportData.earnings.total}</h2>
-                                <p className="mt-2 flex items-center gap-2 text-blue-100">
+                                <p className="text-primary-100 mt-2 flex items-center gap-2">
                                     <TrendingUp size={16} />
                                     {reportData.earnings.change} from last month
                                 </p>
                             </div>
                             <DollarSign
                                 size={64}
-                                className="text-blue-200 opacity-50"
+                                className="text-primary-200 opacity-50"
                             />
                         </div>
                     </div>
@@ -137,13 +141,13 @@ const ReportsPage = () => {
                                 className="card"
                             >
                                 <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-slate-600 dark:text-slate-400">{metric.label}</span>
+                                    <span className="text-secondary-600 dark:text-secondary-400">{metric.label}</span>
                                     <metric.icon
                                         size={20}
-                                        className="text-blue-500"
+                                        className="text-primary-500"
                                     />
                                 </div>
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-50">{metric.value}</h3>
+                                <h3 className="text-secondary-900 dark:text-secondary-50 text-2xl font-bold">{metric.value}</h3>
                                 <p className="mt-1 text-sm text-green-600">{metric.change} vs last month</p>
                             </div>
                         ))}
@@ -156,17 +160,17 @@ const ReportsPage = () => {
                             {reportData.platforms.map((platform, index) => (
                                 <div key={index}>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <span className="font-medium text-slate-900 dark:text-slate-50">{platform.name}</span>
+                                        <span className="text-secondary-900 dark:text-secondary-50 font-medium">{platform.name}</span>
                                         <div className="flex gap-6 text-sm">
-                                            <span className="text-slate-600 dark:text-slate-400">
+                                            <span className="text-secondary-600 dark:text-secondary-400">
                                                 Reach: <strong>{platform.reach.toLocaleString()}</strong>
                                             </span>
-                                            <span className="text-slate-600 dark:text-slate-400">
+                                            <span className="text-secondary-600 dark:text-secondary-400">
                                                 Engagement: <strong>{platform.engagement.toLocaleString()}</strong>
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+                                    <div className="bg-secondary-200 dark:bg-secondary-700 h-2 w-full rounded-full">
                                         <div
                                             className={`${platform.color} h-2 rounded-full transition-all`}
                                             style={{ width: `${(platform.reach / 25000) * 100}%` }}
@@ -184,23 +188,23 @@ const ReportsPage = () => {
                             {reportData.topPosts.map((post) => (
                                 <div
                                     key={post.id}
-                                    className="flex items-center justify-between rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50"
+                                    className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded-lg p-4"
                                 >
                                     <div className="flex-1">
                                         <div className="mb-1 flex items-center gap-2">
-                                            <span className="text-xs font-medium text-blue-500">{post.platform}</span>
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">{post.date}</span>
+                                            <span className="text-primary-500 text-xs font-medium">{post.platform}</span>
+                                            <span className="text-secondary-500 dark:text-secondary-400 text-xs">{post.date}</span>
                                         </div>
-                                        <p className="font-medium text-slate-900 dark:text-slate-50">{post.content}</p>
+                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium">{post.content}</p>
                                     </div>
                                     <div className="flex gap-6 text-right text-sm">
                                         <div>
-                                            <p className="text-slate-500 dark:text-slate-400">Reach</p>
-                                            <p className="font-bold text-slate-900 dark:text-slate-50">{post.reach.toLocaleString()}</p>
+                                            <p className="text-secondary-500 dark:text-secondary-400">Reach</p>
+                                            <p className="text-secondary-900 dark:text-secondary-50 font-bold">{post.reach.toLocaleString()}</p>
                                         </div>
                                         <div>
-                                            <p className="text-slate-500 dark:text-slate-400">Engagement</p>
-                                            <p className="font-bold text-slate-900 dark:text-slate-50">{post.engagement.toLocaleString()}</p>
+                                            <p className="text-secondary-500 dark:text-secondary-400">Engagement</p>
+                                            <p className="text-secondary-900 dark:text-secondary-50 font-bold">{post.engagement.toLocaleString()}</p>
                                         </div>
                                     </div>
                                 </div>

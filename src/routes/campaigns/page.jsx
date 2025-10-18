@@ -13,6 +13,7 @@ import {
     Building2,
     Loader2,
 } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
 
 const CampaignsPage = () => {
     const [clients, setClients] = useState([]);
@@ -34,12 +35,14 @@ const CampaignsPage = () => {
         status: "pending",
     });
 
+    const { t } = useLang();
+
     const contentTypes = [
-        { value: "reel", label: "Reel", icon: Video },
-        { value: "ad", label: "Ad", icon: ImageIcon },
-        { value: "post", label: "Post", icon: FileText },
-        { value: "story", label: "Story", icon: ImageIcon },
-        { value: "video", label: "Video", icon: Video },
+        { value: "reel", label: t("Reel"), plural: t("Reels"), icon: Video },
+        { value: "ad", label: t("Ad"), plural: t("Ads"), icon: ImageIcon },
+        { value: "post", label: t("Post"), plural: t("Posts"), icon: FileText },
+        { value: "story", label: t("Story"), plural: t("Stories"), icon: ImageIcon },
+        { value: "video", label: t("Video"), plural: t("Videos"), icon: Video },
     ];
 
     const platforms = ["Facebook", "Instagram", "TikTok", "Twitter/X", "YouTube", "LinkedIn"];
@@ -91,18 +94,18 @@ const CampaignsPage = () => {
     }, [selectedClientId]);
 
     const loadClients = () => {
-        const storedClients = localStorage.getItem("clients");
-        if (storedClients) {
-            const clientsList = JSON.parse(storedClients);
+        const stodangerClients = localStorage.getItem("clients");
+        if (stodangerClients) {
+            const clientsList = JSON.parse(stodangerClients);
             setClients(clientsList);
         }
     };
 
     const loadClientAndUploads = () => {
         // Load client
-        const storedClients = localStorage.getItem("clients");
-        if (storedClients) {
-            const clientsList = JSON.parse(storedClients);
+        const stodangerClients = localStorage.getItem("clients");
+        if (stodangerClients) {
+            const clientsList = JSON.parse(stodangerClients);
             const client = clientsList.find((c) => c.id === selectedClientId);
             setSelectedClient(client);
         }
@@ -126,7 +129,7 @@ const CampaignsPage = () => {
 
     const handleAddUpload = () => {
         if (!newUpload.title || !newUpload.type) {
-            alert("Please fill in required fields");
+            alert(t("please_fill_required_fields"));
             return;
         }
 
@@ -150,7 +153,7 @@ const CampaignsPage = () => {
             status: "pending",
         });
         setShowUploadModal(false);
-        alert("✅ Upload added successfully!");
+        alert(t("upload_added_success"));
     };
 
     const updateUploadStatus = (uploadId, newStatus) => {
@@ -180,7 +183,7 @@ const CampaignsPage = () => {
                 return (
                     <Clock
                         size={18}
-                        className="text-blue-500"
+                        className="text-primary-500"
                     />
                 );
             case "pending":
@@ -194,7 +197,7 @@ const CampaignsPage = () => {
                 return (
                     <Clock
                         size={18}
-                        className="text-slate-400"
+                        className="text-secondary-400"
                     />
                 );
         }
@@ -218,14 +221,14 @@ const CampaignsPage = () => {
             {/* Show loading on initial mount or during transitions */}
             {isLoading && !selectedClient && !selectedClientId ? (
                 <div className="flex min-h-[400px] items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                 </div>
             ) : (
                 <>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="title">Campaign Content Tracking</h1>
-                            <p className="text-slate-600 dark:text-slate-400">Upload and track content deliverables</p>
+                            <h1 className="title">{t("campaigns_title")}</h1>
+                            <p className="text-secondary-600 dark:text-secondary-400">{t("campaigns_subtitle")}</p>
                         </div>
                         {selectedClientId && (
                             <button
@@ -233,7 +236,7 @@ const CampaignsPage = () => {
                                 className="btn-primary flex items-center gap-2"
                             >
                                 <Plus size={16} />
-                                Add Upload
+                                {t("add_upload")}
                             </button>
                         )}
                     </div>
@@ -241,7 +244,7 @@ const CampaignsPage = () => {
                     {/* Loading State */}
                     {(isLoading || isTransitioning) && (
                         <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                            <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                         </div>
                     )}
 
@@ -250,8 +253,8 @@ const CampaignsPage = () => {
                         <div>
                             {clients.length > 0 ? (
                                 <>
-                                    <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-50">
-                                        Select a Client Campaign to Track
+                                    <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
+                                        {t("select_a_client_to_plan")}
                                     </h2>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                         {clients.map((client) => {
@@ -262,28 +265,38 @@ const CampaignsPage = () => {
                                             return (
                                                 <div
                                                     key={client.id}
-                                                    className="card transition-all hover:border-blue-500"
+                                                    className="card hover:border-primary-500 transition-all"
                                                 >
-                                                    <h3 className="card-title text-lg">{client.business?.businessName || "Unnamed Client"}</h3>
-                                                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                                                        {client.business?.category || "No Category"}
+                                                    <h3 className="card-title text-lg">
+                                                        <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
+                                                        {client.business?.businessName || t("unnamed_client")}
+                                                    </h3>
+                                                    <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                                        <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
+                                                        {client.business?.category || t("no_category")}
                                                     </p>
                                                     {plan ? (
-                                                        <div className="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                                                            <p>💰 Budget: ${plan.budget || "N/A"}</p>
-                                                            <p>📅 Timeline: {plan.timeline || "N/A"}</p>
-                                                            <p>🎯 Services: {plan.services?.length || 0}</p>
+                                                        <div className="text-secondary-600 dark:text-secondary-400 mt-3 space-y-1 text-xs">
+                                                            <p>
+                                                                💰 {t("budget_usd")}: ${plan.budget || "N/A"}
+                                                            </p>
+                                                            <p>
+                                                                📅 {t("timeline")}: {plan.timeline || "N/A"}
+                                                            </p>
+                                                            <p>
+                                                                🎯 {t("services_to_provide")}: {plan.services?.length || 0}
+                                                            </p>
                                                         </div>
                                                     ) : (
                                                         <div className="mt-3 text-xs text-yellow-600 dark:text-yellow-400">
-                                                            ⚠️ No plan created yet
+                                                            ⚠️ {t("no_plan_created_yet")}
                                                         </div>
                                                     )}
                                                     <button
                                                         onClick={() => setSelectedClientId(client.id)}
                                                         className="btn-primary mt-4 w-full"
                                                     >
-                                                        Track
+                                                        {t("track")}
                                                     </button>
                                                 </div>
                                             );
@@ -295,14 +308,14 @@ const CampaignsPage = () => {
                                     <div className="py-8 text-center">
                                         <Building2
                                             size={48}
-                                            className="mx-auto mb-4 text-slate-400"
+                                            className="text-secondary-400 mx-auto mb-4"
                                         />
-                                        <p className="mb-4 text-slate-600 dark:text-slate-400">No clients found</p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("no_clients_found")}</p>
                                         <a
                                             href="/onboarding"
                                             className="btn-primary"
                                         >
-                                            Add Your First Client
+                                            {t("add_your_first_client")}
                                         </a>
                                     </div>
                                 </div>
@@ -313,7 +326,7 @@ const CampaignsPage = () => {
                     {selectedClient && !isLoading && !isTransitioning && (
                         <>
                             {/* Client Info Header */}
-                            <div className="card bg-slate-50 dark:bg-slate-800/50">
+                            <div className="card bg-secondary-50 dark:bg-secondary-800/50">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <button
@@ -323,10 +336,14 @@ const CampaignsPage = () => {
                                             <ArrowLeft size={20} />
                                         </button>
                                         <div>
-                                            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
+                                            <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
+                                                <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                                 {selectedClient.business?.businessName}
                                             </h2>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400">Campaign Content Tracking</p>
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-sm">
+                                                <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
+                                                {selectedClient.business?.category}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -334,21 +351,23 @@ const CampaignsPage = () => {
 
                             {/* Plan Summary */}
                             {planData ? (
-                                <div className="card bg-blue-50 dark:bg-blue-950/30">
-                                    <h3 className="card-title mb-3">Active Plan</h3>
+                                <div className="card bg-primary-50 dark:bg-primary-950/30">
+                                    <h3 className="card-title mb-3">{t("campaign_planning")}</h3>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                         <div>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400">Budget</p>
-                                            <p className="text-lg font-bold text-slate-900 dark:text-slate-50">${planData.budget || "N/A"}</p>
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("budget_usd")}</p>
+                                            <p className="text-secondary-900 dark:text-secondary-50 text-lg font-bold">${planData.budget || "N/A"}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400">Timeline</p>
-                                            <p className="text-lg font-bold text-slate-900 dark:text-slate-50">{planData.timeline || "N/A"}</p>
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("timeline")}</p>
+                                            <p className="text-secondary-900 dark:text-secondary-50 text-lg font-bold">
+                                                {planData.timeline || "N/A"}
+                                            </p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400">Services</p>
-                                            <p className="text-lg font-bold text-slate-900 dark:text-slate-50">
-                                                {planData.services?.length || 0} services
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("services_to_provide")}</p>
+                                            <p className="text-secondary-900 dark:text-secondary-50 text-lg font-bold">
+                                                {planData.services?.length || 0} {t("services_to_provide")}
                                             </p>
                                         </div>
                                     </div>
@@ -356,12 +375,12 @@ const CampaignsPage = () => {
                             ) : (
                                 <div className="card bg-yellow-50 dark:bg-yellow-950/30">
                                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                        ⚠️ No plan found for this client.{" "}
+                                        ⚠️ {t("no_clients_found_for_plan")}{" "}
                                         <a
                                             href="/planning"
                                             className="font-medium underline"
                                         >
-                                            Create a plan first
+                                            {t("create_a_plan_first") || t("create_a_plan_first")}
                                         </a>
                                     </p>
                                 </div>
@@ -379,11 +398,11 @@ const CampaignsPage = () => {
                                             <div className="flex items-center gap-3">
                                                 <TypeIcon
                                                     size={24}
-                                                    className="text-blue-500"
+                                                    className="text-primary-500"
                                                 />
                                                 <div>
-                                                    <p className="text-xs text-slate-600 dark:text-slate-400">{type.label}s</p>
-                                                    <p className="text-lg font-bold text-slate-900 dark:text-slate-50">
+                                                    <p className="text-secondary-600 dark:text-secondary-400 text-xs">{type.plural}</p>
+                                                    <p className="text-secondary-900 dark:text-secondary-50 text-lg font-bold">
                                                         {stats[type.value]?.completed || 0}/{stats[type.value]?.total || 0}
                                                     </p>
                                                 </div>
@@ -395,7 +414,7 @@ const CampaignsPage = () => {
 
                             {/* Uploads List */}
                             <div className="card">
-                                <h3 className="card-title mb-4">Content Uploads</h3>
+                                <h3 className="card-title mb-4">{t("content_uploads")}</h3>
                                 {uploads.length > 0 ? (
                                     <div className="space-y-3">
                                         {uploads.map((upload) => {
@@ -403,25 +422,27 @@ const CampaignsPage = () => {
                                             return (
                                                 <div
                                                     key={upload.id}
-                                                    className="flex items-start gap-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700"
+                                                    className="border-secondary-200 dark:border-secondary-700 flex items-start gap-4 rounded-lg border p-4"
                                                 >
                                                     <TypeIcon
                                                         size={24}
-                                                        className="flex-shrink-0 text-slate-600 dark:text-slate-400"
+                                                        className="text-secondary-600 dark:text-secondary-400 flex-shrink-0"
                                                     />
                                                     <div className="flex-1">
                                                         <div className="flex items-start justify-between">
                                                             <div>
-                                                                <h4 className="font-medium text-slate-900 dark:text-slate-50">{upload.title}</h4>
-                                                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">
+                                                                    {upload.title}
+                                                                </h4>
+                                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
                                                                     {upload.description}
                                                                 </p>
-                                                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
-                                                                    <span className="rounded bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                                                <div className="text-secondary-500 dark:text-secondary-400 mt-2 flex flex-wrap gap-3 text-xs">
+                                                                    <span className="bg-secondary-100 dark:bg-secondary-800 rounded px-2 py-1">
                                                                         {contentTypes.find((t) => t.value === upload.type)?.label}
                                                                     </span>
                                                                     {upload.platform && (
-                                                                        <span className="rounded bg-blue-100 px-2 py-1 dark:bg-blue-900">
+                                                                        <span className="bg-primary-100 dark:bg-primary-900 rounded px-2 py-1">
                                                                             {upload.platform}
                                                                         </span>
                                                                     )}
@@ -438,15 +459,19 @@ const CampaignsPage = () => {
                                                                 <select
                                                                     value={upload.status}
                                                                     onChange={(e) => updateUploadStatus(upload.id, e.target.value)}
-                                                                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800"
+                                                                    className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 rounded border bg-white px-2 py-1 text-xs"
                                                                 >
-                                                                    <option value="pending">Pending</option>
-                                                                    <option value="in-progress">In Progress</option>
-                                                                    <option value="completed">Completed</option>
+                                                                    <option value="pending">{t("pending")}</option>
+                                                                    <option value="in-progress">{t("in_progress")}</option>
+                                                                    <option value="completed">{t("completed")}</option>
                                                                 </select>
                                                                 <button
-                                                                    onClick={() => deleteUpload(upload.id)}
-                                                                    className="text-red-500 hover:text-red-700"
+                                                                    onClick={() => {
+                                                                        if (!confirm(t("confirm_delete_upload"))) return;
+                                                                        deleteUpload(upload.id);
+                                                                    }}
+                                                                    className="text-danger-500 hover:text-danger-700"
+                                                                    aria-label={t("confirm_delete_upload")}
                                                                 >
                                                                     ×
                                                                 </button>
@@ -458,7 +483,7 @@ const CampaignsPage = () => {
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="py-8 text-center text-slate-500">No uploads yet. Click "Add Upload" to start tracking content.</p>
+                                    <p className="text-secondary-500 py-8 text-center">{t("no_uploads_yet")}</p>
                                 )}
                             </div>
                         </>
@@ -467,16 +492,19 @@ const CampaignsPage = () => {
                     {/* Upload Modal */}
                     {showUploadModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                            <div className="w-full max-w-2xl rounded-lg bg-white p-6 dark:bg-slate-900">
-                                <h3 className="mb-4 text-xl font-bold text-slate-900 dark:text-slate-50">Add Content Upload</h3>
+                            <div className="dark:bg-secondary-900 w-full max-w-2xl rounded-lg bg-white p-6">
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-bold">{t("add_content_upload")}</h3>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Content Type *</label>
+                                        <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
+                                            {t("content_type")} *
+                                        </label>
                                         <select
                                             value={newUpload.type}
                                             onChange={(e) => setNewUpload({ ...newUpload, type: e.target.value })}
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800"
+                                            className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                         >
+                                            <option value="">{t("select_content_type")}</option>
                                             {contentTypes.map((type) => (
                                                 <option
                                                     key={type.value}
@@ -488,34 +516,40 @@ const CampaignsPage = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Title *</label>
+                                        <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
+                                            {t("title_label")} *
+                                        </label>
                                         <input
                                             type="text"
                                             value={newUpload.title}
                                             onChange={(e) => setNewUpload({ ...newUpload, title: e.target.value })}
-                                            placeholder="e.g., Product Launch Reel"
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800"
+                                            placeholder={t("title_label")}
+                                            className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
                                         />
                                     </div>
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
+                                        <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
+                                            {t("description_label")}
+                                        </label>
                                         <textarea
                                             value={newUpload.description}
                                             onChange={(e) => setNewUpload({ ...newUpload, description: e.target.value })}
-                                            placeholder="Brief description of the content"
+                                            placeholder={t("description_placeholder")}
                                             rows={3}
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800"
+                                            className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Platform</label>
+                                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
+                                                {t("platform_label")}
+                                            </label>
                                             <select
                                                 value={newUpload.platform}
                                                 onChange={(e) => setNewUpload({ ...newUpload, platform: e.target.value })}
-                                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800"
+                                                className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
                                             >
-                                                <option value="">Select platform</option>
+                                                <option value="">{t("select_platform")}</option>
                                                 {platforms.map((platform) => (
                                                     <option
                                                         key={platform}
@@ -527,14 +561,14 @@ const CampaignsPage = () => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                                Scheduled Date
+                                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
+                                                {t("scheduled_date")}
                                             </label>
                                             <input
                                                 type="date"
                                                 value={newUpload.scheduledDate}
                                                 onChange={(e) => setNewUpload({ ...newUpload, scheduledDate: e.target.value })}
-                                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800"
+                                                className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
                                             />
                                         </div>
                                     </div>
@@ -544,13 +578,13 @@ const CampaignsPage = () => {
                                         onClick={() => setShowUploadModal(false)}
                                         className="btn-ghost"
                                     >
-                                        Cancel
+                                        {t("cancel")}
                                     </button>
                                     <button
                                         onClick={handleAddUpload}
                                         className="btn-primary"
                                     >
-                                        Add Upload
+                                        {t("add_upload")}
                                     </button>
                                 </div>
                             </div>

@@ -30,11 +30,6 @@ export const navbarLinks = [
                 path: "/",
             },
             {
-                label: "Analytics",
-                icon: BarChart3,
-                path: "/analytics",
-            },
-            {
                 label: "Reports",
                 icon: FileText,
                 path: "/reports",
@@ -271,9 +266,9 @@ export const topProducts = [
     },
     {
         number: 5,
-        name: "Bluetooth Speaker",
+        name: "primarytooth Speaker",
         image: ProductImage,
-        description: "Portable Bluetooth speaker with deep bass sound.",
+        description: "Portable primarytooth speaker with deep bass sound.",
         price: 59.99,
         status: "In Stock",
         rating: 4.3,

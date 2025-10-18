@@ -52,58 +52,58 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("personal_info")}</h2>
+            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("personal_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("full_name")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("full_name")} *</label>
                 <input
                     type="text"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
-                    required
+                    requidanger
                     placeholder={t("full_name_placeholder")}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("email_address")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("email_address")} *</label>
                 <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    required
+                    requidanger
                     placeholder={t("email_placeholder")}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("phone_number")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("phone_number")} *</label>
                 <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    required
+                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneError ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    className={`w-full rounded-lg border ${phoneError ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneError && <p className="mt-1 text-sm text-red-500">{phoneError}</p>}
+                {phoneError && <p className="text-danger-500 mt-1 text-sm">{phoneError}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("position_role")}</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("position_role")}</label>
                 <input
                     type="text"
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
                     placeholder={t("position_placeholder")}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
@@ -129,8 +129,8 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
 };
 
 PersonalInfoStep.propTypes = {
-    data: PropTypes.object.isRequired,
-    onNext: PropTypes.func.isRequired,
-    onPrevious: PropTypes.func.isRequired,
-    isFirst: PropTypes.bool.isRequired,
+    data: PropTypes.object.isRequidanger,
+    onNext: PropTypes.func.isRequidanger,
+    onPrevious: PropTypes.func.isRequidanger,
+    isFirst: PropTypes.bool.isRequidanger,
 };

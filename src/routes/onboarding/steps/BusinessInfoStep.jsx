@@ -28,28 +28,28 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("business_info")}</h2>
+            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("business_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_name")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_name")} *</label>
                 <input
                     type="text"
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
-                    required
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    requidanger
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_category")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_category")} *</label>
                 <select
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    required
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    requidanger
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 >
                     <option value="">{t("select_category")}</option>
                     <option value="retail">{t("option_retail")}</option>
@@ -66,32 +66,32 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_description")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_description")} *</label>
                 <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    required
+                    requidanger
                     rows={4}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     placeholder={t("describe_business_placeholder")}
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("main_office_address")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("main_office_address")} *</label>
                 <textarea
                     name="mainOfficeAddress"
                     value={formData.mainOfficeAddress}
                     onChange={handleChange}
-                    required
+                    requidanger
                     rows={2}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("established_year")}</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("established_year")}</label>
                 <input
                     type="number"
                     name="establishedYear"
@@ -99,7 +99,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     min="1900"
                     max={new Date().getFullYear()}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
@@ -123,7 +123,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
 };
 
 BusinessInfoStep.propTypes = {
-    data: PropTypes.object.isRequired,
-    onNext: PropTypes.func.isRequired,
-    onPrevious: PropTypes.func.isRequired,
+    data: PropTypes.object.isRequidanger,
+    onNext: PropTypes.func.isRequidanger,
+    onPrevious: PropTypes.func.isRequidanger,
 };

@@ -284,4 +284,400 @@ const ar = {
     swot_add_placeholder: "أضف",
 };
 
+// Planning / Campaign page translations
+en.campaign_planning = "Campaign Planning";
+en.campaign_planning_subtitle = "Create strategic plans for your clients";
+en.select_a_client_to_plan = "Select a Client to Plan";
+en.unnamed_client = "Unnamed Client";
+en.no_category = "No Category";
+en.plan_button = "Plan";
+en.add_your_first_client = "Add Your First Client";
+en.campaign_objective = "Campaign Objective";
+en.objective_placeholder = "What are the main goals for this campaign? (e.g., Increase brand awareness, drive sales, grow social following)";
+en.strategic_approach = "Strategic Approach";
+en.strategy_placeholder = "Describe the overall strategy to achieve the objectives (target channels, content themes, engagement tactics, etc.)";
+en.services_to_provide = "Services to Provide";
+en.budget_usd = "Budget (USD)";
+en.timeline = "Timeline";
+en.final_strategy_document = "Final Strategy Document";
+en.download_strategy = "Download Strategy";
+en.save_plan = "Save Plan";
+en.edit_plan = "Edit Plan";
+en.no_clients_found = "No clients found";
+en.plan_saved_success = "✅ Plan saved successfully!";
+en.please_select_client_first = "Please select a client first";
+en.contact_label = "Contact:";
+en.email_label = "Email:";
+en.business_name_label = "Business:";
+en.business_category_label = "Category:";
+en.no_clients_found_for_plan = "No plan found for this client.";
+en.please_complete_onboarding = "Please complete the onboarding process first.";
+en.hide = "Hide";
+en.show = "Show";
+en.debug_information = "Debug Information";
+en.client_overview = "Client Overview";
+en.contact_person = "Contact Person";
+en.business_contact = "Business Contact";
+// Contracts
+en.contracts_title = "Contract Generation";
+en.contracts_subtitle = "Review and customize the contract terms";
+en.save_contract = "Save Contract";
+en.edit = "Edit";
+en.download = "Download";
+en.client_info = "Client Info";
+en.package_label = "Package";
+en.campaign_info = "Campaign Info";
+en.contract_terms = "Contract Terms";
+en.budget_label = "Budget:";
+en.timeline_label = "Timeline:";
+en.services_label = "Services:";
+en.services_selected = "{count} selected";
+en.no_client_selected = "No client selected";
+en.select_client = "Select Client";
+en.download_contract = "Download Contract";
+en.create_a_plan_first = "Create a plan first";
+// Clients page translations
+en.clients_title = "Clients";
+en.manage_your_client_database = "Manage your client database";
+en.add_new_client = "Add New Client";
+en.no_clients_yet = "No clients yet";
+en.get_started_add_first = "Get started by adding your first client.";
+en.add_your_first_client = "Add Your First Client";
+en.unnamed_business = "Unnamed Business";
+en.branches_singular = "branch";
+en.branches_plural = "branches";
+en.segments_label = "Segments";
+en.competitors_label = "Competitors";
+en.swot_items = "SWOT Items";
+en.view_details = "View Details";
+en.plan_campaign = "Plan Campaign";
+en.client_not_found = "Client not found";
+en.client_details = "Client Details";
+en.edit_client = "Edit Client";
+en.client_overview = "Client Overview";
+en.contact_information = "Contact Information";
+en.main_office = "Main Office";
+en.segments = "Segments";
+en.competitors = "Competitors";
+en.branches = "Branches";
+en.none_listed = "None listed";
+en.target_segments = "Target Segments";
+
+// Additional clients/detail keys
+en.established_label = "Established:";
+en.name_label = "Name:";
+en.position_label = "Position:";
+en.phone_label = "Phone:";
+en.whatsapp_label = "WhatsApp:";
+en.website_label = "Website:";
+en.main_office_label = "Main Office:";
+en.quick_stats = "Quick Stats";
+en.no_competitors_tracked = "No competitors tracked";
+en.social_media = "Social Media";
+en.age_label = "Age:";
+en.gender_label = "Gender:";
+
+en.view_client_details = "View Client Details";
+
+// Service labels (used in Planning availableServices)
+en["Social Media Management"] = "Social Media Management";
+en["Content Creation"] = "Content Creation";
+en["Paid Advertising"] = "Paid Advertising";
+en["SEO Optimization"] = "SEO Optimization";
+en["Email Marketing"] = "Email Marketing";
+en["Influencer Marketing"] = "Influencer Marketing";
+en["Video Production"] = "Video Production";
+en["Photography"] = "Photography";
+en["Graphic Design"] = "Graphic Design";
+en["Analytics & Reporting"] = "Analytics & Reporting";
+en["Community Management"] = "Community Management";
+en["Brand Strategy"] = "Brand Strategy";
+
+ar["Social Media Management"] = "إدارة وسائل التواصل الاجتماعي";
+ar["Content Creation"] = "إنتاج المحتوى";
+ar["Paid Advertising"] = "الإعلانات المدفوعة";
+ar["SEO Optimization"] = "تحسين محركات البحث";
+ar["Email Marketing"] = "التسويق عبر البريد الإلكتروني";
+ar["Influencer Marketing"] = "التسويق عبر المؤثرين";
+ar["Video Production"] = "إنتاج الفيديو";
+ar["Photography"] = "التصوير الفوتوغرافي";
+ar["Graphic Design"] = "التصميم الجرافيكي";
+ar["Analytics & Reporting"] = "التحليلات والتقارير";
+ar["Community Management"] = "إدارة المجتمعات";
+ar["Brand Strategy"] = "استراتيجية العلامة التجارية";
+
+ar.campaign_planning = "تخطيط الحملة";
+ar.campaign_planning_subtitle = "إنشاء خطط استراتيجية لعملائك";
+ar.select_a_client_to_plan = "اختر عميلاً للتخطيط";
+ar.unnamed_client = "عميل بدون اسم";
+ar.no_category = "بدون فئة";
+ar.plan_button = "ابدأ التخطيط";
+ar.add_your_first_client = "أضف عميلك الأول";
+ar.campaign_objective = "هدف الحملة";
+ar.objective_placeholder = "ما هي الأهداف الرئيسية لهذه الحملة؟ (مثل: زيادة الوعي بالعلامة التجارية، زيادة المبيعات، نمو المتابعين)";
+ar.strategic_approach = "النهج الاستراتيجي";
+ar.strategy_placeholder = "صف الاستراتيجية العامة لتحقيق الأهداف (قنوات الاستهداف، مواضيع المحتوى، تكتيكات التفاعل، إلخ)";
+ar.services_to_provide = "الخدمات المقدمة";
+ar.budget_usd = "الميزانية (دولار أمريكي)";
+ar.timeline = "الجدول الزمني";
+ar.final_strategy_document = "وثيقة الاستراتيجية النهائية";
+ar.download_strategy = "تحميل الاستراتيجية";
+ar.save_plan = "حفظ الخطة";
+ar.edit_plan = "تعديل الخطة";
+ar.no_clients_found = "لم يتم العثور على عملاء";
+ar.plan_saved_success = "✅ تم حفظ الخطة بنجاح!";
+ar.please_select_client_first = "الرجاء اختيار عميل أولاً";
+ar.contact_label = "جهة الاتصال:";
+ar.email_label = "البريد الإلكتروني:";
+ar.business_name_label = "العميل: ";
+ar.business_category_label = "الفئة: ";
+
+// Campaigns / Uploads translations
+en.campaigns_title = "Campaign Content Tracking";
+en.campaigns_subtitle = "Upload and track content deliverables";
+en.add_upload = "Add Upload";
+en.content_uploads = "Content Uploads";
+en.add_content_upload = "Add Content Upload";
+en.content_type = "Content Type";
+en.title_label = "Title";
+en.description_label = "Description";
+en.platform_label = "Platform";
+en.scheduled_date = "Scheduled Date";
+en.select_platform = "Select platform";
+en.select_content_type = "Select content type";
+en.pending = "Pending";
+en.in_progress = "In Progress";
+en.completed = "Completed";
+en.no_uploads_yet = 'No uploads yet. Click "Add Upload" to start tracking content.';
+en.description_placeholder = "Brief description of the content";
+
+// Content type labels and plurals
+en.Reel = "Reel";
+en.Reels = "Reels";
+en.Ad = "Ad";
+en.Ads = "Ads";
+en.Post = "Post";
+en.Posts = "Posts";
+en.Story = "Story";
+en.Stories = "Stories";
+en.Video = "Video";
+en.Videos = "Videos";
+
+// Stats labels
+en.total = "Total";
+en.completed_count = "Completed";
+
+// Packages page
+en.service_packages = "Service Packages";
+en.service_packages_subtitle = "Choose the best package for your client's needs";
+en.select_package = "Select Package";
+en.package_selected_message = "selected! Proceed to contract generation.";
+
+// Reports page
+en.campaign_reports = "Campaign Reports";
+en.monthly_report = "Monthly Report";
+en.reports_subtitle = "Select a client to view their monthly report";
+en.reports_subtitle_selected = "Track your campaign performance and earnings";
+en.no_client_selected = "No Client Selected";
+en.go_to_campaigns = "Go to Campaigns";
+en.platform_performance = "Platform Performance";
+en.top_performing_posts = "Top Performing Posts";
+en.total_earnings = "Total Earnings";
+en.earnings_change_text = "{change} from last month";
+
+// Additional keys for campaigns plan
+en.market_intelligence = "Market Intelligence";
+en.market_intelligence_subtitle = "Analysis and competitive landscape";
+en.current_competitors = "Current Competitors";
+en.edit_competitors = "Edit Competitors";
+en.no_competitors_added_yet = "No competitors added yet";
+
+ar.market_intelligence = "معلومات السوق";
+ar.market_intelligence_subtitle = "التحليل والمشهد التنافسي";
+ar.current_competitors = "المنافسون الحاليون";
+ar.edit_competitors = "تعديل المنافسين";
+ar.no_competitors_added_yet = "لا يوجد منافسين مضافين بعد";
+
+// Clients page
+en.clients_title = "Clients";
+en.manage_your_client_database = "Manage your client database";
+en.add_new_client = "Add New Client";
+en.no_clients_yet = "No clients yet";
+en.get_started_add_first = "Get started by adding your first client";
+en.unnamed_business = "Unnamed Business";
+en.view_details = "View Details";
+en.plan_campaign = "Plan Campaign";
+en.segments_label = "Segments";
+en.competitors_label = "Competitors";
+en.swot_items = "SWOT Items";
+en.branches_singular = "branch";
+en.branches_plural = "branches";
+en.quick_stats = "Quick Stats";
+en.client_not_found = "Client not found";
+en.client_details = "Client Details";
+en.edit_client = "Edit Client";
+en.no_segments_defined = "No segments defined";
+
+// Additional campaign/upload related keys
+en.please_fill_required_fields = "Please fill in required fields";
+en.upload_added_success = "\u2705 Upload added successfully!";
+en.confirm_delete_upload = "Are you sure you want to delete this upload?";
+en.track = "Track";
+en.no_plan_created_yet = "No plan created yet";
+en.view_client_details = "View Client Details";
+en.view_raw_data = "View Raw Data (Click to expand)";
+en.cancel = "Cancel";
+
+ar.campaigns_title = "تتبع محتوى الحملة";
+ar.campaigns_subtitle = "قم بتحميل وتتبع تسليمات المحتوى";
+ar.add_upload = "أضف تحميل";
+ar.content_uploads = "تحمِيْلات المحتوى";
+ar.add_content_upload = "إضافة تحميل محتوى";
+ar.content_type = "نوع المحتوى";
+ar.title_label = "العنوان";
+ar.description_label = "الوصف";
+ar.platform_label = "المنصة";
+ar.scheduled_date = "تاريخ الجدولة";
+ar.select_platform = "اختر المنصة";
+ar.select_content_type = "اختر نوع المحتوى";
+ar.pending = "قيد الانتظار";
+ar.in_progress = "قيد التنفيذ";
+ar.completed = "مكتمل";
+ar.no_uploads_yet = 'لا توجد تحميلات بعد. اضغط على "أضف تحميل" لبدء تتبع المحتوى.';
+ar.description_placeholder = "وصف موجز للمحتوى";
+
+// No social links
+en.no_social_links_provided = "No social links provided";
+ar.no_social_links_provided = "لا توجد روابط تواصل اجتماعي";
+ar.no_clients_found_for_plan = "لا توجد خطة لهذا العميل.";
+ar.please_complete_onboarding = "يرجى إكمال عملية التسجيل أولاً.";
+ar.hide = "إخفاء";
+ar.show = "عرض";
+ar.debug_information = "معلومات التصحيح";
+ar.client_overview = "نظرة عامة على العميل";
+ar.contact_person = "جهة الاتصال";
+ar.business_contact = "بيانات الاتصال بالعمل";
+// Contracts (Arabic)
+ar.contracts_title = "توليد العقد";
+ar.contracts_subtitle = "راجع وعدل شروط العقد";
+ar.save_contract = "حفظ العقد";
+ar.edit = "تعديل";
+ar.download = "تنزيل";
+ar.client_info = "معلومات العميل";
+ar.package_label = "الباقة";
+ar.campaign_info = "معلومات الحملة";
+ar.contract_terms = "شروط العقد";
+ar.budget_label = "الميزانية:";
+ar.timeline_label = "الجدول الزمني:";
+ar.services_label = "الخدمات:";
+ar.services_selected = "{count} مختارة";
+ar.no_client_selected = "لم يتم اختيار عميل";
+ar.select_client = "اختر عميل";
+ar.download_contract = "تنزيل العقد";
+ar.create_a_plan_first = "أنشئ خطة أولاً";
+// Arabic clients translations
+ar.clients_title = "العملاء";
+ar.manage_your_client_database = "إدارة قاعدة بيانات العملاء";
+ar.add_new_client = "إضافة عميل جديد";
+ar.no_clients_yet = "لا يوجد عملاء بعد";
+ar.get_started_add_first = "ابدأ بإضافة عميلك الأول.";
+ar.add_your_first_client = "أضف عميلك الأول";
+ar.unnamed_business = "عمل بدون اسم";
+ar.branches_singular = "فرع";
+ar.branches_plural = "فروع";
+ar.segments_label = "شرائح";
+ar.competitors_label = "المنافسون";
+ar.swot_items = "عناصر SWOT";
+ar.view_details = "عرض التفاصيل";
+ar.plan_campaign = "تخطيط الحملة";
+ar.client_not_found = "العميل غير موجود";
+ar.client_details = "تفاصيل العميل";
+ar.edit_client = "تعديل العميل";
+ar.client_overview = "نظرة عامة على العميل";
+ar.contact_information = "معلومات الاتصال";
+ar.main_office = "المكتب الرئيسي";
+ar.segments = "شرائح";
+ar.competitors = "المنافسون";
+ar.branches = "الفروع";
+ar.none_listed = "لا يوجد";
+ar.target_segments = "الشرائح المستهدفة";
+
+// Additional clients/detail keys (Arabic)
+ar.established_label = "تاريخ التأسيس:";
+ar.name_label = "الاسم:";
+ar.position_label = "المنصب:";
+ar.phone_label = "الهاتف:";
+ar.whatsapp_label = "واتساب:";
+ar.website_label = "الموقع:";
+ar.main_office_label = "المكتب الرئيسي:";
+ar.quick_stats = "إحصائيات سريعة";
+ar.no_competitors_tracked = "لا يوجد منافسين مسجلين";
+ar.social_media = "وسائل التواصل الاجتماعي";
+ar.age_label = "العمر:";
+ar.gender_label = "الجنس:";
+ar.view_client_details = "عرض تفاصيل العميل";
+
+// Content type labels and plurals (Arabic - avoid adding English 's')
+ar.Reel = "ريلز";
+ar.Reels = "ريلز"; // same word in Arabic, no English 's' appended
+ar.Ad = "إعلان";
+ar.Ads = "إعلانات";
+ar.Post = "بوست";
+ar.Posts = "بوستات";
+ar.Story = "ستوري";
+ar.Stories = "ستوري";
+ar.Video = "فيديو";
+ar.Videos = "فيديوهات";
+
+ar.total = "الإجمالي";
+ar.completed_count = "المكتمل";
+
+// Packages page (Arabic)
+ar.service_packages = "باقات الخدمة";
+ar.service_packages_subtitle = "اختر أفضل باقة لاحتياجات عميلك";
+ar.select_package = "اختر الباقة";
+ar.package_selected_message = "تم الاختيار! تابع لإنشاء العقد.";
+
+// Reports page (Arabic)
+ar.campaign_reports = "تقارير الحملة";
+ar.monthly_report = "التقرير الشهري";
+ar.reports_subtitle = "اختر عميلًا لعرض تقريره الشهري";
+ar.reports_subtitle_selected = "تتبع أداء الحملة والإيرادات";
+ar.no_client_selected = "لم يتم اختيار عميل";
+ar.go_to_campaigns = "اذهب إلى الحملات";
+ar.platform_performance = "أداء المنصة";
+ar.top_performing_posts = "أفضل المنشورات أداءً";
+ar.total_earnings = "إجمالي الإيرادات";
+ar.earnings_change_text = "{change} منذ الشهر الماضي";
+
+// Clients page (Arabic)
+ar.clients_title = "العملاء";
+ar.manage_your_client_database = "إدارة قاعدة بيانات العملاء";
+ar.add_new_client = "إضافة عميل جديد";
+ar.no_clients_yet = "لا يوجد عملاء";
+ar.get_started_add_first = "ابدأ بإضافة عميلك الأول";
+ar.unnamed_business = "شركة بدون اسم";
+ar.view_details = "عرض التفاصيل";
+ar.plan_campaign = "تخطيط الحملة";
+ar.segments_label = "الشرائح";
+ar.competitors_label = "المنافسون";
+ar.swot_items = "عناصر SWOT";
+ar.branches_singular = "فرع";
+ar.branches_plural = "فروع";
+ar.quick_stats = "إحصائيات سريعة";
+ar.client_not_found = "العميل غير موجود";
+ar.client_details = "تفاصيل العميل";
+ar.edit_client = "تعديل العميل";
+ar.no_segments_defined = "لا توجد شرائح معرفة";
+
+// Additional campaign/upload related keys (Arabic)
+ar.please_fill_required_fields = "يرجى ملء الحقول المطلوبة";
+ar.upload_added_success = "\u2705 تم إضافة التحميل بنجاح!";
+ar.confirm_delete_upload = "هل أنت متأكد أنك تريد حذف هذا التحميل؟";
+ar.track = "تتبع";
+ar.no_plan_created_yet = "لم يتم إنشاء خطة بعد";
+ar.view_client_details = "عرض تفاصيل العميل";
+ar.view_raw_data = "عرض البيانات الخام (انقر لتوسيع)";
+ar.cancel = "إلغاء";
+
 export default { en, ar };

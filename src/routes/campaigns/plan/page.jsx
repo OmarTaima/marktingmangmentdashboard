@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, Edit2, Plus, Trash2, X } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
+import { useLang } from "@/hooks/useLang";
 
 const PlanPage = () => {
     const { id } = useParams();
@@ -16,6 +17,8 @@ const PlanPage = () => {
         kpis: [],
     });
     const [isEditing, setIsEditing] = useState(true);
+
+    const { t } = useLang();
 
     // Modal states
     const [showSegmentsModal, setShowSegmentsModal] = useState(false);
@@ -42,13 +45,13 @@ const PlanPage = () => {
 
     useEffect(() => {
         // Load client data from clients array using ID
-        const storedClients = localStorage.getItem("clients");
+        const stodangerClients = localStorage.getItem("clients");
         const selectedClientId = localStorage.getItem("selectedClientId") || id;
 
         console.log("Loading client with ID:", selectedClientId);
 
-        if (storedClients) {
-            const clients = JSON.parse(storedClients);
+        if (stodangerClients) {
+            const clients = JSON.parse(stodangerClients);
             const client = clients.find((c) => c.id === selectedClientId);
 
             if (client) {
@@ -62,9 +65,9 @@ const PlanPage = () => {
         }
 
         // Load existing plan if any
-        const storedPlan = localStorage.getItem(`campaign_plan_${selectedClientId}`);
-        if (storedPlan) {
-            setPlan(JSON.parse(storedPlan));
+        const stodangerPlan = localStorage.getItem(`campaign_plan_${selectedClientId}`);
+        if (stodangerPlan) {
+            setPlan(JSON.parse(stodangerPlan));
             setIsEditing(false);
         }
     }, [id]);
@@ -80,9 +83,9 @@ const PlanPage = () => {
         console.log("Saving client data:", updatedData);
 
         // Load clients array
-        const storedClients = localStorage.getItem("clients");
-        if (storedClients) {
-            const clients = JSON.parse(storedClients);
+        const stodangerClients = localStorage.getItem("clients");
+        if (stodangerClients) {
+            const clients = JSON.parse(stodangerClients);
             const clientIndex = clients.findIndex((c) => c.id === updatedData.id);
 
             if (clientIndex !== -1) {
@@ -199,13 +202,15 @@ const PlanPage = () => {
     if (!clientData) {
         return (
             <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4">
-                <p className="text-lg text-slate-600 dark:text-slate-400">No client data found.</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Please complete the onboarding process first.</p>
+                <p className="text-secondary-600 dark:text-secondary-400 text-lg">{t("no_clients_found")}</p>
+                <p className="text-secondary-500 dark:text-secondary-400 text-sm">
+                    {t("please_complete_onboarding") || "Please complete the onboarding process first."}
+                </p>
                 <button
                     onClick={() => navigate("/onboarding")}
                     className="btn-primary"
                 >
-                    Go to Onboarding
+                    {t("add_your_first_client")}
                 </button>
             </div>
         );
@@ -233,7 +238,7 @@ const PlanPage = () => {
                     </button>
                     <div>
                         <h1 className="title">{clientData.business?.businessName}</h1>
-                        <p className="text-slate-600 dark:text-slate-400">Campaign Planning</p>
+                        <p className="text-secondary-600 dark:text-secondary-400">{t("campaign_planning")}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -241,13 +246,13 @@ const PlanPage = () => {
                         onClick={() => navigate(`/clients/${clientData.id}`)}
                         className="btn-ghost text-sm"
                     >
-                        View Client Details
+                        {t("view_client_details") || "View Client Details"}
                     </button>
                     <button
                         onClick={() => setShowDebug(!showDebug)}
                         className="btn-ghost text-xs"
                     >
-                        {showDebug ? "Hide" : "Show"} Debug
+                        {showDebug ? t("hide") : t("show")} {t("debug_information")}
                     </button>
                     {isEditing ? (
                         <button
@@ -255,7 +260,7 @@ const PlanPage = () => {
                             className="btn-primary flex items-center gap-2"
                         >
                             <Save size={16} />
-                            Save Plan
+                            {t("save_plan")}
                         </button>
                     ) : (
                         <button
@@ -263,7 +268,7 @@ const PlanPage = () => {
                             className="btn-primary flex items-center gap-2"
                         >
                             <Edit2 size={16} />
-                            Edit Plan
+                            {t("edit_plan")}
                         </button>
                     )}
                 </div>
@@ -272,7 +277,7 @@ const PlanPage = () => {
             {/* Debug Panel */}
             {showDebug && (
                 <div className="card bg-yellow-50 dark:bg-yellow-900/20">
-                    <h3 className="mb-3 font-bold text-yellow-900 dark:text-yellow-200">🔍 Debug Information</h3>
+                    <h3 className="mb-3 font-bold text-yellow-900 dark:text-yellow-200">🔍 {t("debug_information") || "Debug Information"}</h3>
                     <div className="space-y-2 text-xs">
                         <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -304,7 +309,7 @@ const PlanPage = () => {
                             <summary className="cursor-pointer font-semibold text-yellow-900 dark:text-yellow-200">
                                 View Raw Data (Click to expand)
                             </summary>
-                            <pre className="mt-2 max-h-96 overflow-auto rounded bg-slate-900 p-3 text-xs text-green-400">
+                            <pre className="bg-secondary-900 mt-2 max-h-96 overflow-auto rounded p-3 text-xs text-green-400">
                                 {JSON.stringify(clientData, null, 2)}
                             </pre>
                         </details>
@@ -317,26 +322,26 @@ const PlanPage = () => {
                 <div className="space-y-4 lg:col-span-4">
                     {/* Client Overview */}
                     <div className="card">
-                        <h3 className="card-title mb-4">Client Overview</h3>
+                        <h3 className="card-title mb-4">{t("client_overview") || "Client Overview"}</h3>
                         <div className="space-y-3 text-sm">
                             <div>
-                                <span className="text-slate-500 dark:text-slate-400">Business:</span>
-                                <p className="font-medium text-slate-900 dark:text-slate-50">{clientData.business?.businessName || "N/A"}</p>
+                                <span className="text-secondary-500 dark:text-secondary-400">Business:</span>
+                                <p className="text-secondary-900 dark:text-secondary-50 font-medium">{clientData.business?.businessName || "N/A"}</p>
                             </div>
                             <div>
-                                <span className="text-slate-500 dark:text-slate-400">Category:</span>
-                                <p className="text-slate-900 dark:text-slate-50">{clientData.business?.category || "N/A"}</p>
+                                <span className="text-secondary-500 dark:text-secondary-400">Category:</span>
+                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.business?.category || "N/A"}</p>
                             </div>
                             {clientData.business?.establishedYear && (
                                 <div>
-                                    <span className="text-slate-500 dark:text-slate-400">Established:</span>
-                                    <p className="text-slate-900 dark:text-slate-50">{clientData.business.establishedYear}</p>
+                                    <span className="text-secondary-500 dark:text-secondary-400">Established:</span>
+                                    <p className="text-secondary-900 dark:text-secondary-50">{clientData.business.establishedYear}</p>
                                 </div>
                             )}
                             {clientData.business?.description && (
                                 <div>
-                                    <span className="text-slate-500 dark:text-slate-400">Description:</span>
-                                    <p className="text-slate-900 dark:text-slate-50">{clientData.business.description}</p>
+                                    <span className="text-secondary-500 dark:text-secondary-400">Description:</span>
+                                    <p className="text-secondary-900 dark:text-secondary-50">{clientData.business.description}</p>
                                 </div>
                             )}
                         </div>
@@ -344,35 +349,39 @@ const PlanPage = () => {
 
                     {/* Contact Information */}
                     <div className="card">
-                        <h3 className="card-title mb-4">Contact Information</h3>
+                        <h3 className="card-title mb-4">{t("contact_info")}</h3>
                         <div className="space-y-4">
                             {/* Contact Person */}
                             {(clientData.personal?.fullName || clientData.personal?.email || clientData.personal?.phone) && (
                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Person</h4>
+                                    <h4 className="text-secondary-700 dark:text-secondary-300 text-sm font-semibold">
+                                        {t("contact_person") || "Contact Person"}
+                                    </h4>
                                     <div className="space-y-2 text-sm">
                                         {clientData.personal?.fullName && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Name:</span>
-                                                <p className="font-medium text-slate-900 dark:text-slate-50">{clientData.personal.fullName}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Name:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50 font-medium">
+                                                    {clientData.personal.fullName}
+                                                </p>
                                             </div>
                                         )}
                                         {clientData.personal?.position && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Position:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.personal.position}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Position:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.personal.position}</p>
                                             </div>
                                         )}
                                         {clientData.personal?.email && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Email:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.personal.email}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Email:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.personal.email}</p>
                                             </div>
                                         )}
                                         {clientData.personal?.phone && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Phone:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.personal.phone}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Phone:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.personal.phone}</p>
                                             </div>
                                         )}
                                     </div>
@@ -381,35 +390,37 @@ const PlanPage = () => {
 
                             {/* Business Contact */}
                             {(clientData.contact?.businessEmail || clientData.contact?.businessPhone || clientData.contact?.website) && (
-                                <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
-                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Business Contact</h4>
+                                <div className="border-secondary-200 dark:border-secondary-700 space-y-2 border-t pt-3">
+                                    <h4 className="text-secondary-700 dark:text-secondary-300 text-sm font-semibold">
+                                        {t("business_contact") || "Business Contact"}
+                                    </h4>
                                     <div className="space-y-2 text-sm">
                                         {clientData.contact?.businessEmail && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Email:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.contact.businessEmail}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Email:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.contact.businessEmail}</p>
                                             </div>
                                         )}
                                         {clientData.contact?.businessPhone && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Phone:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.contact.businessPhone}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Phone:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.contact.businessPhone}</p>
                                             </div>
                                         )}
                                         {clientData.contact?.businessWhatsApp && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">WhatsApp:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.contact.businessWhatsApp}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">WhatsApp:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.contact.businessWhatsApp}</p>
                                             </div>
                                         )}
                                         {clientData.contact?.website && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Website:</span>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Website:</span>
                                                 <a
                                                     href={clientData.contact.website}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-blue-500 hover:underline"
+                                                    className="text-primary-500 hover:underline"
                                                 >
                                                     {clientData.contact.website}
                                                 </a>
@@ -417,8 +428,8 @@ const PlanPage = () => {
                                         )}
                                         {clientData.business?.mainOfficeAddress && (
                                             <div>
-                                                <span className="text-slate-500 dark:text-slate-400">Main Office:</span>
-                                                <p className="text-slate-900 dark:text-slate-50">{clientData.business.mainOfficeAddress}</p>
+                                                <span className="text-secondary-500 dark:text-secondary-400">Main Office:</span>
+                                                <p className="text-secondary-900 dark:text-secondary-50">{clientData.business.mainOfficeAddress}</p>
                                             </div>
                                         )}
                                     </div>
@@ -429,19 +440,19 @@ const PlanPage = () => {
 
                     {/* Quick Stats */}
                     <div className="card">
-                        <h3 className="card-title mb-4">Quick Stats</h3>
+                        <h3 className="card-title mb-4">{t("quick_stats")}</h3>
                         <div className="grid grid-cols-3 gap-4 text-center">
                             <div>
-                                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{clientData.segments?.length || 0}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">Segments</p>
+                                <p className="text-primary-600 dark:text-primary-400 text-2xl font-bold">{clientData.segments?.length || 0}</p>
+                                <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("segments_label")}</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{clientData.competitors?.length || 0}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">Competitors</p>
+                                <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("competitors_label")}</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{clientData.branches?.length || 0}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400">Branches</p>
+                                <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("branches")}</p>
                             </div>
                         </div>
                     </div>
@@ -451,8 +462,8 @@ const PlanPage = () => {
                 <div className="space-y-4 lg:col-span-8">
                     {/* Market Intelligence Section */}
                     <div className="mb-2">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">Market Intelligence</h2>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Analysis and competitive landscape</p>
+                        <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">{t("market_intelligence")}</h2>
+                        <p className="text-secondary-600 dark:text-secondary-400 text-sm">{t("market_intelligence_subtitle")}</p>
                     </div>
 
                     {/* SWOT Analysis */}
@@ -474,47 +485,47 @@ const PlanPage = () => {
                                         clientData.swot.strengths.map((item, idx) => (
                                             <li
                                                 key={idx}
-                                                className="text-slate-900 dark:text-slate-50"
+                                                className="text-secondary-900 dark:text-secondary-50"
                                             >
                                                 {item}
                                             </li>
                                         ))
                                     ) : (
-                                        <li className="text-slate-500">None listed</li>
+                                        <li className="text-secondary-500">{t("none_listed")}</li>
                                     )}
                                 </ul>
                             </div>
                             <div>
-                                <span className="font-medium text-red-600 dark:text-red-400">⚠️ Weaknesses:</span>
+                                <span className="text-danger-600 dark:text-danger-400 font-medium">⚠️ Weaknesses:</span>
                                 <ul className="mt-1 ml-4 list-disc space-y-1">
                                     {clientData.swot?.weaknesses && clientData.swot.weaknesses.length > 0 ? (
                                         clientData.swot.weaknesses.map((item, idx) => (
                                             <li
                                                 key={idx}
-                                                className="text-slate-900 dark:text-slate-50"
+                                                className="text-secondary-900 dark:text-secondary-50"
                                             >
                                                 {item}
                                             </li>
                                         ))
                                     ) : (
-                                        <li className="text-slate-500">None listed</li>
+                                        <li className="text-secondary-500">None listed</li>
                                     )}
                                 </ul>
                             </div>
                             <div>
-                                <span className="font-medium text-blue-600 dark:text-blue-400">🎯 Opportunities:</span>
+                                <span className="text-primary-600 dark:text-primary-400 font-medium">🎯 Opportunities:</span>
                                 <ul className="mt-1 ml-4 list-disc space-y-1">
                                     {clientData.swot?.opportunities && clientData.swot.opportunities.length > 0 ? (
                                         clientData.swot.opportunities.map((item, idx) => (
                                             <li
                                                 key={idx}
-                                                className="text-slate-900 dark:text-slate-50"
+                                                className="text-secondary-900 dark:text-secondary-50"
                                             >
                                                 {item}
                                             </li>
                                         ))
                                     ) : (
-                                        <li className="text-slate-500">None listed</li>
+                                        <li className="text-secondary-500">None listed</li>
                                     )}
                                 </ul>
                             </div>
@@ -525,13 +536,13 @@ const PlanPage = () => {
                                         clientData.swot.threats.map((item, idx) => (
                                             <li
                                                 key={idx}
-                                                className="text-slate-900 dark:text-slate-50"
+                                                className="text-secondary-900 dark:text-secondary-50"
                                             >
                                                 {item}
                                             </li>
                                         ))
                                     ) : (
-                                        <li className="text-slate-500">None listed</li>
+                                        <li className="text-secondary-500">None listed</li>
                                     )}
                                 </ul>
                             </div>
@@ -553,11 +564,11 @@ const PlanPage = () => {
                                 {clientData.segments.map((segment, idx) => (
                                     <div
                                         key={idx}
-                                        className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
                                     >
-                                        <h4 className="font-medium text-slate-900 dark:text-slate-50">{segment.name}</h4>
-                                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{segment.description}</p>
-                                        <div className="mt-2 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+                                        <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{segment.name}</h4>
+                                        <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{segment.description}</p>
+                                        <div className="text-secondary-500 dark:text-secondary-400 mt-2 flex gap-4 text-xs">
                                             {segment.targetAge && <span>Age: {segment.targetAge}</span>}
                                             {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
                                         </div>
@@ -565,13 +576,13 @@ const PlanPage = () => {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-500">No segments defined</p>
+                            <p className="text-secondary-500 text-sm">No segments defined</p>
                         )}
                     </div>
 
                     <div className="card">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="card-title">Competitors</h3>
+                            <h3 className="card-title">{t("competitors")}</h3>
                             <button
                                 onClick={openCompetitorsModal}
                                 className="btn-ghost !px-3 !py-1 text-sm"
@@ -584,16 +595,16 @@ const PlanPage = () => {
                                 {clientData.competitors.map((competitor, idx) => (
                                     <div
                                         key={idx}
-                                        className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
                                     >
-                                        <h4 className="font-medium text-slate-900 dark:text-slate-50">{competitor.name}</h4>
-                                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{competitor.description}</p>
+                                        <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{competitor.name}</h4>
+                                        <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{competitor.description}</p>
                                         {competitor.website && (
                                             <a
                                                 href={competitor.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="mt-1 text-xs text-blue-500 hover:underline"
+                                                className="text-primary-500 mt-1 text-xs hover:underline"
                                             >
                                                 {competitor.website}
                                             </a>
@@ -602,7 +613,7 @@ const PlanPage = () => {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-500">No competitors tracked</p>
+                            <p className="text-secondary-500 text-sm">{t("no_competitors_tracked")}</p>
                         )}
                     </div>
 
@@ -623,22 +634,22 @@ const PlanPage = () => {
                                     .filter((link) => link && link.url && link.platform)
                                     .map((link, idx) => {
                                         let Icon = null;
-                                        let colorClass = "text-slate-600";
+                                        let colorClass = "text-secondary-600";
 
                                         // Assign icons and colors based on platform
                                         const platformLower = link.platform.toLowerCase();
                                         if (platformLower.includes("facebook")) {
                                             Icon = SiFacebook;
-                                            colorClass = "text-blue-600";
+                                            colorClass = "text-primary-600";
                                         } else if (platformLower.includes("instagram")) {
                                             Icon = SiInstagram;
                                             colorClass = "text-pink-600";
                                         } else if (platformLower.includes("tiktok")) {
                                             Icon = SiTiktok;
-                                            colorClass = "text-slate-900 dark:text-white";
+                                            colorClass = "text-secondary-900 dark:text-white";
                                         } else if (platformLower.includes("x") || platformLower.includes("twitter")) {
                                             Icon = SiX;
-                                            colorClass = "text-slate-900 dark:text-white";
+                                            colorClass = "text-secondary-900 dark:text-white";
                                         }
 
                                         return (
@@ -647,12 +658,14 @@ const PlanPage = () => {
                                                 className="flex items-center gap-2"
                                             >
                                                 {Icon && <Icon className={`${colorClass} h-4 w-4`} />}
-                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{link.platform}:</span>
+                                                <span className="text-secondary-700 dark:text-secondary-300 text-sm font-medium">
+                                                    {link.platform}:
+                                                </span>
                                                 <a
                                                     href={link.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="max-w-xs flex-1 truncate text-sm text-blue-500 hover:underline"
+                                                    className="text-primary-500 max-w-xs flex-1 truncate text-sm hover:underline"
                                                 >
                                                     {link.url}
                                                 </a>
@@ -668,12 +681,12 @@ const PlanPage = () => {
                                         key={`custom-${idx}`}
                                         className="flex items-center gap-2"
                                     >
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{link.platform}:</span>
+                                        <span className="text-secondary-700 dark:text-secondary-300 text-sm font-medium">{link.platform}:</span>
                                         <a
                                             href={link.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="max-w-xs flex-1 truncate text-sm text-blue-500 hover:underline"
+                                            className="text-primary-500 max-w-xs flex-1 truncate text-sm hover:underline"
                                         >
                                             {link.url}
                                         </a>
@@ -682,7 +695,7 @@ const PlanPage = () => {
 
                             {(!clientData.socialLinks?.business || clientData.socialLinks.business.filter((link) => link && link.url).length === 0) &&
                                 (!clientData.socialLinks?.custom || clientData.socialLinks.custom.length === 0) && (
-                                    <p className="text-sm text-slate-500">No social links provided</p>
+                                    <p className="text-secondary-500 text-sm">No social links provided</p>
                                 )}
                         </div>
                     </div>
@@ -702,23 +715,23 @@ const PlanPage = () => {
                                 {clientData.branches.map((branch, idx) => (
                                     <div
                                         key={idx}
-                                        className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
                                     >
-                                        <h4 className="font-medium text-slate-900 dark:text-slate-50">{branch.name}</h4>
-                                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{branch.address}</p>
-                                        {branch.phone && <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">📞 {branch.phone}</p>}
+                                        <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{branch.name}</h4>
+                                        <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{branch.address}</p>
+                                        {branch.phone && <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">📞 {branch.phone}</p>}
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-500">No branches added</p>
+                            <p className="text-secondary-500 text-sm">No branches added</p>
                         )}
                     </div>
 
                     {/* Campaign Planning Section */}
                     <div className="mt-8 mb-2">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">Campaign Planning</h2>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Define objectives, strategy, and deliverables</p>
+                        <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">Campaign Planning</h2>
+                        <p className="text-secondary-600 dark:text-secondary-400 text-sm">Define objectives, strategy, and deliverables</p>
                     </div>
 
                     <div className="card">
@@ -729,7 +742,7 @@ const PlanPage = () => {
                             disabled={!isEditing}
                             rows={3}
                             placeholder="Define the main objective of this campaign..."
-                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
                         />
                     </div>
 
@@ -741,7 +754,7 @@ const PlanPage = () => {
                             disabled={!isEditing}
                             rows={5}
                             placeholder="Describe the overall strategy based on client data, SWOT analysis, and target segments..."
-                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
                         />
                     </div>
 
@@ -756,12 +769,12 @@ const PlanPage = () => {
                                     disabled={!isEditing}
                                     className={`rounded-lg border-2 p-4 text-left transition-colors ${
                                         plan.selectedServices.includes(service.id)
-                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                            : "border-slate-300 hover:border-blue-300 dark:border-slate-700"
+                                            ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
+                                            : "border-secondary-300 dark:border-secondary-700 hover:border-primary-300"
                                     } disabled:opacity-50`}
                                 >
-                                    <h4 className="font-medium text-slate-900 dark:text-slate-50">{service.name}</h4>
-                                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{service.description}</p>
+                                    <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{service.name}</h4>
+                                    <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{service.description}</p>
                                 </button>
                             ))}
                         </div>
@@ -776,7 +789,7 @@ const PlanPage = () => {
                                 onChange={(e) => setPlan({ ...plan, budget: e.target.value })}
                                 disabled={!isEditing}
                                 placeholder="e.g., 5000"
-                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
                             />
                         </div>
                         <div className="card">
@@ -787,7 +800,7 @@ const PlanPage = () => {
                                 onChange={(e) => setPlan({ ...plan, timeline: e.target.value })}
                                 disabled={!isEditing}
                                 placeholder="e.g., 3 months"
-                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
                             />
                         </div>
                     </div>
@@ -801,11 +814,11 @@ const PlanPage = () => {
                     onClick={() => setShowSegmentsModal(false)}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-slate-900"
+                        className="dark:bg-secondary-900 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Edit Target Segments</h2>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 text-2xl font-semibold">Edit Target Segments</h2>
                             <button
                                 onClick={() => setShowSegmentsModal(false)}
                                 className="btn-ghost !px-2"
@@ -816,15 +829,15 @@ const PlanPage = () => {
 
                         <div className="space-y-4">
                             {/* Add New Segment Form */}
-                            <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-                                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Add New Segment</h3>
+                            <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">Add New Segment</h3>
                                 <div className="space-y-3">
                                     <div>
                                         <input
                                             type="text"
                                             id="newSegmentName"
                                             placeholder="Segment Name"
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         />
                                     </div>
                                     <div>
@@ -832,7 +845,7 @@ const PlanPage = () => {
                                             id="newSegmentDesc"
                                             placeholder="Description"
                                             rows={2}
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
@@ -840,11 +853,11 @@ const PlanPage = () => {
                                             type="text"
                                             id="newSegmentAge"
                                             placeholder="Age Range (e.g., 18-35)"
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         />
                                         <select
                                             id="newSegmentGender"
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         >
                                             <option value="">Gender - All</option>
                                             <option value="male">Male</option>
@@ -877,31 +890,31 @@ const PlanPage = () => {
 
                             {/* Existing Segments */}
                             <div className="space-y-2">
-                                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Current Segments</h3>
+                                <h3 className="text-secondary-900 dark:text-secondary-50 text-lg font-medium">Current Segments</h3>
                                 {editingSegments.length > 0 ? (
                                     editingSegments.map((segment, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-start justify-between rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+                                            className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-start justify-between rounded-lg border bg-white p-3"
                                         >
                                             <div>
-                                                <h4 className="font-medium text-slate-900 dark:text-slate-50">{segment.name}</h4>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400">{segment.description}</p>
-                                                <div className="mt-1 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{segment.name}</h4>
+                                                <p className="text-secondary-600 dark:text-secondary-400 text-sm">{segment.description}</p>
+                                                <div className="text-secondary-500 dark:text-secondary-400 mt-1 flex gap-4 text-xs">
                                                     {segment.targetAge && <span>Age: {segment.targetAge}</span>}
                                                     {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => setEditingSegments(editingSegments.filter((_, i) => i !== idx))}
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-slate-500">No segments added yet</p>
+                                    <p className="text-secondary-500 text-sm">No segments added yet</p>
                                 )}
                             </div>
                         </div>
@@ -931,11 +944,11 @@ const PlanPage = () => {
                     onClick={() => setShowCompetitorsModal(false)}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-slate-900"
+                        className="dark:bg-secondary-900 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Edit Competitors</h2>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 text-2xl font-semibold">{t("edit_competitors")}</h2>
                             <button
                                 onClick={() => setShowCompetitorsModal(false)}
                                 className="btn-ghost !px-2"
@@ -946,26 +959,26 @@ const PlanPage = () => {
 
                         <div className="space-y-4">
                             {/* Add New Competitor Form */}
-                            <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-                                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Add New Competitor</h3>
+                            <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">Add New Competitor</h3>
                                 <div className="space-y-3">
                                     <input
                                         type="text"
                                         id="newCompetitorName"
                                         placeholder="Competitor Name"
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <textarea
                                         id="newCompetitorDesc"
                                         placeholder="Description"
                                         rows={2}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <input
                                         type="url"
                                         id="newCompetitorWebsite"
                                         placeholder="Website URL"
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <button
                                         onClick={() => {
@@ -990,22 +1003,22 @@ const PlanPage = () => {
 
                             {/* Existing Competitors */}
                             <div className="space-y-2">
-                                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Current Competitors</h3>
+                                <h3 className="text-secondary-900 dark:text-secondary-50 text-lg font-medium">{t("current_competitors")}</h3>
                                 {editingCompetitors.length > 0 ? (
                                     editingCompetitors.map((competitor, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-start justify-between rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+                                            className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-start justify-between rounded-lg border bg-white p-3"
                                         >
                                             <div>
-                                                <h4 className="font-medium text-slate-900 dark:text-slate-50">{competitor.name}</h4>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400">{competitor.description}</p>
+                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{competitor.name}</h4>
+                                                <p className="text-secondary-600 dark:text-secondary-400 text-sm">{competitor.description}</p>
                                                 {competitor.website && (
                                                     <a
                                                         href={competitor.website}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-xs text-blue-500 hover:underline"
+                                                        className="text-primary-500 text-xs hover:underline"
                                                     >
                                                         {competitor.website}
                                                     </a>
@@ -1013,14 +1026,14 @@ const PlanPage = () => {
                                             </div>
                                             <button
                                                 onClick={() => setEditingCompetitors(editingCompetitors.filter((_, i) => i !== idx))}
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-slate-500">No competitors added yet</p>
+                                    <p className="text-secondary-500 text-sm">{t("no_competitors_added_yet")}</p>
                                 )}
                             </div>
                         </div>
@@ -1050,11 +1063,11 @@ const PlanPage = () => {
                     onClick={() => setShowSocialLinksModal(false)}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-slate-900"
+                        className="dark:bg-secondary-900 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Edit Social Media Links</h2>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 text-2xl font-semibold">Edit Social Media Links</h2>
                             <button
                                 onClick={() => setShowSocialLinksModal(false)}
                                 className="btn-ghost !px-2"
@@ -1066,13 +1079,13 @@ const PlanPage = () => {
                         <div className="space-y-6">
                             {/* Main Platforms */}
                             <div>
-                                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Main Marketing Platforms</h3>
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">Main Marketing Platforms</h3>
                                 <div className="space-y-3">
                                     {[
-                                        { name: "Facebook", icon: SiFacebook, color: "text-blue-600" },
+                                        { name: "Facebook", icon: SiFacebook, color: "text-primary-600" },
                                         { name: "Instagram", icon: SiInstagram, color: "text-pink-600" },
-                                        { name: "TikTok", icon: SiTiktok, color: "text-slate-900 dark:text-white" },
-                                        { name: "X (Twitter)", icon: SiX, color: "text-slate-900 dark:text-white" },
+                                        { name: "TikTok", icon: SiTiktok, color: "text-secondary-900 dark:text-white" },
+                                        { name: "X (Twitter)", icon: SiX, color: "text-secondary-900 dark:text-white" },
                                     ].map((platform, index) => {
                                         const Icon = platform.icon;
                                         const currentLink = editingSocialLinks[index] || { platform: platform.name, url: "" };
@@ -1084,7 +1097,9 @@ const PlanPage = () => {
                                             >
                                                 <div className="flex w-40 items-center gap-2">
                                                     <Icon className={`${platform.color} h-5 w-5`} />
-                                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{platform.name}</label>
+                                                    <label className="text-secondary-700 dark:text-secondary-300 text-sm font-medium">
+                                                        {platform.name}
+                                                    </label>
                                                 </div>
                                                 <input
                                                     type="url"
@@ -1096,7 +1111,7 @@ const PlanPage = () => {
                                                     }}
                                                     placeholder={`https://${platform.name.toLowerCase().replace(/\s+/g, "")}.com/yourpage`}
                                                     dir={dirFor(`https://${platform.name.toLowerCase().replace(/\s+/g, "")}.com/yourpage`)}
-                                                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                                 />
                                             </div>
                                         );
@@ -1106,21 +1121,21 @@ const PlanPage = () => {
 
                             {/* Custom Platforms */}
                             <div>
-                                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Other Platforms (Optional)</h3>
-                                <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">Other Platforms (Optional)</h3>
+                                <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
                                     <div className="mb-3 grid grid-cols-2 gap-3">
                                         <input
                                             type="text"
                                             id="newCustomPlatform"
                                             placeholder="Platform Name (e.g., LinkedIn, YouTube)"
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         />
                                         <input
                                             type="url"
                                             id="newCustomUrl"
                                             placeholder="https://..."
                                             dir={dirFor("https://...")}
-                                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         />
                                     </div>
                                     <button
@@ -1147,15 +1162,15 @@ const PlanPage = () => {
                                         {editingCustomLinks.map((link, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex items-center justify-between rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+                                                className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-center justify-between rounded-lg border bg-white p-3"
                                             >
                                                 <div className="flex-1">
-                                                    <span className="font-medium text-slate-900 dark:text-slate-50">{link.platform}</span>
-                                                    <p className="truncate text-sm text-slate-600 dark:text-slate-400">{link.url}</p>
+                                                    <span className="text-secondary-900 dark:text-secondary-50 font-medium">{link.platform}</span>
+                                                    <p className="text-secondary-600 dark:text-secondary-400 truncate text-sm">{link.url}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => setEditingCustomLinks(editingCustomLinks.filter((_, i) => i !== idx))}
-                                                    className="text-red-500 hover:text-red-600"
+                                                    className="text-danger-500 hover:text-danger-600"
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>
@@ -1191,11 +1206,11 @@ const PlanPage = () => {
                     onClick={() => setShowSwotModal(false)}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-slate-900"
+                        className="dark:bg-secondary-900 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Edit SWOT Analysis</h2>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 text-2xl font-semibold">Edit SWOT Analysis</h2>
                             <button
                                 onClick={() => setShowSwotModal(false)}
                                 className="btn-ghost !px-2"
@@ -1213,7 +1228,7 @@ const PlanPage = () => {
                                         type="text"
                                         id="newStrength"
                                         placeholder="Add strength..."
-                                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                                 const value = e.target.value.trim();
@@ -1249,9 +1264,9 @@ const PlanPage = () => {
                                     {editingSwot.strengths.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                                            className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded px-3 py-2"
                                         >
-                                            <span className="text-sm text-slate-900 dark:text-slate-50">{item}</span>
+                                            <span className="text-secondary-900 dark:text-secondary-50 text-sm">{item}</span>
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1260,7 +1275,7 @@ const PlanPage = () => {
                                                         strengths: prev.strengths.filter((_, i) => i !== idx),
                                                     }))
                                                 }
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -1271,13 +1286,13 @@ const PlanPage = () => {
 
                             {/* Weaknesses */}
                             <div className="space-y-2">
-                                <h3 className="text-lg font-medium text-red-600 dark:text-red-400">⚠️ Weaknesses</h3>
+                                <h3 className="text-danger-600 dark:text-danger-400 text-lg font-medium">⚠️ Weaknesses</h3>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
                                         id="newWeakness"
                                         placeholder="Add weakness..."
-                                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                                 const value = e.target.value.trim();
@@ -1313,9 +1328,9 @@ const PlanPage = () => {
                                     {editingSwot.weaknesses.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                                            className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded px-3 py-2"
                                         >
-                                            <span className="text-sm text-slate-900 dark:text-slate-50">{item}</span>
+                                            <span className="text-secondary-900 dark:text-secondary-50 text-sm">{item}</span>
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1324,7 +1339,7 @@ const PlanPage = () => {
                                                         weaknesses: prev.weaknesses.filter((_, i) => i !== idx),
                                                     }))
                                                 }
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -1335,13 +1350,13 @@ const PlanPage = () => {
 
                             {/* Opportunities */}
                             <div className="space-y-2">
-                                <h3 className="text-lg font-medium text-blue-600 dark:text-blue-400">🎯 Opportunities</h3>
+                                <h3 className="text-primary-600 dark:text-primary-400 text-lg font-medium">🎯 Opportunities</h3>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
                                         id="newOpportunity"
                                         placeholder="Add opportunity..."
-                                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                                 const value = e.target.value.trim();
@@ -1377,9 +1392,9 @@ const PlanPage = () => {
                                     {editingSwot.opportunities.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                                            className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded px-3 py-2"
                                         >
-                                            <span className="text-sm text-slate-900 dark:text-slate-50">{item}</span>
+                                            <span className="text-secondary-900 dark:text-secondary-50 text-sm">{item}</span>
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1388,7 +1403,7 @@ const PlanPage = () => {
                                                         opportunities: prev.opportunities.filter((_, i) => i !== idx),
                                                     }))
                                                 }
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -1405,7 +1420,7 @@ const PlanPage = () => {
                                         type="text"
                                         id="newThreat"
                                         placeholder="Add threat..."
-                                        className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                                 const value = e.target.value.trim();
@@ -1441,9 +1456,9 @@ const PlanPage = () => {
                                     {editingSwot.threats.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                                            className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded px-3 py-2"
                                         >
-                                            <span className="text-sm text-slate-900 dark:text-slate-50">{item}</span>
+                                            <span className="text-secondary-900 dark:text-secondary-50 text-sm">{item}</span>
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -1452,7 +1467,7 @@ const PlanPage = () => {
                                                         threats: prev.threats.filter((_, i) => i !== idx),
                                                     }))
                                                 }
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -1487,11 +1502,11 @@ const PlanPage = () => {
                     onClick={() => setShowBranchesModal(false)}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-slate-900"
+                        className="dark:bg-secondary-900 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Edit Branches</h2>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 text-2xl font-semibold">Edit Branches</h2>
                             <button
                                 onClick={() => setShowBranchesModal(false)}
                                 className="btn-ghost !px-2"
@@ -1502,26 +1517,26 @@ const PlanPage = () => {
 
                         <div className="space-y-4">
                             {/* Add New Branch Form */}
-                            <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-                                <h3 className="mb-3 text-lg font-medium text-slate-900 dark:text-slate-50">Add New Branch</h3>
+                            <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
+                                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">Add New Branch</h3>
                                 <div className="space-y-3">
                                     <input
                                         type="text"
                                         id="newBranchName"
                                         placeholder="Branch Name"
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <textarea
                                         id="newBranchAddress"
                                         placeholder="Address"
                                         rows={2}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <input
                                         type="tel"
                                         id="newBranchPhone"
                                         placeholder="Phone (optional)"
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                                     />
                                     <button
                                         onClick={() => {
@@ -1546,28 +1561,30 @@ const PlanPage = () => {
 
                             {/* Existing Branches */}
                             <div className="space-y-2">
-                                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Current Branches</h3>
+                                <h3 className="text-secondary-900 dark:text-secondary-50 text-lg font-medium">Current Branches</h3>
                                 {editingBranches.length > 0 ? (
                                     editingBranches.map((branch, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-start justify-between rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+                                            className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-start justify-between rounded-lg border bg-white p-3"
                                         >
                                             <div>
-                                                <h4 className="font-medium text-slate-900 dark:text-slate-50">{branch.name}</h4>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400">{branch.address}</p>
-                                                {branch.phone && <p className="text-sm text-slate-600 dark:text-slate-400">📞 {branch.phone}</p>}
+                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{branch.name}</h4>
+                                                <p className="text-secondary-600 dark:text-secondary-400 text-sm">{branch.address}</p>
+                                                {branch.phone && (
+                                                    <p className="text-secondary-600 dark:text-secondary-400 text-sm">📞 {branch.phone}</p>
+                                                )}
                                             </div>
                                             <button
                                                 onClick={() => setEditingBranches(editingBranches.filter((_, i) => i !== idx))}
-                                                className="text-red-500 hover:text-red-600"
+                                                className="text-danger-500 hover:text-danger-600"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-slate-500">No branches added yet</p>
+                                    <p className="text-secondary-500 text-sm">No branches added yet</p>
                                 )}
                             </div>
                         </div>

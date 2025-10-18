@@ -66,52 +66,52 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("contact_info")}</h2>
+            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("contact_info")}</h2>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_phone")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_phone")} *</label>
                 <input
                     type="tel"
                     name="businessPhone"
                     value={formData.businessPhone}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    required
+                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneErrors.businessPhone ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    className={`w-full rounded-lg border ${phoneErrors.businessPhone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneErrors.businessPhone && <p className="mt-1 text-sm text-red-500">{phoneErrors.businessPhone}</p>}
+                {phoneErrors.businessPhone && <p className="text-danger-500 mt-1 text-sm">{phoneErrors.businessPhone}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_whatsapp")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_whatsapp")} *</label>
                 <input
                     type="tel"
                     name="businessWhatsApp"
                     value={formData.businessWhatsApp}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    required
+                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneErrors.businessWhatsApp ? "border-red-500" : "border-slate-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50`}
+                    className={`w-full rounded-lg border ${phoneErrors.businessWhatsApp ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneErrors.businessWhatsApp && <p className="mt-1 text-sm text-red-500">{phoneErrors.businessWhatsApp}</p>}
+                {phoneErrors.businessWhatsApp && <p className="text-danger-500 mt-1 text-sm">{phoneErrors.businessWhatsApp}</p>}
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("business_email")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_email")} *</label>
                 <input
                     type="email"
                     name="businessEmail"
                     value={formData.businessEmail}
                     onChange={handleChange}
-                    required
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    requidanger
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("website_url")}</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("website_url")}</label>
                 <input
                     type="url"
                     name="website"
@@ -119,7 +119,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     placeholder={t("website_placeholder")}
                     dir={dirFor(t("website_placeholder"))}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
@@ -143,7 +143,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
 };
 
 ContactInfoStep.propTypes = {
-    data: PropTypes.object.isRequired,
-    onNext: PropTypes.func.isRequired,
-    onPrevious: PropTypes.func.isRequired,
+    data: PropTypes.object.isRequidanger,
+    onNext: PropTypes.func.isRequidanger,
+    onPrevious: PropTypes.func.isRequidanger,
 };

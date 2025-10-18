@@ -1,4 +1,4 @@
-import { ChevronsLeft, Search, Sun, Moon, Bell } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Search, Sun, Moon, Bell } from "lucide-react";
 import PropType from "prop-types";
 import { useTheme } from "../hooks/useTheme";
 import { useLang } from "@/hooks/useLang";
@@ -9,28 +9,35 @@ export const Header = ({ collapsed, setCollapsed }) => {
     const { lang, setLang, t } = useLang();
 
     return (
-        <header className="realative z-10 flex h-[60px] items-center justify-between bg-white px-4 shadow-md transition-colors dark:bg-slate-900">
+        <header className="realative dark:bg-secondary-900 z-10 flex h-[60px] items-center justify-between bg-white px-4 shadow-md transition-colors">
             <div className={cn("flex items-center gap-x-3", lang === "ar" && "flex-row-reverse")}>
                 <button
                     className="btn-ghost size-10 !p-2"
                     onClick={() => setCollapsed(!collapsed)}
                 >
-                    <ChevronsLeft
-                        size={24}
-                        className={collapsed && "rotate-180"}
-                    />
+                    {lang === "ar" ? (
+                        <ChevronsRight
+                            size={24}
+                            className={collapsed && "rotate-180"}
+                        />
+                    ) : (
+                        <ChevronsLeft
+                            size={24}
+                            className={collapsed && "rotate-180"}
+                        />
+                    )}
                 </button>
                 <div className={cn("input flex items-center", lang === "ar" && "flex-row-reverse")}>
                     <Search
                         size={20}
-                        className="text-slate-200"
+                        className="text-secondary-200"
                     />
                     <input
                         type="text"
                         name="search"
                         placeholder={t("search_placeholder")}
                         className={cn(
-                            "w-full bg-transparent text-slate-900 outline-0 placeholder:text-slate-300 dark:text-slate-50",
+                            "text-secondary-900 placeholder:text-secondary-300 dark:text-secondary-50 w-full bg-transparent outline-0",
                             lang === "ar" && "text-right",
                         )}
                     />

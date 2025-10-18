@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLang } from "@/hooks/useLang";
 import { Check } from "lucide-react";
 
 const packages = [
@@ -32,19 +33,20 @@ const packages = [
 ];
 
 const PackagesPage = () => {
+    const { t } = useLang();
     const [selectedPackage, setSelectedPackage] = useState(null);
 
     const handleSelectPackage = (pkg) => {
         setSelectedPackage(pkg);
         localStorage.setItem("selectedPackage", JSON.stringify(pkg));
-        alert(`${pkg.name} selected! Proceed to contract generation.`);
+        alert(`${pkg.name} ${t("package_selected_message")}`);
     };
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="title">Service Packages</h1>
-                <p className="mt-1 text-slate-600 dark:text-slate-400">Choose the best package for your client's needs</p>
+                <h1 className="title">{t("service_packages")}</h1>
+                <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("service_packages_subtitle")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -52,12 +54,12 @@ const PackagesPage = () => {
                     <div
                         key={pkg.id}
                         className={`card cursor-pointer transition-shadow hover:shadow-lg ${
-                            selectedPackage?.id === pkg.id ? "ring-2 ring-blue-500" : ""
+                            selectedPackage?.id === pkg.id ? "ring-primary-500 ring-2" : ""
                         }`}
                         onClick={() => setSelectedPackage(pkg)}
                     >
                         <h3 className="card-title mb-2 text-xl">{pkg.name}</h3>
-                        <p className="mb-6 text-3xl font-bold text-blue-500">{pkg.price}</p>
+                        <p className="text-primary-500 mb-6 text-3xl font-bold">{pkg.price}</p>
                         <ul className="space-y-3">
                             {pkg.items.map((item, index) => (
                                 <li
@@ -68,7 +70,7 @@ const PackagesPage = () => {
                                         size={20}
                                         className="mt-0.5 flex-shrink-0 text-green-500"
                                     />
-                                    <span className="text-slate-700 dark:text-slate-300">{item}</span>
+                                    <span className="text-secondary-700 dark:text-secondary-300">{item}</span>
                                 </li>
                             ))}
                         </ul>
@@ -79,7 +81,7 @@ const PackagesPage = () => {
                             }}
                             className="btn-primary mt-6 w-full"
                         >
-                            Select Package
+                            {t("select_package")}
                         </button>
                     </div>
                 ))}

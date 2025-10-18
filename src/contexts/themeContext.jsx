@@ -11,9 +11,9 @@ export const ThemeProviderContext = createContext(initialState);
 
 export function ThemeProvider({ children, defaultTheme = "system", storageKey = "vite-ui-theme", ...props }) {
     const [theme, setTheme] = useState(() => {
-        const stored = localStorage.getItem(storageKey);
-        // If there's a stored value and it's not what we want, clear it to use defaultTheme
-        return stored || defaultTheme;
+        const stodanger = localStorage.getItem(storageKey);
+        // If there's a stodanger value and it's not what we want, clear it to use defaultTheme
+        return stodanger || defaultTheme;
     });
 
     useEffect(() => {

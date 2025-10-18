@@ -20,9 +20,9 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
             ref={ref}
             dir={isArabic ? "rtl" : "ltr"}
             className={cn(
-                "shadow:sm fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden bg-white transition-all dark:bg-slate-900",
+                "shadow:sm dark:bg-secondary-900 fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden bg-white transition-all",
                 borderSide,
-                "border-slate-300",
+                "border-secondary-200 dark:border-secondary-700",
                 desktopPosition,
                 collapsed ? "md:w-20 md:items-center" : "md:w-[240px]",
                 mobileOffset,
@@ -44,7 +44,7 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
                 {!collapsed && (
                     <p
                         className={cn(
-                            "w-full text-lg font-medium text-slate-900 transition-colors dark:text-slate-50",
+                            "text-secondary-900 dark:text-secondary-50 w-full text-lg font-medium transition-colors",
                             isArabic ? "text-right" : "text-left",
                         )}
                     >

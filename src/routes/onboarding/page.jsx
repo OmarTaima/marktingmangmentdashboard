@@ -58,8 +58,8 @@ const OnboardingPage = () => {
             };
 
             // Load existing clients
-            const storedClients = localStorage.getItem("clients");
-            const clients = storedClients ? JSON.parse(storedClients) : [];
+            const stodangerClients = localStorage.getItem("clients");
+            const clients = stodangerClients ? JSON.parse(stodangerClients) : [];
 
             // Add new client to array
             clients.push(newClient);
@@ -74,7 +74,7 @@ const OnboardingPage = () => {
 
             alert("Client added successfully!");
 
-            // Redirect to clients page
+            // dangerirect to clients page
             navigate("/clients");
         }
     };
@@ -103,8 +103,8 @@ const OnboardingPage = () => {
                                 <div
                                     className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${
                                         index <= currentStep
-                                            ? "bg-blue-500 text-white"
-                                            : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                                            ? "bg-primary-500 text-white"
+                                            : "bg-secondary-200 text-secondary-600 dark:bg-secondary-700 dark:text-secondary-400"
                                     }`}
                                 >
                                     {index + 1}
@@ -112,7 +112,7 @@ const OnboardingPage = () => {
                                 {index < steps.length - 1 && (
                                     <div
                                         className={`h-1 flex-1 transition-colors ${
-                                            index < currentStep ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"
+                                            index < currentStep ? "bg-primary-500" : "bg-secondary-200 dark:bg-secondary-700"
                                         }`}
                                     />
                                 )}
@@ -120,7 +120,7 @@ const OnboardingPage = () => {
                         ))}
                     </div>
                     <div className="mt-2 text-center">
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        <span className="text-secondary-600 dark:text-secondary-400 text-sm font-medium">
                             Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].name)}
                         </span>
                     </div>

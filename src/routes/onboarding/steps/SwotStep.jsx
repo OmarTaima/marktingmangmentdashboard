@@ -22,7 +22,7 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
                     }
                 }}
                 placeholder={placeholder}
-                className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
             />
             <button
                 type="button"
@@ -36,13 +36,13 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
             {swot[category].map((item, index) => (
                 <div
                     key={index}
-                    className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                    className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded px-3 py-2"
                 >
-                    <span className="text-sm text-slate-900 dark:text-slate-50">{item}</span>
+                    <span className="text-secondary-900 dark:text-secondary-50 text-sm">{item}</span>
                     <button
                         type="button"
                         onClick={() => handleRemove(category, index)}
-                        className="text-red-500 hover:text-red-600 dark:text-red-400"
+                        className="text-danger-500 hover:text-danger-600 dark:text-danger-400"
                     >
                         <Trash2 size={14} />
                     </button>
@@ -53,15 +53,15 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
 );
 
 SwotSection.propTypes = {
-    title: PropTypes.string.isRequired,
-    category: PropTypes.string.isRequired,
-    inputKey: PropTypes.string.isRequired,
-    color: PropTypes.string.isRequired,
-    inputs: PropTypes.object.isRequired,
-    setInputs: PropTypes.func.isRequired,
-    swot: PropTypes.object.isRequired,
-    handleAdd: PropTypes.func.isRequired,
-    handleRemove: PropTypes.func.isRequired,
+    title: PropTypes.string.isRequidanger,
+    category: PropTypes.string.isRequidanger,
+    inputKey: PropTypes.string.isRequidanger,
+    color: PropTypes.string.isRequidanger,
+    inputs: PropTypes.object.isRequidanger,
+    setInputs: PropTypes.func.isRequidanger,
+    swot: PropTypes.object.isRequidanger,
+    handleAdd: PropTypes.func.isRequidanger,
+    handleRemove: PropTypes.func.isRequidanger,
 };
 
 export const SwotStep = ({ data, onNext, onPrevious }) => {
@@ -110,9 +110,9 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-6"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("swot_analysis")}</h2>
+            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("swot_analysis")}</h2>
 
-            <p className="text-sm text-slate-600 dark:text-slate-400">{t("swot_help")}</p>
+            <p className="text-secondary-600 dark:text-secondary-400 text-sm">{t("swot_help")}</p>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <SwotSection
@@ -131,7 +131,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     title={t("weaknesses_title")}
                     category="weaknesses"
                     inputKey="weakness"
-                    color="text-red-600 dark:text-red-400"
+                    color="text-danger-600 dark:text-danger-400"
                     inputs={inputs}
                     setInputs={setInputs}
                     swot={swot}
@@ -143,7 +143,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     title={t("opportunities_title")}
                     category="opportunities"
                     inputKey="opportunity"
-                    color="text-blue-600 dark:text-blue-400"
+                    color="text-primary-600 dark:text-primary-400"
                     inputs={inputs}
                     setInputs={setInputs}
                     swot={swot}
@@ -185,7 +185,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 };
 
 SwotStep.propTypes = {
-    data: PropTypes.object.isRequired,
-    onNext: PropTypes.func.isRequired,
-    onPrevious: PropTypes.func.isRequired,
+    data: PropTypes.object.isRequidanger,
+    onNext: PropTypes.func.isRequidanger,
+    onPrevious: PropTypes.func.isRequidanger,
 };

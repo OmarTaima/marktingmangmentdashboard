@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Save, Edit2, FileText, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { useLang } from "@/hooks/useLang";
 
 const PlanningPage = () => {
+    const { t } = useLang();
     const [clients, setClients] = useState([]);
     const [selectedClientId, setSelectedClientId] = useState("");
     const [selectedClient, setSelectedClient] = useState(null);
@@ -38,6 +40,13 @@ const PlanningPage = () => {
     useEffect(() => {
         // Load clients on mount
         loadClients();
+        // If a client was selected from another page (e.g. Clients->Plan), preselect it
+        const preselected = localStorage.getItem("selectedClientId");
+        if (preselected) {
+            setSelectedClientId(preselected);
+            // optional: keep it in storage so other flows can reuse it; if you prefer to clear it uncomment next line
+            // localStorage.removeItem("selectedClientId");
+        }
         // Small delay before showing content to prevent flash
         const timer = setTimeout(() => {
             setIsLoading(false);
@@ -95,17 +104,17 @@ const PlanningPage = () => {
     }, [selectedClient, planData]);
 
     const loadClients = () => {
-        const storedClients = localStorage.getItem("clients");
-        if (storedClients) {
-            const clientsList = JSON.parse(storedClients);
+        const stodangerClients = localStorage.getItem("clients");
+        if (stodangerClients) {
+            const clientsList = JSON.parse(stodangerClients);
             setClients(clientsList);
         }
     };
 
     const loadClientAndPlan = () => {
-        const storedClients = localStorage.getItem("clients");
-        if (storedClients) {
-            const clientsList = JSON.parse(storedClients);
+        const stodangerClients = localStorage.getItem("clients");
+        if (stodangerClients) {
+            const clientsList = JSON.parse(stodangerClients);
             const client = clientsList.find((c) => c.id === selectedClientId);
 
             if (client) {
@@ -196,7 +205,7 @@ ${
         ? client.competitors
               .map((comp, i) => `${i + 1}. ${comp.name}\n   ${comp.description || ""}\n   ${comp.website ? `Website: ${comp.website}` : ""}`)
               .join("\n\n")
-        : "No competitors tracked"
+        : t("no_competitors_tracked")
 }
 
 STRATEGIC APPROACH
@@ -242,14 +251,14 @@ Document Generated: ${new Date().toLocaleDateString()}
 
     const handleSavePlan = () => {
         if (!selectedClientId) {
-            alert("Please select a client first");
+            alert(t("please_select_client_first"));
             return;
         }
 
         // Save plan
         localStorage.setItem(`plan_${selectedClientId}`, JSON.stringify(planData));
         setIsEditing(false);
-        alert("✅ Plan saved successfully!");
+        alert(t("plan_saved_success"));
     };
 
     const toggleService = (service) => {
@@ -283,14 +292,14 @@ Document Generated: ${new Date().toLocaleDateString()}
             {/* Show loading on initial mount or during transitions */}
             {isLoading && !selectedClient && !selectedClientId ? (
                 <div className="flex min-h-[400px] items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                 </div>
             ) : (
                 <>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="title">Campaign Planning</h1>
-                            <p className="text-slate-600 dark:text-slate-400">Create strategic plans for your clients</p>
+                            <h1 className="title">{t("campaign_planning")}</h1>
+                            <p className="text-secondary-600 dark:text-secondary-400">{t("campaign_planning_subtitle")}</p>
                         </div>
                         {selectedClientId && (
                             <div className="flex gap-2">
@@ -300,7 +309,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                                         className="btn-ghost flex items-center gap-2"
                                     >
                                         <FileText size={16} />
-                                        Download Strategy
+                                        {t("download_strategy")}
                                     </button>
                                 )}
                                 {isEditing ? (
@@ -310,7 +319,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                                         disabled={!selectedClientId}
                                     >
                                         <Save size={16} />
-                                        Save Plan
+                                        {t("save_plan")}
                                     </button>
                                 ) : (
                                     <button
@@ -318,7 +327,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                                         className="btn-primary flex items-center gap-2"
                                     >
                                         <Edit2 size={16} />
-                                        Edit Plan
+                                        {t("edit_plan")}
                                     </button>
                                 )}
                             </div>
@@ -328,7 +337,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                     {/* Loading State */}
                     {(isLoading || isTransitioning) && (
                         <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                            <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                         </div>
                     )}
 
@@ -337,26 +346,36 @@ Document Generated: ${new Date().toLocaleDateString()}
                         <div>
                             {clients.length > 0 ? (
                                 <>
-                                    <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-50">Select a Client to Plan</h2>
+                                    <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
+                                        {t("select_a_client_to_plan")}
+                                    </h2>
                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                         {clients.map((client) => (
                                             <div
                                                 key={client.id}
-                                                className="card transition-all hover:border-blue-500"
+                                                className="card hover:border-primary-500 transition-all"
                                             >
-                                                <h3 className="card-title text-lg">{client.business?.businessName || "Unnamed Client"}</h3>
-                                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                                                    {client.business?.category || "No Category"}
+                                                <h3 className="card-title text-lg">
+                                                    <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
+                                                    {client.business?.businessName || t("unnamed_client")}
+                                                </h3>
+                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                                    <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
+                                                    {client.business?.category || t("no_category")}
                                                 </p>
-                                                <div className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                                                    <p>Contact: {client.personal?.fullName || "N/A"}</p>
-                                                    <p>Email: {client.contact?.businessEmail || client.personal?.email || "N/A"}</p>
+                                                <div className="text-secondary-600 dark:text-secondary-400 mt-3 text-sm">
+                                                    <p>
+                                                        {t("contact_label")} {client.personal?.fullName || "N/A"}
+                                                    </p>
+                                                    <p>
+                                                        {t("email_label")} {client.contact?.businessEmail || client.personal?.email || "N/A"}
+                                                    </p>
                                                 </div>
                                                 <button
                                                     onClick={() => setSelectedClientId(client.id)}
                                                     className="btn-primary mt-4 w-full"
                                                 >
-                                                    Plan
+                                                    {t("plan_button")}
                                                 </button>
                                             </div>
                                         ))}
@@ -365,12 +384,12 @@ Document Generated: ${new Date().toLocaleDateString()}
                             ) : (
                                 <div className="card">
                                     <div className="py-8 text-center">
-                                        <p className="mb-4 text-slate-600 dark:text-slate-400">No clients found</p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("no_clients_found")}</p>
                                         <a
                                             href="/onboarding"
                                             className="btn-primary"
                                         >
-                                            Add Your First Client
+                                            {t("add_your_first_client")}
                                         </a>
                                     </div>
                                 </div>
@@ -381,7 +400,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                     {selectedClient && !isLoading && !isTransitioning && (
                         <>
                             {/* Client Info Header */}
-                            <div className="card bg-slate-50 dark:bg-slate-800/50">
+                            <div className="card bg-secondary-50 dark:bg-secondary-800/50">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <button
@@ -391,10 +410,14 @@ Document Generated: ${new Date().toLocaleDateString()}
                                             <ArrowLeft size={20} />
                                         </button>
                                         <div>
-                                            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
+                                            <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
+                                                <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                                 {selectedClient.business?.businessName}
                                             </h2>
-                                            <p className="text-sm text-slate-600 dark:text-slate-400">{selectedClient.business?.category}</p>
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-sm">
+                                                <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
+                                                {selectedClient.business?.category}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -404,33 +427,33 @@ Document Generated: ${new Date().toLocaleDateString()}
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 {/* Objective */}
                                 <div className="card lg:col-span-2">
-                                    <h3 className="card-title mb-4">Campaign Objective</h3>
+                                    <h3 className="card-title mb-4">{t("campaign_objective")}</h3>
                                     <textarea
                                         value={planData.objective}
                                         onChange={(e) => setPlanData({ ...planData, objective: e.target.value })}
-                                        placeholder="What are the main goals for this campaign? (e.g., Increase brand awareness, drive sales, grow social following)"
+                                        placeholder={t("objective_placeholder")}
                                         rows={4}
                                         disabled={!isEditing}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-blue-500 focus:outline-none disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:disabled:bg-slate-900"
+                                        className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
                                     />
                                 </div>
 
                                 {/* Strategy */}
                                 <div className="card lg:col-span-2">
-                                    <h3 className="card-title mb-4">Strategic Approach</h3>
+                                    <h3 className="card-title mb-4">{t("strategic_approach")}</h3>
                                     <textarea
                                         value={planData.strategy}
                                         onChange={(e) => setPlanData({ ...planData, strategy: e.target.value })}
-                                        placeholder="Describe the overall strategy to achieve the objectives (target channels, content themes, engagement tactics, etc.)"
+                                        placeholder={t("strategy_placeholder")}
                                         rows={6}
                                         disabled={!isEditing}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-blue-500 focus:outline-none disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:disabled:bg-slate-900"
+                                        className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
                                     />
                                 </div>
 
                                 {/* Services */}
                                 <div className="card lg:col-span-2">
-                                    <h3 className="card-title mb-4">Services to Provide</h3>
+                                    <h3 className="card-title mb-4">{t("services_to_provide")}</h3>
                                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                                         {availableServices.map((service) => (
                                             <button
@@ -439,8 +462,8 @@ Document Generated: ${new Date().toLocaleDateString()}
                                                 disabled={!isEditing}
                                                 className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
                                                     planData.services.includes(service)
-                                                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-300"
-                                                        : "dark:hover:bg-slate-750 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                                        ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-950 dark:text-primary-300"
+                                                        : "dark:hover:bg-secondary-750 border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 bg-white"
                                                 } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
                                             >
                                                 {planData.services.includes(service) && (
@@ -449,7 +472,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                                                         className="flex-shrink-0"
                                                     />
                                                 )}
-                                                <span className="truncate">{service}</span>
+                                                <span className="truncate">{t(service)}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -457,30 +480,29 @@ Document Generated: ${new Date().toLocaleDateString()}
 
                                 {/* Budget */}
                                 <div className="card">
-                                    <h3 className="card-title mb-4">Budget (USD)</h3>
+                                    <h3 className="card-title mb-4">{t("budget_usd")}</h3>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-4 -translate-y-1/2 text-slate-600 dark:text-slate-400">$</span>
                                         <input
                                             type="number"
                                             value={planData.budget}
                                             onChange={(e) => setPlanData({ ...planData, budget: e.target.value })}
                                             placeholder="5000"
                                             disabled={!isEditing}
-                                            className="w-full rounded-lg border border-slate-300 bg-white py-3 pr-4 pl-8 text-slate-900 transition-colors focus:border-blue-500 focus:outline-none disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:disabled:bg-slate-900"
+                                            className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Timeline */}
                                 <div className="card">
-                                    <h3 className="card-title mb-4">Timeline</h3>
+                                    <h3 className="card-title mb-4">{t("timeline")}</h3>
                                     <input
                                         type="text"
                                         value={planData.timeline}
                                         onChange={(e) => setPlanData({ ...planData, timeline: e.target.value })}
                                         placeholder="e.g., 3 months, Q1 2025, Jan-Mar"
                                         disabled={!isEditing}
-                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 transition-colors focus:border-blue-500 focus:outline-none disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:disabled:bg-slate-900"
+                                        className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -488,9 +510,9 @@ Document Generated: ${new Date().toLocaleDateString()}
                             {/* Final Strategy Output */}
                             {finalStrategy && (
                                 <div className="card">
-                                    <h3 className="card-title mb-4">Final Strategy Document</h3>
-                                    <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
-                                        <pre className="font-mono text-xs leading-relaxed whitespace-pre-wrap text-slate-900 dark:text-slate-50">
+                                    <h3 className="card-title mb-4">{t("final_strategy_document")}</h3>
+                                    <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
+                                        <pre className="text-secondary-900 dark:text-secondary-50 font-mono text-xs leading-relaxed whitespace-pre-wrap">
                                             {finalStrategy}
                                         </pre>
                                     </div>

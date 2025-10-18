@@ -28,7 +28,7 @@ const Layout = () => {
     const baseOffsetClass = lang === "ar" ? "mr-0" : "ml-0";
 
     return (
-        <div className="min-h-screen bg-slate-100 transition-colors dark:bg-slate-950">
+        <div className="bg-secondary-100 dark:bg-secondary-950 min-h-screen transition-colors">
             <div
                 className={cn(
                     "pointer-events-none fixed inset-0 -z-10 bg-black opacity-0 transition-opacity",

@@ -43,36 +43,36 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-50">{t("target_segments")}</h2>
+            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("target_segments")}</h2>
 
-            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">{t("target_segments_help")}</p>
+            <p className="text-secondary-600 dark:text-secondary-400 mb-4 text-sm">{t("target_segments_help")}</p>
 
-            <div className="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/50">
+            <div className="bg-secondary-50 dark:bg-secondary-800/50 space-y-3 rounded-lg p-4">
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("segment_name")} *</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("segment_name")} *</label>
                     <input
                         type="text"
                         value={currentSegment.name}
                         onChange={(e) => setCurrentSegment({ ...currentSegment, name: e.target.value })}
                         placeholder={t("segment_name_placeholder")}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     />
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("description")} *</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")} *</label>
                     <textarea
                         value={currentSegment.description}
                         onChange={(e) => setCurrentSegment({ ...currentSegment, description: e.target.value })}
                         rows={2}
                         placeholder={t("describe_segment_placeholder")}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("age_range")}</label>
+                        <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("age_range")}</label>
                         <input
                             type="text"
                             value={currentSegment.targetAge}
@@ -82,15 +82,15 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                                 setCurrentSegment({ ...currentSegment, targetAge: value });
                             }}
                             placeholder={t("age_range_placeholder")}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("gender")}</label>
+                        <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("gender")}</label>
                         <select
                             value={currentSegment.targetGender}
                             onChange={(e) => setCurrentSegment({ ...currentSegment, targetGender: e.target.value })}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                         >
                             <option value="">{t("all")}</option>
                             <option value="male">{t("male")}</option>
@@ -101,22 +101,22 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("interests")}</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("interests")}</label>
                     <input
                         type="text"
                         value={currentSegment.interests}
                         onChange={(e) => setCurrentSegment({ ...currentSegment, interests: e.target.value })}
                         placeholder={t("interests_placeholder")}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     />
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("income_level")}</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("income_level")}</label>
                     <select
                         value={currentSegment.income}
                         onChange={(e) => setCurrentSegment({ ...currentSegment, income: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50"
+                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     >
                         <option value="">{t("select")}</option>
                         <option value="low">{t("low_income")}</option>
@@ -138,16 +138,18 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
 
             {segments.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("added_segments", { count: segments.length })}</h3>
+                    <h3 className="text-secondary-700 dark:text-secondary-300 text-sm font-medium">
+                        {t("added_segments", { count: segments.length })}
+                    </h3>
                     {segments.map((segment, index) => (
                         <div
                             key={index}
-                            className="flex items-start justify-between rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-800"
+                            className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-start justify-between rounded-lg border bg-white p-3"
                         >
                             <div className="flex-1">
-                                <h4 className="font-medium text-slate-900 dark:text-slate-50">{segment.name}</h4>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">{segment.description}</p>
-                                <div className="mt-2 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{segment.name}</h4>
+                                <p className="text-secondary-600 dark:text-secondary-400 text-sm">{segment.description}</p>
+                                <div className="text-secondary-500 dark:text-secondary-400 mt-2 flex gap-4 text-xs">
                                     {segment.targetAge && <span>Age: {segment.targetAge}</span>}
                                     {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
                                     {segment.income && <span>Income: {segment.income}</span>}
@@ -156,7 +158,7 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                             <button
                                 type="button"
                                 onClick={() => handleRemoveSegment(index)}
-                                className="text-red-500 hover:text-red-600"
+                                className="text-danger-500 hover:text-danger-600"
                             >
                                 <Trash2 size={16} />
                             </button>
@@ -185,7 +187,7 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
 };
 
 SegmentsStep.propTypes = {
-    data: PropTypes.object.isRequired,
-    onNext: PropTypes.func.isRequired,
-    onPrevious: PropTypes.func.isRequired,
+    data: PropTypes.object.isRequidanger,
+    onNext: PropTypes.func.isRequidanger,
+    onPrevious: PropTypes.func.isRequidanger,
 };
