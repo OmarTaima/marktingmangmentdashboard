@@ -26,7 +26,6 @@ export const Sidebar = forwardRef(({ collapsed }, ref) => {
                 desktopPosition,
                 collapsed ? "md:w-20 md:items-center" : "md:w-[240px]",
                 mobileOffset,
-                // use app default font; don't force Cairo here so it matches Add Client
             )}
         >
             {/* Logo Section */}

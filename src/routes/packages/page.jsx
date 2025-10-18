@@ -53,14 +53,14 @@ const PackagesPage = () => {
                 {packages.map((pkg) => (
                     <div
                         key={pkg.id}
-                        className={`card cursor-pointer transition-shadow hover:shadow-lg ${
+                        className={`card flex h-full cursor-pointer flex-col transition-shadow hover:shadow-lg ${
                             selectedPackage?.id === pkg.id ? "ring-primary-500 ring-2" : ""
                         }`}
                         onClick={() => setSelectedPackage(pkg)}
                     >
                         <h3 className="card-title mb-2 text-xl">{pkg.name}</h3>
                         <p className="text-primary-500 mb-6 text-3xl font-bold">{pkg.price}</p>
-                        <ul className="space-y-3">
+                        <ul className="flex-1 space-y-3">
                             {pkg.items.map((item, index) => (
                                 <li
                                     key={index}
@@ -79,7 +79,7 @@ const PackagesPage = () => {
                                 e.stopPropagation();
                                 handleSelectPackage(pkg);
                             }}
-                            className="btn-primary mt-6 w-full"
+                            className="btn-primary mt-auto w-full"
                         >
                             {t("select_package")}
                         </button>

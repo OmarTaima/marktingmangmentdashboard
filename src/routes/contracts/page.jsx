@@ -13,38 +13,61 @@ const ContractPage = () => {
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
-        // Prefer explicit selected client id
+        // Load everything from localStorage once (on mount or when lang changes)
         const selectedId = localStorage.getItem("selectedClientId");
-        if (selectedId) {
-            const clientsRaw = localStorage.getItem("clients");
-            if (clientsRaw) {
-                try {
-                    const clients = JSON.parse(clientsRaw);
-                    const found = clients.find((c) => String(c.id) === String(selectedId));
-                    if (found) setClientData(found);
-                } catch (e) {
-                    // ignore parse errors
+
+        // try to load clients list and resolve by selectedId
+        let resolvedClient = null;
+        const clientsRaw = localStorage.getItem("clients");
+        if (clientsRaw) {
+            try {
+                const clients = JSON.parse(clientsRaw);
+                if (selectedId) {
+                    resolvedClient = clients.find((c) => String(c.id) === String(selectedId)) || null;
                 }
+            } catch (e) {
+                // ignore parse errors
             }
         }
 
-        // Load fallback client data
-        const client = localStorage.getItem("clientData");
-        const plan = localStorage.getItem("campaign_plan_0");
+        // fallback to single clientData stored
+        const clientRaw = localStorage.getItem("clientData");
+        if (!resolvedClient && clientRaw) {
+            try {
+                resolvedClient = JSON.parse(clientRaw);
+            } catch (e) {
+                // ignore
+            }
+        }
+        setClientData(resolvedClient);
+
+        // load plan and package (use local vars so we can use them immediately)
+        let planObj = null;
+        const planRaw = localStorage.getItem("campaign_plan_0");
+        if (planRaw) {
+            try {
+                planObj = JSON.parse(planRaw);
+                setPlanData(planObj);
+            } catch (e) {}
+        }
+
+        let pkgObj = null;
         const pkgRaw = localStorage.getItem("selectedPackage");
-        const pkg = pkgRaw ? JSON.parse(pkgRaw) : null;
+        if (pkgRaw) {
+            try {
+                pkgObj = JSON.parse(pkgRaw);
+                setPackageData(pkgObj);
+            } catch (e) {}
+        }
 
-        if (!clientData && client) setClientData(JSON.parse(client));
-        if (plan) setPlanData(JSON.parse(plan));
-        if (pkg) setPackageData(pkg);
-
-        // Load or set default contract terms. If a saved custom contract exists, keep it.
+        // if user previously saved custom contract terms, respect them
         const savedTerms = localStorage.getItem("contractTerms");
         if (savedTerms) {
             setContractTerms(savedTerms);
             return;
         }
 
+        // templates use simple placeholders that we will replace
         const englishTemplate = `MARKETING SERVICES AGREEMENT
 
 This Agreement is entered into as of [DATE] between:
@@ -53,13 +76,13 @@ CLIENT: [Client Name]
 AGENCY: Marketing Agency Name
 
 1. SERVICES
-The Agency agrees to provide the following services as outlined in the ${pkg ? pkg.name : "selected package"}.
+The Agency agrees to provide the following services as outlined in the [PACKAGE_NAME].
 
 2. TERM
 This agreement shall commence on [START DATE] and continue for a period of [DURATION].
 
 3. COMPENSATION
-Client agrees to pay the Agency ${pkg ? pkg.price : "$X,XXX/month"} payable monthly.
+Client agrees to pay the Agency [PACKAGE_PRICE] payable monthly.
 
 4. RESPONSIBILITIES
 4.1 Agency shall provide services as specified in the campaign plan.
@@ -85,13 +108,13 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
 الوكالة: اسم وكالة التسويق
 
 1. الخدمات
-توافق الوكالة على تقديم الخدمات التالية كما هو موضح في ${pkg ? pkg.name : "الحزمة المحددة"}.
+توافق الوكالة على تقديم الخدمات التالية كما هو موضح في [PACKAGE_NAME].
 
 2. المدة
 تبدأ هذه الاتفاقية في [START DATE] وتستمر لمدة [DURATION].
 
 3. التعويض
-يوافق العميل على دفع ${pkg ? pkg.price : "$X,XXX/شهريًا"} للوكالة شهريًا.
+يوافق العميل على دفع [PACKAGE_PRICE] للوكالة شهريًا.
 
 4. المسؤوليات
 4.1 يجب على الوكالة تقديم الخدمات كما هو محدد في خطة الحملة.
@@ -109,29 +132,27 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
 8. تحديد المسؤولية
 لا تتجاوز مسؤولية الوكالة إجمالي المبلغ المدفوع بموجب هذه الاتفاقية.`;
 
-        // Helper to fill placeholders using available data
-        const fillTemplate = (template) => {
+        const fillTemplate = (template, opts = {}) => {
+            const { client = null, plan = null, pkg = null } = opts;
             const now = new Date();
             const dateStr = now.toLocaleDateString(lang === "ar" ? "ar-EG" : undefined);
-            const startDate = planData?.startDate || "[START DATE]";
-            const duration = planData?.duration || "[DURATION]";
-            const clientName = clientData?.business?.businessName || clientData?.personal?.fullName || "[Client Name]";
-            const packageName = packageData?.name || (pkg ? pkg.name : "selected package");
-            const packagePrice = packageData?.price || (pkg ? pkg.price : "$X,XXX/month");
+            const startDate = plan?.startDate || "[START DATE]";
+            const duration = plan?.duration || "[DURATION]";
+            const clientName = client?.business?.businessName || client?.personal?.fullName || "[Client Name]";
+            const packageName = pkg?.name || "[PACKAGE_NAME]";
+            const packagePrice = pkg?.price || "[PACKAGE_PRICE]";
 
             return template
                 .replace(/\[DATE\]/g, dateStr)
                 .replace(/\[START DATE\]/g, startDate)
                 .replace(/\[DURATION\]/g, duration)
                 .replace(/\[Client Name\]/g, clientName)
-                .replace(/\$\{pkg \? pkg.name : "selected package"\}/g, packageName)
-                .replace(/\$\{pkg \? pkg.price : "\\$X,XXX\/month"\}/g, packagePrice)
-                .replace(/\$\{pkg \? pkg.name : "الحزمة المحددة"\}/g, packageName)
-                .replace(/\$\{pkg \? pkg.price : "\\$X,XXX\/شهريًا"\}/g, packagePrice);
+                .replace(/\[PACKAGE_NAME\]/g, packageName)
+                .replace(/\[PACKAGE_PRICE\]/g, packagePrice);
         };
 
-        // fill with available data
-        const filled = fillTemplate(lang === "ar" ? arabicTemplate : englishTemplate);
+        const baseTemplate = lang === "ar" ? arabicTemplate : englishTemplate;
+        const filled = fillTemplate(baseTemplate, { client: resolvedClient, plan: planObj, pkg: pkgObj });
         setContractTerms(filled);
     }, [lang]);
 

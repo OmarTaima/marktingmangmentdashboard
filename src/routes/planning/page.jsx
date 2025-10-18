@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Edit2, FileText, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, Edit2, FileText, Check, Loader2 } from "lucide-react";
+import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 
 const PlanningPage = () => {
@@ -407,7 +408,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                                             onClick={() => setSelectedClientId("")}
                                             className="btn-ghost"
                                         >
-                                            <ArrowLeft size={20} />
+                                            <LocalizedArrow size={20} />
                                         </button>
                                         <div>
                                             <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">

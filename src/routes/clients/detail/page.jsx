@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { Edit2 } from "lucide-react";
+import LocalizedArrow from "@/components/LocalizedArrow";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 import ClientInfo from "@/routes/clients/ClientInfo";
@@ -41,8 +42,7 @@ const ClientDetailPage = () => {
                         className="btn-ghost btn-sm btn flex items-center gap-2"
                         aria-label="Back"
                     >
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="hidden sm:inline">{t("back") || "Back"}</span>
+                        <LocalizedArrow className="h-4 w-4" />
                     </button>
                     <h1 className="text-secondary-900 dark:text-secondary-50 text-xl font-semibold">
                         {client.business?.businessName || client.personal?.fullName || t("unnamed_business")}

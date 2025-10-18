@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Edit2, Plus, Trash2, X } from "lucide-react";
+import { Save, Edit2, Plus, Trash2, X } from "lucide-react";
+import LocalizedArrow from "@/components/LocalizedArrow";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 
@@ -234,7 +235,7 @@ const PlanPage = () => {
                         onClick={() => navigate("/clients")}
                         className="btn-ghost"
                     >
-                        <ArrowLeft size={20} />
+                        <LocalizedArrow size={20} />
                     </button>
                     <div>
                         <h1 className="title">{clientData.business?.businessName}</h1>

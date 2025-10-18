@@ -484,6 +484,11 @@ en.platform_performance = "Platform Performance";
 en.top_performing_posts = "Top Performing Posts";
 en.total_earnings = "Total Earnings";
 en.earnings_change_text = "{change} from last month";
+en.vs_last_month = "vs last month";
+en.reach = "Reach";
+en.engagement = "Engagement";
+en.followers = "Followers";
+en.shares = "Shares";
 
 // Additional keys for campaigns plan
 en.market_intelligence = "Market Intelligence";
@@ -649,6 +654,11 @@ ar.platform_performance = "أداء المنصة";
 ar.top_performing_posts = "أفضل المنشورات أداءً";
 ar.total_earnings = "إجمالي الإيرادات";
 ar.earnings_change_text = "{change} منذ الشهر الماضي";
+ar.vs_last_month = "مقارنة بالشهر الماضي";
+ar.reach = "الوصول";
+ar.engagement = "التفاعل";
+ar.followers = "المتابعون";
+ar.shares = "المشاركات";
 
 // Clients page (Arabic)
 ar.clients_title = "العملاء";

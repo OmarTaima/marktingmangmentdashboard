@@ -1,19 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import {
-    Plus,
-    Upload,
-    Calendar,
-    CheckCircle,
-    Clock,
-    AlertCircle,
-    Video,
-    Image as ImageIcon,
-    FileText,
-    ArrowLeft,
-    Building2,
-    Loader2,
-} from "lucide-react";
+import { Plus, Upload, Calendar, CheckCircle, Clock, AlertCircle, Video, Image as ImageIcon, FileText, Building2, Loader2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import LocalizedArrow from "@/components/LocalizedArrow";
 
 const CampaignsPage = () => {
     const [clients, setClients] = useState([]);
@@ -85,7 +73,7 @@ const CampaignsPage = () => {
             setTimeout(() => {
                 setPlanData(null);
                 setUploads([]);
-                setIsResetting(false);
+                <LocalizedArrow size={20} />;
                 setIsLoading(false);
                 setIsTransitioning(false);
                 isTransitioningRef.current = false;
@@ -333,7 +321,7 @@ const CampaignsPage = () => {
                                             onClick={() => setSelectedClientId("")}
                                             className="btn-ghost"
                                         >
-                                            <ArrowLeft size={20} />
+                                            <LocalizedArrow size={20} />
                                         </button>
                                         <div>
                                             <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
