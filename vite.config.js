@@ -5,7 +5,8 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react()],
-    base: "/marktingmangmentdashboard",
+    // allow overriding base at build time (e.g. VITE_BASE=/my-repo/ vite build)
+    base: process.env.VITE_BASE || "/",
     server: {
         port: 3000,
     },

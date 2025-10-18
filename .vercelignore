@@ -1,0 +1,15 @@
+node_modules
+.vscode
+.idea
+.DS_Store
+.env.local
+.env.*.local
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+logs
+*.log
+coverage
+
+# allow dist to be uploaded
+# dist/

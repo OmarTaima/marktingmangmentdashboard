@@ -1,12 +1,12 @@
 {
-    "name": "dashboard",
-    "homepage": "https://OmarTaiman.github.io/marktingmangmentdashboard",
+    "name": "marktingmangmentdashboard",
     "private": true,
     "version": "0.0.0",
     "type": "module",
     "scripts": {
         "dev": "vite",
-    "build": "vite build",
+        "build": "vite build",
+        "build:gh": "cross-env VITE_BASE=/marktingmangmentdashboard/ vite build",
         "lint": "eslint .",
         "preview": "vite preview",
         "predeploy": "npm run build",
@@ -47,16 +47,16 @@
         "yup": "^1.4.0"
     },
     "devDependencies": {
+        "cross-env": "^7.0.3",
         "@eslint/js": "^9.36.0",
         "@tailwindcss/postcss": "^4.1.14",
-        
         "@vitejs/plugin-react": "^5.0.4",
         "eslint": "^9.36.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.22",
         "globals": "^16.4.0",
-    "prettier": "^3.6.2",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+        "prettier": "^3.6.2",
+        "prettier-plugin-tailwindcss": "^0.6.14",
         "vite": "^7.1.9"
     }
 }
