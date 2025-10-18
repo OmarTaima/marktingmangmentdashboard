@@ -14,6 +14,8 @@ import ContractPage from "./routes/contracts/page";
 import ReportsPage from "./routes/reports/page";
 
 function App() {
+    // React Router basename should match the build base. Vite exposes the base via import.meta.env.BASE_URL
+    const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
     const router = createBrowserRouter(
         [
             {
@@ -50,7 +52,7 @@ function App() {
             },
         ],
         {
-            basename: "/marktingmangmentdashboard",
+            basename: base,
         },
     );
     return (
