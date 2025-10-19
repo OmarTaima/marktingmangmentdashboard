@@ -90,6 +90,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                 [category]: [...prev[category], value.trim()],
             }));
             setInputs((prev) => ({ ...prev, [inputKey]: "" }));
+            if (error) setError("");
         }
     };
 
@@ -102,8 +103,15 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        const total = swot.strengths.length + swot.weaknesses.length + swot.opportunities.length + swot.threats.length;
+        if (total === 0) {
+            setError(t("swot_require_one"));
+            return;
+        }
         onNext({ swot });
     };
+
+    const [error, setError] = useState("");
 
     return (
         <form
@@ -114,7 +122,9 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 
             <p className="text-secondary-600 dark:text-secondary-400 text-sm">{t("swot_help")}</p>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {error && <p className="text-danger-500 text-sm">{error}</p>}
+
+            <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${error ? "ring-danger-300 rounded-md p-3 ring" : ""}`}>
                 <SwotSection
                     title={t("strengths_title")}
                     category="strengths"

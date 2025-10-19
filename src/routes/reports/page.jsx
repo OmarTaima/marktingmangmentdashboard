@@ -89,36 +89,47 @@ const ReportsPage = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    {clientData && (
-                        <Link
-                            to="/campaigns"
-                            className="btn-ghost"
-                        >
-                            <LocalizedArrow size={20} />
-                        </Link>
-                    )}
-                    <div>
-                        <h1 className="title">
-                            {clientData
-                                ? `${clientData.business?.businessName} - ${t("monthly_report") || "Monthly Report"}`
-                                : t("campaign_reports") || "Campaign Reports"}
-                        </h1>
-                        <p className="text-secondary-600 dark:text-secondary-400 mt-1">
-                            {clientData
-                                ? t("reports_subtitle_selected") || "Reports for the selected client"
-                                : t("reports_subtitle") || "Overview of campaign reports"}
-                        </p>
+        <div className="space-y-6 px-4 sm:px-6">
+            {/* Header: stack on small screens to avoid overflow */}
+            {/* Controls row: back button and month selector on top */}
+            <div className="flex flex-col items-start gap-3">
+                <div className="flex w-full items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        {clientData && (
+                            <Link
+                                to="/campaigns"
+                                className="btn-ghost btn-sm flex-shrink-0"
+                                aria-label={t("back") || "Back to campaigns"}
+                            >
+                                <LocalizedArrow size={20} />
+                            </Link>
+                        )}
+                    </div>
+
+                    <div className="ml-auto">
+                        <input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 max-w-[10rem] flex-shrink-0 rounded-lg border bg-white px-4 py-2 focus:outline-none md:max-w-xs"
+                            aria-label={t("select_month") || "Select month"}
+                        />
                     </div>
                 </div>
-                <input
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 rounded-lg border bg-white px-4 py-2 focus:outline-none"
-                />
+
+                {/* Title row: below controls */}
+                <div className="min-w-0">
+                    <h1 className="title whitespace-normal md:whitespace-normal">
+                        {clientData
+                            ? `${clientData.business?.businessName} - ${t("monthly_report") || "Monthly Report"}`
+                            : t("campaign_reports") || "Campaign Reports"}
+                    </h1>
+                    <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                        {clientData
+                            ? t("reports_subtitle_selected") || "Reports for the selected client"
+                            : t("reports_subtitle") || "Overview of campaign reports"}
+                    </p>
+                </div>
             </div>
 
             {!clientData ? (
@@ -143,8 +154,8 @@ const ReportsPage = () => {
             ) : (
                 <>
                     {/* Earnings Card */}
-                    <div className="card from-primary-500 bg-gradient-to-br to-purple-600 text-white">
-                        <div className="flex items-center justify-between">
+                    <div className="card from-primary-500 bg-gradient-to-br to-purple-600 text-white transition-colors duration-300">
+                        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                             <div>
                                 <p className="text-primary-100 mb-1">{t("total_earnings")}</p>
                                 <h2 className="text-4xl font-bold">{reportData.earnings.total}</h2>
@@ -153,19 +164,22 @@ const ReportsPage = () => {
                                     {t("earnings_change_text").replace("{change}", reportData.earnings.change)}
                                 </p>
                             </div>
-                            <DollarSign
-                                size={64}
-                                className="text-primary-200 opacity-50"
-                            />
+                            {/* hide decorative large icon on very small screens to avoid overflow */}
+                            <div className="hidden sm:block">
+                                <DollarSign
+                                    size={64}
+                                    className="text-primary-200 opacity-50"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {reportData.metrics.map((metric, index) => (
                             <div
                                 key={index}
-                                className="card"
+                                className="card transition-colors duration-300"
                             >
                                 <div className="mb-2 flex items-center justify-between">
                                     <span className="text-secondary-600 dark:text-secondary-400">{t(metric.key) || metric.label}</span>
@@ -183,7 +197,7 @@ const ReportsPage = () => {
                     </div>
 
                     {/* Platform Performance */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("platform_performance")}</h3>
                         <div className="space-y-4">
                             {reportData.platforms.map((platform, index) => (
@@ -211,22 +225,22 @@ const ReportsPage = () => {
                     </div>
 
                     {/* Top Posts */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("top_performing_posts")}</h3>
                         <div className="space-y-3">
                             {reportData.topPosts.map((post) => (
                                 <div
                                     key={post.id}
-                                    className="bg-secondary-50 dark:bg-secondary-800/50 flex items-center justify-between rounded-lg p-4"
+                                    className="bg-secondary-50 dark:bg-secondary-800/50 flex flex-col items-start justify-between rounded-lg p-4 transition-colors duration-300 sm:flex-row sm:items-center"
                                 >
                                     <div className="flex-1">
                                         <div className="mb-1 flex items-center gap-2">
                                             <span className="text-primary-500 text-xs font-medium">{post.platform}</span>
                                             <span className="text-secondary-500 dark:text-secondary-400 text-xs">{post.date}</span>
                                         </div>
-                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium">{post.content}</p>
+                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{post.content}</p>
                                     </div>
-                                    <div className="flex gap-6 text-right text-sm">
+                                    <div className="mt-3 flex gap-6 text-right text-sm sm:mt-0 sm:flex-shrink-0">
                                         <div>
                                             <p className="text-secondary-500 dark:text-secondary-400">{t("reach") || "Reach"}</p>
                                             <p className="text-secondary-900 dark:text-secondary-50 font-bold">{post.reach.toLocaleString()}</p>

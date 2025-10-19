@@ -322,7 +322,7 @@ const PlanPage = () => {
                 {/* Left Sidebar - Client Information */}
                 <div className="space-y-4 lg:col-span-4">
                     {/* Client Overview */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("client_overview") || "Client Overview"}</h3>
                         <div className="space-y-3 text-sm">
                             <div>
@@ -349,7 +349,7 @@ const PlanPage = () => {
                     </div>
 
                     {/* Contact Information */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("contact_info")}</h3>
                         <div className="space-y-4">
                             {/* Contact Person */}
@@ -440,9 +440,9 @@ const PlanPage = () => {
                     </div>
 
                     {/* Quick Stats */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("quick_stats")}</h3>
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
                             <div>
                                 <p className="text-primary-600 dark:text-primary-400 text-2xl font-bold">{clientData.segments?.length || 0}</p>
                                 <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("segments_label")}</p>
@@ -468,7 +468,7 @@ const PlanPage = () => {
                     </div>
 
                     {/* SWOT Analysis */}
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="card-title">SWOT Analysis</h3>
                             <button
@@ -550,7 +550,7 @@ const PlanPage = () => {
                         </div>
                     </div>
 
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="card-title">Target Segments</h3>
                             <button
@@ -561,11 +561,11 @@ const PlanPage = () => {
                             </button>
                         </div>
                         {clientData.segments && clientData.segments.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {clientData.segments.map((segment, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3 transition-colors duration-300"
                                     >
                                         <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{segment.name}</h4>
                                         <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{segment.description}</p>
@@ -581,7 +581,7 @@ const PlanPage = () => {
                         )}
                     </div>
 
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="card-title">{t("competitors")}</h3>
                             <button
@@ -592,11 +592,11 @@ const PlanPage = () => {
                             </button>
                         </div>
                         {clientData.competitors && clientData.competitors.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {clientData.competitors.map((competitor, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3 transition-colors duration-300"
                                     >
                                         <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{competitor.name}</h4>
                                         <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{competitor.description}</p>
@@ -605,7 +605,7 @@ const PlanPage = () => {
                                                 href={competitor.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-primary-500 mt-1 text-xs hover:underline"
+                                                className="text-primary-500 mt-1 text-xs break-words hover:underline"
                                             >
                                                 {competitor.website}
                                             </a>
@@ -666,7 +666,7 @@ const PlanPage = () => {
                                                     href={link.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-primary-500 max-w-xs flex-1 truncate text-sm hover:underline"
+                                                    className="text-primary-500 max-w-xs flex-1 truncate text-sm break-words hover:underline"
                                                 >
                                                     {link.url}
                                                 </a>
@@ -712,11 +712,11 @@ const PlanPage = () => {
                             </button>
                         </div>
                         {clientData.branches && clientData.branches.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {clientData.branches.map((branch, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3"
+                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3 transition-colors duration-300"
                                     >
                                         <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{branch.name}</h4>
                                         <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{branch.address}</p>
@@ -759,16 +759,16 @@ const PlanPage = () => {
                         />
                     </div>
 
-                    <div className="card">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">Services</h3>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {services.map((service) => (
                                 <button
                                     key={service.id}
                                     type="button"
                                     onClick={() => isEditing && toggleService(service.id)}
                                     disabled={!isEditing}
-                                    className={`rounded-lg border-2 p-4 text-left transition-colors ${
+                                    className={`rounded-lg border-2 p-4 text-left transition-colors duration-300 ${
                                         plan.selectedServices.includes(service.id)
                                             ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
                                             : "border-secondary-300 dark:border-secondary-700 hover:border-primary-300"
@@ -781,7 +781,7 @@ const PlanPage = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="card">
                             <h3 className="card-title mb-4">Budget (USD)</h3>
                             <input
@@ -790,7 +790,7 @@ const PlanPage = () => {
                                 onChange={(e) => setPlan({ ...plan, budget: e.target.value })}
                                 disabled={!isEditing}
                                 placeholder="e.g., 5000"
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
+                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none disabled:opacity-50"
                             />
                         </div>
                         <div className="card">
@@ -801,7 +801,7 @@ const PlanPage = () => {
                                 onChange={(e) => setPlan({ ...plan, timeline: e.target.value })}
                                 disabled={!isEditing}
                                 placeholder="e.g., 3 months"
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50"
+                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none disabled:opacity-50"
                             />
                         </div>
                     </div>

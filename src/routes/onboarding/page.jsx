@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PersonalInfoStep } from "./steps/PersonalInfoStep";
 import { BusinessInfoStep } from "./steps/BusinessInfoStep";
 import { ContactInfoStep } from "./steps/ContactInfoStep";
@@ -36,6 +36,34 @@ const OnboardingPage = () => {
         segments: [],
         competitors: [],
     });
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get("id");
+
+    // If editing an existing client, load its data into formData
+    useEffect(() => {
+        if (!editId) return;
+        const stored = localStorage.getItem("clients");
+        if (!stored) return;
+        try {
+            const clients = JSON.parse(stored);
+            const found = clients.find((c) => c.id === editId);
+            if (found) {
+                // Remove id and createdAt from nested objects when prefilling (we keep id at top-level)
+                setFormData({
+                    personal: found.personal || {},
+                    business: found.business || {},
+                    contact: found.contact || {},
+                    branches: found.branches || [],
+                    socialLinks: found.socialLinks || { business: [], personal: [] },
+                    swot: found.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+                    segments: found.segments || [],
+                    competitors: found.competitors || [],
+                });
+            }
+        } catch (err) {
+            // ignore parse errors
+        }
+    }, [editId]);
 
     const CurrentStepComponent = steps[currentStep].component;
 
@@ -47,6 +75,23 @@ const OnboardingPage = () => {
         if (currentStep < steps.length - 1) {
             setCurrentStep(currentStep + 1);
         } else {
+            // If editing, update existing client instead of creating new
+            if (editId) {
+                const stodangerClients = localStorage.getItem("clients");
+                const clients = stodangerClients ? JSON.parse(stodangerClients) : [];
+                const idx = clients.findIndex((c) => c.id === editId);
+                if (idx !== -1) {
+                    const updatedClient = { ...clients[idx], ...updatedFormData };
+                    clients[idx] = updatedClient;
+                    localStorage.setItem("clients", JSON.stringify(clients));
+                    console.log("✅ Updated client:", updatedClient);
+                    alert("Client updated successfully!");
+                    navigate("/clients");
+                    return;
+                }
+                // if editId not found, fallthrough to create new client
+            }
+
             // Generate unique ID for the client
             const clientId = `client_${Date.now()}`;
 
@@ -74,7 +119,7 @@ const OnboardingPage = () => {
 
             alert("Client added successfully!");
 
-            // dangerirect to clients page
+            // redirect to clients page
             navigate("/clients");
         }
     };
@@ -86,8 +131,8 @@ const OnboardingPage = () => {
     };
 
     return (
-        <div className="mx-auto max-w-4xl">
-            <div className="card">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+            <div className="card transition-colors duration-300">
                 <div className="card-header">
                     <h1 className="card-title text-2xl">{t("client_onboarding")}</h1>
                 </div>

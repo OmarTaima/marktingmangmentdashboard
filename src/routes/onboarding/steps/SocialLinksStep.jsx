@@ -5,6 +5,7 @@ import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import { cn } from "@/utils/cn";
+import validators from "@/constants/validators";
 
 const mainPlatforms = [
     {
@@ -65,11 +66,15 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
         });
 
         // Validate URL for the platform
+        // first check general URL validity
+        if (value && !validators.isValidURL(value, { allowProtocolLess: true })) {
+            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
+            return;
+        }
+
+        // then platform-specific check
         if (value && !validatePlatformUrl(value, mainPlatforms[index])) {
-            setUrlErrors((prev) => ({
-                ...prev,
-                [index]: `Please enter a valid ${mainPlatforms[index].name} URL`,
-            }));
+            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
         } else {
             setUrlErrors((prev) => {
                 const newErrors = { ...prev };

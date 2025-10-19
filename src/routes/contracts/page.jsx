@@ -184,50 +184,55 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                     <h1 className="title">{t("contracts_title")}</h1>
                     <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("contracts_subtitle")}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-nowrap items-center gap-1 sm:gap-2">
                     {isEditing ? (
                         <button
                             onClick={handleSave}
-                            className="btn-primary flex items-center gap-2"
+                            className="btn-primary btn-sm flex items-center gap-2 whitespace-nowrap"
+                            aria-label={t("save_contract")}
                         >
                             <Save size={16} />
-                            {t("save_contract")}
+                            <span className="hidden sm:inline">{t("save_contract")}</span>
                         </button>
                     ) : (
                         <>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="btn-ghost flex items-center gap-2"
+                                className="btn-ghost btn-sm flex items-center gap-2 whitespace-nowrap"
+                                aria-label={t("edit")}
                             >
                                 <Edit2 size={16} />
-                                {t("edit")}
+                                <span className="hidden sm:inline">{t("edit")}</span>
                             </button>
                             <button
                                 onClick={handleDownload}
-                                className="btn-primary flex items-center gap-2"
+                                className="btn-primary btn-sm flex items-center gap-2 whitespace-nowrap"
+                                aria-label={t("download_contract")}
                             >
                                 <Download size={16} />
-                                {t("download_contract")}
+                                <span className="hidden sm:inline">{t("download_contract")}</span>
                             </button>
                         </>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {/* Summary Cards */}
-                <div className="space-y-4 lg:col-span-1">
+                <div className="space-y-4 md:col-span-1 lg:col-span-1 xl:col-span-1">
                     {clientData ? (
-                        <div className="card">
+                        <div className="card transition-colors duration-300">
                             <h3 className="card-title mb-3">{t("client_info")}</h3>
                             <div className="space-y-2 text-sm">
-                                <p className="text-secondary-900 dark:text-secondary-50 font-medium">{clientData.business?.businessName}</p>
-                                <p className="text-secondary-600 dark:text-secondary-400">{clientData.personal?.fullName}</p>
-                                <p className="text-secondary-600 dark:text-secondary-400">{clientData.contact?.businessEmail}</p>
+                                <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
+                                    {clientData.business?.businessName}
+                                </p>
+                                <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.personal?.fullName}</p>
+                                <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.contact?.businessEmail}</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="card">
+                        <div className="card transition-colors duration-300">
                             <h3 className="card-title mb-3">{t("client_info")}</h3>
                             <div className="space-y-2 text-sm">
                                 <p className="text-secondary-600 dark:text-secondary-400">{t("no_client_selected")}</p>
@@ -242,28 +247,28 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                     )}
 
                     {packageData && (
-                        <div className="card">
+                        <div className="card transition-colors duration-300">
                             <h3 className="card-title mb-3">{t("package_label")}</h3>
-                            <p className="text-secondary-900 dark:text-secondary-50 font-medium">{packageData.name}</p>
+                            <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{packageData.name}</p>
                             <p className="text-primary-500 mt-2 text-2xl font-bold">{packageData.price}</p>
                         </div>
                     )}
 
                     {planData && (
-                        <div className="card">
+                        <div className="card transition-colors duration-300">
                             <h3 className="card-title mb-3">{t("campaign_info")}</h3>
-                            <div className="space-y-2 text-sm">
+                            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                                 <div>
                                     <span className="text-secondary-500">{t("budget_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50">${planData.budget}</p>
+                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">${planData.budget}</p>
                                 </div>
                                 <div>
                                     <span className="text-secondary-500">{t("timeline_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50">{planData.timeline}</p>
+                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">{planData.timeline}</p>
                                 </div>
-                                <div>
+                                <div className="sm:col-span-2">
                                     <span className="text-secondary-500">{t("services_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50">
+                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">
                                         {(t("services_selected") || "{count} selected").replace(
                                             "{count}",
                                             String(planData.selectedServices?.length || 0),
@@ -276,18 +281,18 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                 </div>
 
                 {/* Contract Editor */}
-                <div className="lg:col-span-3">
-                    <div className="card">
+                <div className="md:col-span-1 lg:col-span-2 xl:col-span-3">
+                    <div className="card transition-colors duration-300">
                         <h3 className="card-title mb-4">{t("contract_terms")}</h3>
                         {isEditing ? (
                             <textarea
                                 value={contractTerms}
                                 onChange={(e) => setContractTerms(e.target.value)}
                                 rows={25}
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm focus:outline-none"
+                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
                             />
                         ) : (
-                            <div className="bg-secondary-50 text-secondary-900 dark:bg-secondary-800/50 dark:text-secondary-50 rounded-lg p-6 font-mono text-sm whitespace-pre-wrap">
+                            <div className="bg-secondary-50 text-secondary-900 dark:bg-secondary-800/50 dark:text-secondary-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">
                                 {contractTerms}
                             </div>
                         )}

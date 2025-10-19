@@ -43,23 +43,23 @@ const PackagesPage = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-6">
             <div>
                 <h1 className="title">{t("service_packages")}</h1>
                 <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("service_packages_subtitle")}</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {packages.map((pkg) => (
                     <div
                         key={pkg.id}
-                        className={`card flex h-full cursor-pointer flex-col transition-shadow hover:shadow-lg ${
+                        className={`card flex h-full cursor-pointer flex-col transition-colors duration-300 hover:shadow-lg ${
                             selectedPackage?.id === pkg.id ? "ring-primary-500 ring-2" : ""
                         }`}
                         onClick={() => setSelectedPackage(pkg)}
                     >
-                        <h3 className="card-title mb-2 text-xl">{pkg.name}</h3>
-                        <p className="text-primary-500 mb-6 text-3xl font-bold">{pkg.price}</p>
+                        <h3 className="card-title mb-2 text-xl break-words">{pkg.name}</h3>
+                        <p className="text-primary-500 mb-6 text-3xl font-bold break-words">{pkg.price}</p>
                         <ul className="flex-1 space-y-3">
                             {pkg.items.map((item, index) => (
                                 <li
@@ -70,7 +70,7 @@ const PackagesPage = () => {
                                         size={20}
                                         className="mt-0.5 flex-shrink-0 text-green-500"
                                     />
-                                    <span className="text-secondary-700 dark:text-secondary-300">{item}</span>
+                                    <span className="text-secondary-700 dark:text-secondary-300 break-words">{item}</span>
                                 </li>
                             ))}
                         </ul>
@@ -79,7 +79,7 @@ const PackagesPage = () => {
                                 e.stopPropagation();
                                 handleSelectPackage(pkg);
                             }}
-                            className="btn-primary mt-auto w-full"
+                            className="btn-primary btn-sm mt-auto w-full"
                         >
                             {t("select_package")}
                         </button>

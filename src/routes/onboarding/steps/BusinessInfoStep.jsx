@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
+import fieldValidations from "@/constants/validations";
 
 export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
     const { t } = useLang();
@@ -14,8 +15,30 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
         },
     );
 
+    const [errors, setErrors] = useState({});
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        const newErrors = {};
+        if (fieldValidations.businessName.required && !formData.businessName?.trim()) {
+            newErrors.businessName = t(fieldValidations.businessName.messageKey);
+        }
+        if (fieldValidations.category.required && !formData.category) {
+            newErrors.category = t(fieldValidations.category.messageKey);
+        }
+        if (fieldValidations.description.required && !formData.description?.trim()) {
+            newErrors.description = t(fieldValidations.description.messageKey);
+        }
+        if (fieldValidations.mainOfficeAddress.required && !formData.mainOfficeAddress?.trim()) {
+            newErrors.mainOfficeAddress = t(fieldValidations.mainOfficeAddress.messageKey);
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
         onNext({ business: formData });
     };
 
@@ -38,8 +61,9 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     value={formData.businessName}
                     onChange={handleChange}
                     requidanger
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessName ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.businessName && <p className="text-danger-500 mt-1 text-sm">{errors.businessName}</p>}
             </div>
 
             <div>
@@ -49,7 +73,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     value={formData.category}
                     onChange={handleChange}
                     requidanger
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.category ? "border-danger-500" : "border-secondary-300"}`}
                 >
                     <option value="">{t("select_category")}</option>
                     <option value="retail">{t("option_retail")}</option>
@@ -63,6 +87,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     <option value="finance">{t("option_finance")}</option>
                     <option value="other">{t("option_other")}</option>
                 </select>
+                {errors.category && <p className="text-danger-500 mt-1 text-sm">{errors.category}</p>}
             </div>
 
             <div>
@@ -73,9 +98,10 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     requidanger
                     rows={4}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.description ? "border-danger-500" : "border-secondary-300"}`}
                     placeholder={t("describe_business_placeholder")}
                 />
+                {errors.description && <p className="text-danger-500 mt-1 text-sm">{errors.description}</p>}
             </div>
 
             <div>
@@ -86,8 +112,9 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     requidanger
                     rows={2}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.mainOfficeAddress ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.mainOfficeAddress && <p className="text-danger-500 mt-1 text-sm">{errors.mainOfficeAddress}</p>}
             </div>
 
             <div>

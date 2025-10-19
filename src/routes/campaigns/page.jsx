@@ -11,9 +11,9 @@ const CampaignsPage = () => {
     const [uploads, setUploads] = useState([]);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
-    const [isLoading, setIsLoading] = useState(true); // Start with loading true
+    const [isLoading, setIsLoading] = useState(true);
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const isTransitioningRef = useRef(false); // Track transitions without causing re-render
+    const isTransitioningRef = useRef(false);
     const [newUpload, setNewUpload] = useState({
         type: "reel",
         title: "",
@@ -36,25 +36,18 @@ const CampaignsPage = () => {
     const platforms = ["Facebook", "Instagram", "TikTok", "Twitter/X", "YouTube", "LinkedIn"];
 
     useEffect(() => {
-        // Load clients on mount
         loadClients();
-        // Small delay before showing content to prevent flash
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 150);
+        const timer = setTimeout(() => setIsLoading(false), 150);
         return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
         if (selectedClientId) {
-            // Immediately hide previous content
             isTransitioningRef.current = true;
             setIsTransitioning(true);
             setIsLoading(true);
             setIsResetting(false);
-            // Immediately clear client to prevent flash
             setSelectedClient(null);
-            // Small delay for loading animation
             setTimeout(() => {
                 loadClientAndUploads();
                 setIsLoading(false);
@@ -62,18 +55,14 @@ const CampaignsPage = () => {
                 isTransitioningRef.current = false;
             }, 300);
         } else if (selectedClient) {
-            // Only reset if we had a client selected before
-            // Immediately hide content and clear client
             isTransitioningRef.current = true;
             setSelectedClient(null);
             setIsTransitioning(true);
             setIsLoading(true);
             setIsResetting(true);
-            // Reset all states when going back
             setTimeout(() => {
                 setPlanData(null);
                 setUploads([]);
-                <LocalizedArrow size={20} />;
                 setIsLoading(false);
                 setIsTransitioning(false);
                 isTransitioningRef.current = false;
@@ -82,37 +71,25 @@ const CampaignsPage = () => {
     }, [selectedClientId]);
 
     const loadClients = () => {
-        const stodangerClients = localStorage.getItem("clients");
-        if (stodangerClients) {
-            const clientsList = JSON.parse(stodangerClients);
-            setClients(clientsList);
+        const storedClients = localStorage.getItem("clients");
+        if (storedClients) {
+            setClients(JSON.parse(storedClients));
         }
     };
 
     const loadClientAndUploads = () => {
-        // Load client
-        const stodangerClients = localStorage.getItem("clients");
-        if (stodangerClients) {
-            const clientsList = JSON.parse(stodangerClients);
+        const storedClients = localStorage.getItem("clients");
+        if (storedClients) {
+            const clientsList = JSON.parse(storedClients);
             const client = clientsList.find((c) => c.id === selectedClientId);
             setSelectedClient(client);
         }
 
-        // Load plan
         const savedPlan = localStorage.getItem(`plan_${selectedClientId}`);
-        if (savedPlan) {
-            setPlanData(JSON.parse(savedPlan));
-        } else {
-            setPlanData(null);
-        }
+        setPlanData(savedPlan ? JSON.parse(savedPlan) : null);
 
-        // Load uploads
         const savedUploads = localStorage.getItem(`uploads_${selectedClientId}`);
-        if (savedUploads) {
-            setUploads(JSON.parse(savedUploads));
-        } else {
-            setUploads([]);
-        }
+        setUploads(savedUploads ? JSON.parse(savedUploads) : []);
     };
 
     const handleAddUpload = () => {
@@ -131,7 +108,6 @@ const CampaignsPage = () => {
         setUploads(updatedUploads);
         localStorage.setItem(`uploads_${selectedClientId}`, JSON.stringify(updatedUploads));
 
-        // Reset form
         setNewUpload({
             type: "reel",
             title: "",
@@ -152,8 +128,7 @@ const CampaignsPage = () => {
 
     const deleteUpload = (uploadId) => {
         if (!confirm("Are you sure you want to delete this upload?")) return;
-
-        const updatedUploads = uploads.filter((upload) => upload.id !== uploadId);
+        const updatedUploads = uploads.filter((u) => u.id !== uploadId);
         setUploads(updatedUploads);
         localStorage.setItem(`uploads_${selectedClientId}`, JSON.stringify(updatedUploads));
     };
@@ -205,15 +180,14 @@ const CampaignsPage = () => {
     const stats = getTypeStats();
 
     return (
-        <div className="space-y-6">
-            {/* Show loading on initial mount or during transitions */}
+        <div className="space-y-6 md:space-y-8">
             {isLoading && !selectedClient && !selectedClientId ? (
                 <div className="flex min-h-[400px] items-center justify-center">
                     <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                         <div>
                             <h1 className="title">{t("campaigns_title")}</h1>
                             <p className="text-secondary-600 dark:text-secondary-400">{t("campaigns_subtitle")}</p>
@@ -229,38 +203,30 @@ const CampaignsPage = () => {
                         )}
                     </div>
 
-                    {/* Loading State */}
                     {(isLoading || isTransitioning) && (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
                         </div>
                     )}
 
-                    {/* Client Selection Cards */}
-                    {!selectedClientId && !isResetting && !isLoading && !isTransitioning ? (
+                    {!selectedClientId && !isResetting && !isLoading && !isTransitioning && (
                         <div>
                             {clients.length > 0 ? (
                                 <>
                                     <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
                                         {t("select_a_client_to_plan")}
                                     </h2>
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                         {clients.map((client) => {
-                                            // Load plan for this client to show info
                                             const savedPlan = localStorage.getItem(`plan_${client.id}`);
                                             const plan = savedPlan ? JSON.parse(savedPlan) : null;
-
                                             return (
                                                 <div
                                                     key={client.id}
                                                     className="card hover:border-primary-500 transition-all"
                                                 >
-                                                    <h3 className="card-title text-lg">
-                                                        <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
-                                                        {client.business?.businessName || t("unnamed_client")}
-                                                    </h3>
+                                                    <h3 className="card-title text-lg">{client.business?.businessName || t("unnamed_client")}</h3>
                                                     <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
-                                                        <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                                                         {client.business?.category || t("no_category")}
                                                     </p>
                                                     {plan ? (
@@ -309,11 +275,10 @@ const CampaignsPage = () => {
                                 </div>
                             )}
                         </div>
-                    ) : null}
+                    )}
 
                     {selectedClient && !isLoading && !isTransitioning && (
                         <>
-                            {/* Client Info Header */}
                             <div className="card bg-secondary-50 dark:bg-secondary-800/50">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
@@ -325,19 +290,14 @@ const CampaignsPage = () => {
                                         </button>
                                         <div>
                                             <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
-                                                <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                                 {selectedClient.business?.businessName}
                                             </h2>
-                                            <p className="text-secondary-600 dark:text-secondary-400 text-sm">
-                                                <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
-                                                {selectedClient.business?.category}
-                                            </p>
+                                            <p className="text-secondary-600 dark:text-secondary-400 text-sm">{selectedClient.business?.category}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Plan Summary */}
                             {planData ? (
                                 <div className="card bg-primary-50 dark:bg-primary-950/30">
                                     <h3 className="card-title mb-3">{t("campaign_planning")}</h3>
@@ -368,14 +328,13 @@ const CampaignsPage = () => {
                                             href="/planning"
                                             className="font-medium underline"
                                         >
-                                            {t("create_a_plan_first") || t("create_a_plan_first")}
+                                            {t("create_a_plan_first")}
                                         </a>
                                     </p>
                                 </div>
                             )}
 
-                            {/* Content Stats */}
-                            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                                 {contentTypes.map((type) => {
                                     const TypeIcon = type.icon;
                                     return (
@@ -400,7 +359,6 @@ const CampaignsPage = () => {
                                 })}
                             </div>
 
-                            {/* Uploads List */}
                             <div className="card">
                                 <h3 className="card-title mb-4">{t("content_uploads")}</h3>
                                 {uploads.length > 0 ? (
@@ -410,19 +368,19 @@ const CampaignsPage = () => {
                                             return (
                                                 <div
                                                     key={upload.id}
-                                                    className="border-secondary-200 dark:border-secondary-700 flex items-start gap-4 rounded-lg border p-4"
+                                                    className="border-secondary-200 dark:border-secondary-700 flex flex-col rounded-lg border p-4 md:flex-row md:items-start md:gap-4"
                                                 >
                                                     <TypeIcon
                                                         size={24}
                                                         className="text-secondary-600 dark:text-secondary-400 flex-shrink-0"
                                                     />
                                                     <div className="flex-1">
-                                                        <div className="flex items-start justify-between">
+                                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                                             <div>
                                                                 <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">
                                                                     {upload.title}
                                                                 </h4>
-                                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm break-words">
                                                                     {upload.description}
                                                                 </p>
                                                                 <div className="text-secondary-500 dark:text-secondary-400 mt-2 flex flex-wrap gap-3 text-xs">
@@ -454,10 +412,7 @@ const CampaignsPage = () => {
                                                                     <option value="completed">{t("completed")}</option>
                                                                 </select>
                                                                 <button
-                                                                    onClick={() => {
-                                                                        if (!confirm(t("confirm_delete_upload"))) return;
-                                                                        deleteUpload(upload.id);
-                                                                    }}
+                                                                    onClick={() => deleteUpload(upload.id)}
                                                                     className="text-danger-500 hover:text-danger-700"
                                                                     aria-label={t("confirm_delete_upload")}
                                                                 >
@@ -477,7 +432,6 @@ const CampaignsPage = () => {
                         </>
                     )}
 
-                    {/* Upload Modal */}
                     {showUploadModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                             <div className="dark:bg-secondary-900 w-full max-w-2xl rounded-lg bg-white p-6">
@@ -512,30 +466,29 @@ const CampaignsPage = () => {
                                             value={newUpload.title}
                                             onChange={(e) => setNewUpload({ ...newUpload, title: e.target.value })}
                                             placeholder={t("title_label")}
-                                            className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
+                                            className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                         />
                                     </div>
                                     <div>
                                         <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
-                                            {t("description_label")}
+                                            {t("description")}
                                         </label>
                                         <textarea
                                             value={newUpload.description}
                                             onChange={(e) => setNewUpload({ ...newUpload, description: e.target.value })}
-                                            placeholder={t("description_placeholder")}
-                                            rows={3}
-                                            className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
+                                            placeholder={t("write_description_here")}
+                                            className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div>
                                             <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
-                                                {t("platform_label")}
+                                                {t("platform")}
                                             </label>
                                             <select
                                                 value={newUpload.platform}
                                                 onChange={(e) => setNewUpload({ ...newUpload, platform: e.target.value })}
-                                                className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
+                                                className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                             >
                                                 <option value="">{t("select_platform")}</option>
                                                 {platforms.map((platform) => (
@@ -556,24 +509,25 @@ const CampaignsPage = () => {
                                                 type="date"
                                                 value={newUpload.scheduledDate}
                                                 onChange={(e) => setNewUpload({ ...newUpload, scheduledDate: e.target.value })}
-                                                className="border-secondary-300 text-secondary-700 dark:text-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 w-full rounded-lg border bg-white px-4 py-2"
+                                                className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                             />
                                         </div>
                                     </div>
-                                </div>
-                                <div className="mt-6 flex justify-end gap-2">
-                                    <button
-                                        onClick={() => setShowUploadModal(false)}
-                                        className="btn-ghost"
-                                    >
-                                        {t("cancel")}
-                                    </button>
-                                    <button
-                                        onClick={handleAddUpload}
-                                        className="btn-primary"
-                                    >
-                                        {t("add_upload")}
-                                    </button>
+                                    <div className="flex items-center justify-end gap-3">
+                                        <button
+                                            onClick={() => setShowUploadModal(false)}
+                                            className="btn-secondary"
+                                        >
+                                            {t("cancel")}
+                                        </button>
+                                        <button
+                                            onClick={handleAddUpload}
+                                            className="btn-primary"
+                                        >
+                                            <Upload size={16} />
+                                            {t("add_upload")}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

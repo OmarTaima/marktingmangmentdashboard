@@ -68,11 +68,11 @@ const ClientsPage = () => {
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {clients.map((client) => (
                         <div
                             key={client.id}
-                            className="card cursor-pointer transition-shadow hover:shadow-lg"
+                            className="card cursor-pointer transition-colors duration-300 hover:shadow-lg"
                         >
                             <div className="space-y-4">
                                 <ClientInfo
@@ -81,7 +81,7 @@ const ClientsPage = () => {
                                 />
 
                                 {/* Stats */}
-                                <div className="border-secondary-200 dark:border-secondary-700 grid grid-cols-3 gap-2 border-t pt-3">
+                                <div className="border-secondary-200 dark:border-secondary-700 grid grid-cols-1 gap-2 border-t pt-3 sm:grid-cols-3">
                                     <div className="text-center">
                                         <p className="text-primary-600 dark:text-primary-400 text-lg font-bold">{client.segments?.length || 0}</p>
                                         <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("segments_label")}</p>
@@ -102,7 +102,7 @@ const ClientsPage = () => {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="border-secondary-200 dark:border-secondary-700 flex gap-2 border-t pt-3">
+                                <div className="border-secondary-200 dark:border-secondary-700 flex flex-col gap-2 border-t pt-3 sm:flex-row">
                                     <button
                                         onClick={() => handleViewClient(client.id)}
                                         className="btn-ghost flex-1 text-sm"
@@ -110,6 +110,7 @@ const ClientsPage = () => {
                                         <Target size={14} />
                                         {t("view_details")}
                                     </button>
+
                                     <button
                                         onClick={() => handleToPlanning(client.id)}
                                         className="btn-primary flex-1 text-sm"

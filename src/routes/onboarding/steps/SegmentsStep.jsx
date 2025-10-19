@@ -2,6 +2,7 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import fieldValidations from "@/constants/validations";
 
 export const SegmentsStep = ({ data, onNext, onPrevious }) => {
     const { t } = useLang();
@@ -15,18 +16,31 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
         income: "",
     });
 
+    const [errors, setErrors] = useState({});
+
     const handleAddSegment = () => {
-        if (currentSegment.name && currentSegment.description) {
-            setSegments([...segments, currentSegment]);
-            setCurrentSegment({
-                name: "",
-                description: "",
-                targetAge: "",
-                targetGender: "",
-                interests: "",
-                income: "",
-            });
+        const newErrors = {};
+        if (fieldValidations.segmentName.required && !currentSegment.name?.trim()) {
+            newErrors.name = t(fieldValidations.segmentName.messageKey);
         }
+        if (fieldValidations.segmentDescription.required && !currentSegment.description?.trim()) {
+            newErrors.description = t(fieldValidations.segmentDescription.messageKey);
+        }
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setSegments([...segments, currentSegment]);
+        setCurrentSegment({
+            name: "",
+            description: "",
+            targetAge: "",
+            targetGender: "",
+            interests: "",
+            income: "",
+        });
+        setErrors({});
     };
 
     const handleRemoveSegment = (index) => {
@@ -53,21 +67,29 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                     <input
                         type="text"
                         value={currentSegment.name}
-                        onChange={(e) => setCurrentSegment({ ...currentSegment, name: e.target.value })}
+                        onChange={(e) => {
+                            setCurrentSegment({ ...currentSegment, name: e.target.value });
+                            if (errors.name) setErrors({ ...errors, name: "" });
+                        }}
                         placeholder={t("segment_name_placeholder")}
-                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.name ? "border-danger-500" : "border-secondary-300"}`}
                     />
+                    {errors.name && <p className="text-danger-500 mt-1 text-sm">{errors.name}</p>}
                 </div>
 
                 <div>
                     <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")} *</label>
                     <textarea
                         value={currentSegment.description}
-                        onChange={(e) => setCurrentSegment({ ...currentSegment, description: e.target.value })}
+                        onChange={(e) => {
+                            setCurrentSegment({ ...currentSegment, description: e.target.value });
+                            if (errors.description) setErrors({ ...errors, description: "" });
+                        }}
                         rows={2}
                         placeholder={t("describe_segment_placeholder")}
-                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.description ? "border-danger-500" : "border-secondary-300"}`}
                     />
+                    {errors.description && <p className="text-danger-500 mt-1 text-sm">{errors.description}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

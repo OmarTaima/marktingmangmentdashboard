@@ -2,18 +2,8 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
-
-// Egyptian phone validation: accepts +20, 20, or 01 followed by 9 digits
-const validateEgyptianPhone = (phone) => {
-    const cleaned = phone.replace(/\s+/g, "");
-    const patterns = [
-        /^\+20[0-9]{10}$/, // +20 followed by 10 digits
-        /^20[0-9]{10}$/, // 20 followed by 10 digits
-        /^01[0-9]{9}$/, // 01 followed by 9 digits
-        /^[0-9]{11}$/, // 11 digits starting with 01
-    ];
-    return patterns.some((pattern) => pattern.test(cleaned));
-};
+import validators from "@/constants/validators";
+import fieldValidations from "@/constants/validations";
 
 export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
     const { t, lang } = useLang();
@@ -25,25 +15,41 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             position: "",
         },
     );
-    const [phoneError, setPhoneError] = useState("");
+    const [errors, setErrors] = useState({});
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Validate Egyptian phone number
-        if (!validateEgyptianPhone(formData.phone)) {
-            setPhoneError(t("phone_error"));
+        const newErrors = {};
+
+        // fullName required
+        if (fieldValidations.fullName.required && !formData.fullName?.trim()) {
+            newErrors.fullName = t(fieldValidations.fullName.messageKey);
+        }
+
+        // email validation
+        if (fieldValidations.email.required && !validators.isValidEmail(formData.email || "")) {
+            newErrors.email = t(fieldValidations.email.messageKey || "invalid_email");
+        }
+
+        // phone validation
+        if (!validators.isValidEgyptianMobile(formData.phone || "")) {
+            newErrors.phone = t(fieldValidations.phone.messageKey);
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
-        setPhoneError("");
+        setErrors({});
         onNext({ personal: formData });
     };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (e.target.name === "phone") {
-            setPhoneError(""); // Clear error when user types
+        if (errors[e.target.name]) {
+            setErrors({ ...errors, [e.target.name]: "" });
         }
     };
 
@@ -63,8 +69,9 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
                     onChange={handleChange}
                     requidanger
                     placeholder={t("full_name_placeholder")}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.fullName ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.fullName && <p className="text-danger-500 mt-1 text-sm">{errors.fullName}</p>}
             </div>
 
             <div>
@@ -76,8 +83,9 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
                     onChange={handleChange}
                     requidanger
                     placeholder={t("email_placeholder")}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.email ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.email && <p className="text-danger-500 mt-1 text-sm">{errors.email}</p>}
             </div>
 
             <div>
@@ -90,9 +98,9 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
                     placeholder={t("phone_placeholder")}
                     requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneError ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
+                    className={`w-full rounded-lg border ${errors.phone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneError && <p className="text-danger-500 mt-1 text-sm">{phoneError}</p>}
+                {errors.phone && <p className="text-danger-500 mt-1 text-sm">{errors.phone}</p>}
             </div>
 
             <div>

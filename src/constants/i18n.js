@@ -10,6 +10,7 @@ const en = {
     position_placeholder: "Position or role (optional)",
     phone_error: "Please enter a valid Egyptian phone number (e.g., 01012345678 or +201012345678)",
     position_role: "Position/Role",
+    invalid_email: "Please enter a valid email address",
     previous: "Previous",
     next: "Next",
     complete: "Complete",
@@ -20,6 +21,7 @@ const en = {
     business_email: "Business Email",
     website_url: "Website URL",
     website_placeholder: "https://example.com",
+    invalid_website: "Please enter a valid website URL",
     privacy_policy: "Privacy Policy",
     terms_of_service: "Terms of Service",
     copyright: "© 2024 XD Code All Rights Reserved",
@@ -125,6 +127,8 @@ const en = {
     platform_name: "Platform Name",
     platform_name_placeholder: "e.g., LinkedIn, YouTube",
     url: "URL",
+    url_label: "URL",
+    platform_label: "Platform",
     add_platform: "Add Platform",
 
     // SWOT
@@ -138,7 +142,12 @@ const en = {
     weaknesses: "Weaknesses",
     opportunities: "Opportunities",
     threats: "Threats",
+    add: "Add",
+    add_link: "Add link",
+    remove: "Remove",
     swot_add_placeholder: "Add ",
+    swot_require_one: "Please add at least one SWOT item",
+    swot_require_one: "يرجى إضافة عنصر واحد على الأقل في تحليل سوات",
 };
 
 const ar = {
@@ -153,6 +162,7 @@ const ar = {
     position_placeholder: "المنصب أو الدور (اختياري)",
     phone_error: "الرجاء إدخال رقم هاتف مصري صالح)",
     position_role: "المنصب/الدور",
+    invalid_email: "الرجاء إدخال بريد إلكتروني صالح",
     previous: "السابق",
     next: "التالي",
     complete: "اكتمال",
@@ -163,6 +173,7 @@ const ar = {
     business_email: "البريد الإلكتروني للعمل",
     website_url: "رابط الموقع",
     website_placeholder: "https://example.com",
+    invalid_website: "الرجاء إدخال رابط موقع صالح",
     privacy_policy: "سياسة الخصوصية",
     terms_of_service: "شروط الخدمة",
     copyright: "© 2024 جميع الحقوق محفوظة",
@@ -269,6 +280,9 @@ const ar = {
     platform_name_placeholder: "مثال: لينكدإن، يوتيوب",
     url: "الرابط",
     add_platform: "إضافة منصة",
+    add: "أضف",
+    add_link: "إضافة رابط",
+    remove: "إزالة",
 
     // SWOT
     swot_analysis: "تحليل سوات",
@@ -532,6 +546,7 @@ en.no_plan_created_yet = "No plan created yet";
 en.view_client_details = "View Client Details";
 en.view_raw_data = "View Raw Data (Click to expand)";
 en.cancel = "Cancel";
+en.invalid_budget = "Please enter a valid budget (positive number)";
 
 ar.campaigns_title = "تتبع محتوى الحملة";
 ar.campaigns_subtitle = "قم بتحميل وتتبع تسليمات المحتوى";
@@ -689,5 +704,6 @@ ar.no_plan_created_yet = "لم يتم إنشاء خطة بعد";
 ar.view_client_details = "عرض تفاصيل العميل";
 ar.view_raw_data = "عرض البيانات الخام (انقر لتوسيع)";
 ar.cancel = "إلغاء";
+ar.invalid_budget = "يرجى إدخال ميزانية صالحة (رقم موجَب)";
 
 export default { en, ar };

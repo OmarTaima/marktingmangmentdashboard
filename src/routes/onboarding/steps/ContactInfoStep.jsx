@@ -2,18 +2,8 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
-
-// Egyptian phone validation: accepts +20, 20, or 01 followed by 9 digits
-const validateEgyptianPhone = (phone) => {
-    const cleaned = phone.replace(/\s+/g, "");
-    const patterns = [
-        /^\+20[0-9]{10}$/, // +20 followed by 10 digits
-        /^20[0-9]{10}$/, // 20 followed by 10 digits
-        /^01[0-9]{9}$/, // 01 followed by 9 digits
-        /^[0-9]{11}$/, // 11 digits starting with 01
-    ];
-    return patterns.some((pattern) => pattern.test(cleaned));
-};
+import validators from "@/constants/validators";
+import fieldValidations from "@/constants/validations";
 
 export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
     const { t, lang } = useLang();
@@ -25,39 +15,46 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             website: "",
         },
     );
-    const [phoneErrors, setPhoneErrors] = useState({
-        businessPhone: "",
-        businessWhatsApp: "",
-    });
+    const [errors, setErrors] = useState({});
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const errors = {};
+        const newErrors = {};
 
         // Validate business phone
-        if (!validateEgyptianPhone(formData.businessPhone)) {
-            errors.businessPhone = t("phone_error");
+        if (!validators.isValidEgyptianMobile(formData.businessPhone || "")) {
+            newErrors.businessPhone = t(fieldValidations.businessPhone.messageKey);
         }
 
         // Validate WhatsApp
-        if (!validateEgyptianPhone(formData.businessWhatsApp)) {
-            errors.businessWhatsApp = t("phone_error");
+        if (!validators.isValidEgyptianMobile(formData.businessWhatsApp || "")) {
+            newErrors.businessWhatsApp = t(fieldValidations.businessWhatsApp.messageKey);
         }
 
-        if (Object.keys(errors).length > 0) {
-            setPhoneErrors(errors);
+        // Validate business email
+        if (!validators.isValidEmail(formData.businessEmail || "")) {
+            newErrors.businessEmail = t(fieldValidations.businessEmail.messageKey || "invalid_email");
+        }
+
+        // Validate website (optional)
+        if (formData.website && !validators.isValidURL(formData.website, { allowProtocolLess: true })) {
+            newErrors.website = t(fieldValidations.website.messageKey || "invalid_website");
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
-        setPhoneErrors({ businessPhone: "", businessWhatsApp: "" });
+        setErrors({});
         onNext({ contact: formData });
     };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (e.target.name === "businessPhone" || e.target.name === "businessWhatsApp") {
-            setPhoneErrors({ ...phoneErrors, [e.target.name]: "" });
+        if (errors[e.target.name]) {
+            setErrors({ ...errors, [e.target.name]: "" });
         }
     };
 
@@ -78,9 +75,9 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     placeholder={t("phone_placeholder")}
                     requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneErrors.businessPhone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
+                    className={`w-full rounded-lg border ${errors.businessPhone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneErrors.businessPhone && <p className="text-danger-500 mt-1 text-sm">{phoneErrors.businessPhone}</p>}
+                {errors.businessPhone && <p className="text-danger-500 mt-1 text-sm">{errors.businessPhone}</p>}
             </div>
 
             <div>
@@ -93,9 +90,9 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     placeholder={t("phone_placeholder")}
                     requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${phoneErrors.businessWhatsApp ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
+                    className={`w-full rounded-lg border ${errors.businessWhatsApp ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
-                {phoneErrors.businessWhatsApp && <p className="text-danger-500 mt-1 text-sm">{phoneErrors.businessWhatsApp}</p>}
+                {errors.businessWhatsApp && <p className="text-danger-500 mt-1 text-sm">{errors.businessWhatsApp}</p>}
             </div>
 
             <div>
@@ -106,8 +103,9 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     value={formData.businessEmail}
                     onChange={handleChange}
                     requidanger
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessEmail ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.businessEmail && <p className="text-danger-500 mt-1 text-sm">{errors.businessEmail}</p>}
             </div>
 
             <div>
@@ -119,8 +117,9 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     placeholder={t("website_placeholder")}
                     dir={dirFor(t("website_placeholder"))}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.website ? "border-danger-500" : "border-secondary-300"}`}
                 />
+                {errors.website && <p className="text-danger-500 mt-1 text-sm">{errors.website}</p>}
             </div>
 
             <div className="flex justify-between gap-4 pt-4">

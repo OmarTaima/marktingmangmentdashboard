@@ -21,6 +21,7 @@ const PlanningPage = () => {
     const [isLoading, setIsLoading] = useState(true); // Start with loading true
     const [isTransitioning, setIsTransitioning] = useState(false);
     const isTransitioningRef = useRef(false); // Track transitions without causing re-render
+    const [planErrors, setPlanErrors] = useState({});
 
     // Available services options
     const availableServices = [
@@ -256,9 +257,22 @@ Document Generated: ${new Date().toLocaleDateString()}
             return;
         }
 
+        // Validate required fields
+        const errors = {};
+        if (!planData.objective?.trim()) errors.objective = t("please_fill_required_fields");
+        if (!planData.strategy?.trim()) errors.strategy = t("please_fill_required_fields");
+        if (planData.budget && Number(planData.budget) <= 0) errors.budget = t("invalid_budget");
+
+        if (Object.keys(errors).length > 0) {
+            setPlanErrors(errors);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
         // Save plan
         localStorage.setItem(`plan_${selectedClientId}`, JSON.stringify(planData));
         setIsEditing(false);
+        setPlanErrors({});
         alert(t("plan_saved_success"));
     };
 
@@ -289,7 +303,7 @@ Document Generated: ${new Date().toLocaleDateString()}
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-6">
             {/* Show loading on initial mount or during transitions */}
             {isLoading && !selectedClient && !selectedClientId ? (
                 <div className="flex min-h-[400px] items-center justify-center">
@@ -350,11 +364,11 @@ Document Generated: ${new Date().toLocaleDateString()}
                                     <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
                                         {t("select_a_client_to_plan")}
                                     </h2>
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                         {clients.map((client) => (
                                             <div
                                                 key={client.id}
-                                                className="card hover:border-primary-500 transition-all"
+                                                className="card hover:border-primary-500 transition-colors duration-300"
                                             >
                                                 <h3 className="card-title text-lg">
                                                     <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
@@ -427,7 +441,7 @@ Document Generated: ${new Date().toLocaleDateString()}
                             {/* Planning Form */}
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 {/* Objective */}
-                                <div className="card lg:col-span-2">
+                                <div className="card transition-colors duration-300 lg:col-span-2">
                                     <h3 className="card-title mb-4">{t("campaign_objective")}</h3>
                                     <textarea
                                         value={planData.objective}
@@ -435,12 +449,13 @@ Document Generated: ${new Date().toLocaleDateString()}
                                         placeholder={t("objective_placeholder")}
                                         rows={4}
                                         disabled={!isEditing}
-                                        className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
+                                        className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-secondary-300"}`}
                                     />
+                                    {planErrors.objective && <p className="text-danger-500 mt-1 text-sm">{planErrors.objective}</p>}
                                 </div>
 
                                 {/* Strategy */}
-                                <div className="card lg:col-span-2">
+                                <div className="card transition-colors duration-300 lg:col-span-2">
                                     <h3 className="card-title mb-4">{t("strategic_approach")}</h3>
                                     <textarea
                                         value={planData.strategy}
@@ -448,14 +463,15 @@ Document Generated: ${new Date().toLocaleDateString()}
                                         placeholder={t("strategy_placeholder")}
                                         rows={6}
                                         disabled={!isEditing}
-                                        className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
+                                        className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-secondary-300"}`}
                                     />
+                                    {planErrors.strategy && <p className="text-danger-500 mt-1 text-sm">{planErrors.strategy}</p>}
                                 </div>
 
                                 {/* Services */}
-                                <div className="card lg:col-span-2">
+                                <div className="card transition-colors duration-300 lg:col-span-2">
                                     <h3 className="card-title mb-4">{t("services_to_provide")}</h3>
-                                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                                         {availableServices.map((service) => (
                                             <button
                                                 key={service}
@@ -473,14 +489,14 @@ Document Generated: ${new Date().toLocaleDateString()}
                                                         className="flex-shrink-0"
                                                     />
                                                 )}
-                                                <span className="truncate">{t(service)}</span>
+                                                <span className="truncate break-words">{t(service)}</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Budget */}
-                                <div className="card">
+                                <div className="card transition-colors duration-300">
                                     <h3 className="card-title mb-4">{t("budget_usd")}</h3>
                                     <div className="relative">
                                         <input
@@ -489,13 +505,14 @@ Document Generated: ${new Date().toLocaleDateString()}
                                             onChange={(e) => setPlanData({ ...planData, budget: e.target.value })}
                                             placeholder="5000"
                                             disabled={!isEditing}
-                                            className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none"
+                                            className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none ${planErrors.budget ? "border-danger-500" : "border-secondary-300"}`}
                                         />
+                                        {planErrors.budget && <p className="text-danger-500 mt-1 text-sm">{planErrors.budget}</p>}
                                     </div>
                                 </div>
 
                                 {/* Timeline */}
-                                <div className="card">
+                                <div className="card transition-colors duration-300">
                                     <h3 className="card-title mb-4">{t("timeline")}</h3>
                                     <input
                                         type="text"
