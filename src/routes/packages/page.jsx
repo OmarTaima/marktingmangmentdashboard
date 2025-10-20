@@ -43,43 +43,46 @@ const PackagesPage = () => {
     };
 
     return (
-        <div className="space-y-6 px-4 sm:px-6">
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
             <div>
-                <h1 className="title">{t("service_packages")}</h1>
-                <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("service_packages_subtitle")}</p>
+                <h1 className="title text-xl sm:text-2xl lg:text-3xl">{t("service_packages")}</h1>
+                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm sm:text-base">{t("service_packages_subtitle")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {packages.map((pkg) => (
                     <div
                         key={pkg.id}
-                        className={`card flex h-full cursor-pointer flex-col transition-colors duration-300 hover:shadow-lg ${
+                        className={`card flex min-h-[400px] cursor-pointer flex-col justify-between p-4 transition-all duration-300 hover:shadow-lg sm:p-6 ${
                             selectedPackage?.id === pkg.id ? "ring-primary-500 ring-2" : ""
                         }`}
                         onClick={() => setSelectedPackage(pkg)}
                     >
-                        <h3 className="card-title mb-2 text-xl break-words">{pkg.name}</h3>
-                        <p className="text-primary-500 mb-6 text-3xl font-bold break-words">{pkg.price}</p>
-                        <ul className="flex-1 space-y-3">
-                            {pkg.items.map((item, index) => (
-                                <li
-                                    key={index}
-                                    className="flex items-start gap-2"
-                                >
-                                    <Check
-                                        size={20}
-                                        className="mt-0.5 flex-shrink-0 text-green-500"
-                                    />
-                                    <span className="text-secondary-700 dark:text-secondary-300 break-words">{item}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <div>
+                            <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
+                            <p className="text-primary-500 mb-4 text-2xl font-bold break-words sm:text-3xl">{pkg.price}</p>
+                            <ul className="space-y-2 sm:space-y-3">
+                                {pkg.items.map((item, index) => (
+                                    <li
+                                        key={index}
+                                        className="flex items-start gap-2"
+                                    >
+                                        <Check
+                                            size={18}
+                                            className="mt-0.5 flex-shrink-0 text-green-500"
+                                        />
+                                        <span className="text-secondary-700 dark:text-secondary-300 text-sm break-words sm:text-base">{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleSelectPackage(pkg);
                             }}
-                            className="btn-primary btn-sm mt-auto w-full"
+                            className="btn-primary btn-sm mt-6 w-full"
                         >
                             {t("select_package")}
                         </button>

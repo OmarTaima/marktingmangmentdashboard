@@ -99,12 +99,6 @@ const PlanningPage = () => {
         }
     }, [selectedClientId]);
 
-    useEffect(() => {
-        if (selectedClient && planData.objective && planData.strategy) {
-            generateFinalStrategy();
-        }
-    }, [selectedClient, planData]);
-
     const loadClients = () => {
         const stodangerClients = localStorage.getItem("clients");
         if (stodangerClients) {
@@ -141,114 +135,6 @@ const PlanningPage = () => {
                 }
             }
         }
-    };
-
-    const generateFinalStrategy = () => {
-        if (!selectedClient) return;
-
-        const client = selectedClient;
-        const plan = planData;
-
-        const strategy = `
-MARKETING STRATEGY DOCUMENT
-═══════════════════════════════════════════
-
-CLIENT INFORMATION
-─────────────────
-Business Name: ${client.business?.businessName || "N/A"}
-Category: ${client.business?.category || "N/A"}
-Contact Person: ${client.personal?.fullName || "N/A"}
-Email: ${client.contact?.businessEmail || client.personal?.email || "N/A"}
-Phone: ${client.contact?.businessPhone || client.personal?.phone || "N/A"}
-
-CAMPAIGN OBJECTIVE
-─────────────────
-${plan.objective || "No objective defined yet"}
-
-TARGET SEGMENTS
-─────────────────
-${
-    client.segments && client.segments.length > 0
-        ? client.segments
-              .map(
-                  (seg, i) =>
-                      `${i + 1}. ${seg.name}${seg.targetAge ? ` (Age: ${seg.targetAge})` : ""}${seg.targetGender ? ` (Gender: ${seg.targetGender})` : ""}\n   ${seg.description || ""}`,
-              )
-              .join("\n")
-        : "No target segments defined"
-}
-
-SWOT ANALYSIS
-─────────────────
-Strengths:
-${client.swot?.strengths && client.swot.strengths.length > 0 ? client.swot.strengths.map((s, i) => `  ${i + 1}. ${s}`).join("\n") : "  • Not defined"}
-
-Weaknesses:
-${
-    client.swot?.weaknesses && client.swot.weaknesses.length > 0
-        ? client.swot.weaknesses.map((w, i) => `  ${i + 1}. ${w}`).join("\n")
-        : "  • Not defined"
-}
-
-Opportunities:
-${
-    client.swot?.opportunities && client.swot.opportunities.length > 0
-        ? client.swot.opportunities.map((o, i) => `  ${i + 1}. ${o}`).join("\n")
-        : "  • Not defined"
-}
-
-Threats:
-${client.swot?.threats && client.swot.threats.length > 0 ? client.swot.threats.map((t, i) => `  ${i + 1}. ${t}`).join("\n") : "  • Not defined"}
-
-COMPETITIVE LANDSCAPE
-─────────────────
-${
-    client.competitors && client.competitors.length > 0
-        ? client.competitors
-              .map((comp, i) => `${i + 1}. ${comp.name}\n   ${comp.description || ""}\n   ${comp.website ? `Website: ${comp.website}` : ""}`)
-              .join("\n\n")
-        : t("no_competitors_tracked")
-}
-
-STRATEGIC APPROACH
-─────────────────
-${plan.strategy || "No strategy defined yet"}
-
-SERVICES TO BE PROVIDED
-─────────────────
-${plan.services && plan.services.length > 0 ? plan.services.map((s, i) => `  ${i + 1}. ${s}`).join("\n") : "  • No services selected"}
-
-BUDGET & TIMELINE
-─────────────────
-Budget: ${plan.budget ? `$${plan.budget} USD` : "Not specified"}
-Timeline: ${plan.timeline || "Not specified"}
-
-SOCIAL MEDIA PRESENCE
-─────────────────
-${
-    client.socialLinks?.business && client.socialLinks.business.length > 0
-        ? client.socialLinks.business.map((link) => `${link.platform}: ${link.url}`).join("\n")
-        : "No social media links provided"
-}
-
-KEY PERFORMANCE INDICATORS
-─────────────────
-• Engagement Rate
-• Reach & Impressions
-• Follower Growth
-• Conversion Rate
-• Content Performance
-• ROI Tracking
-
-DELIVERABLES & MILESTONES
-─────────────────
-Based on the selected services and timeline, deliverables will be tracked through the Campaigns section.
-
-═══════════════════════════════════════════
-Document Generated: ${new Date().toLocaleDateString()}
-        `.trim();
-
-        setFinalStrategy(strategy);
     };
 
     const handleSavePlan = () => {

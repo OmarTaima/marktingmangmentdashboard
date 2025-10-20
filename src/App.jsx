@@ -8,7 +8,6 @@ import ClientsPage from "./routes/clients/page";
 import ClientDetailPage from "./routes/clients/detail/page";
 import PlanningPage from "./routes/planning/page";
 import CampaignsPage from "./routes/campaigns/page";
-import PlanPage from "./routes/campaigns/plan/page";
 import PackagesPage from "./routes/packages/page";
 import ContractPage from "./routes/contracts/page";
 import ReportsPage from "./routes/reports/page";
@@ -28,7 +27,6 @@ function App() {
                     { path: "clients/:id", element: <ClientDetailPage /> },
                     { path: "planning", element: <PlanningPage /> },
                     { path: "campaigns", element: <CampaignsPage /> },
-                    { path: "campaigns/plan/:id", element: <PlanPage /> },
                     { path: "packages", element: <PackagesPage /> },
                     { path: "contracts", element: <ContractPage /> },
                     { path: "reports", element: <ReportsPage /> },

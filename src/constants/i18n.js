@@ -298,10 +298,16 @@ const ar = {
     swot_add_placeholder: "أضف",
 };
 
+// extra translations
+ar.select_a_client_to_preview = "اختر عميل للمعاينة";
+ar.view_contract = "عرض العقد";
+ar.preview_contract = "معاينة العقد";
+
 // Planning / Campaign page translations
 en.campaign_planning = "Campaign Planning";
 en.campaign_planning_subtitle = "Create strategic plans for your clients";
 en.select_a_client_to_plan = "Select a Client to Plan";
+en.select_a_client_to_preview = "Select a Client to Preview";
 en.unnamed_client = "Unnamed Client";
 en.no_category = "No Category";
 en.plan_button = "Plan";
@@ -338,6 +344,8 @@ en.contracts_subtitle = "Review and customize the contract terms";
 en.save_contract = "Save Contract";
 en.edit = "Edit";
 en.download = "Download";
+en.view_contract = "View Contract";
+en.preview_contract = "Preview Contract";
 en.client_info = "Client Info";
 en.package_label = "Package";
 en.campaign_info = "Campaign Info";
@@ -392,6 +400,10 @@ en.age_label = "Age:";
 en.gender_label = "Gender:";
 
 en.view_client_details = "View Client Details";
+
+// Contracts / preview translations
+en.view_contract = "View Contract";
+en.preview_contract = "Preview Contract";
 
 // Service labels (used in Planning availableServices)
 en["Social Media Management"] = "Social Media Management";

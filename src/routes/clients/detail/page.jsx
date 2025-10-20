@@ -134,7 +134,7 @@ const ClientDetailPage = () => {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                     {!editing ? (
                         <button
                             onClick={startEditing}
@@ -145,7 +145,7 @@ const ClientDetailPage = () => {
                             <span className="hidden sm:inline">{t("edit")}</span>
                         </button>
                     ) : (
-                        <div className="flex gap-2">
+                        <div className="flex min-w-0 gap-2">
                             <button
                                 onClick={saveEditing}
                                 className="btn-primary flex items-center gap-2"

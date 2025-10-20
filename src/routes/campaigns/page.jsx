@@ -433,8 +433,13 @@ const CampaignsPage = () => {
                     )}
 
                     {showUploadModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                            <div className="dark:bg-secondary-900 w-full max-w-2xl rounded-lg bg-white p-6">
+                        // Increase z-index so modal appears above the Sidebar (which uses z-[100])
+                        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50">
+                            {/*
+                                Make modal responsive on tablet: limit max height and enable scrolling when content
+                                overflows. Keep padding and width sensible across breakpoints.
+                            */}
+                            <div className="dark:bg-secondary-900 w-full max-w-2xl rounded-lg bg-white p-6 md:max-h-[80vh] md:overflow-auto">
                                 <h3 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-bold">{t("add_content_upload")}</h3>
                                 <div className="space-y-4">
                                     <div>
@@ -476,7 +481,7 @@ const CampaignsPage = () => {
                                         <textarea
                                             value={newUpload.description}
                                             onChange={(e) => setNewUpload({ ...newUpload, description: e.target.value })}
-                                            placeholder={t("write_description_here")}
+                                            placeholder={t("description_placeholder")}
                                             className="border-secondary-300 text-secondary-700 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 w-full rounded-lg border bg-white px-4 py-2"
                                         />
                                     </div>

@@ -3,18 +3,17 @@ import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 
-// Move SwotSection outside the main component to prevent re-renders
+// Reusable SWOT input section
 const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot, handleAdd, handleRemove, placeholder }) => (
     <div className="space-y-2">
         <h3 className={`text-md font-medium ${color}`}>{title}</h3>
-        <div className="flex gap-2">
+
+        {/* Input and Add Button */}
+        <div className="flex flex-col gap-2 sm:flex-row">
             <input
                 type="text"
                 value={inputs[inputKey]}
-                onChange={(e) => {
-                    const value = e.target.value;
-                    setInputs((prev) => ({ ...prev, [inputKey]: value }));
-                }}
+                onChange={(e) => setInputs((prev) => ({ ...prev, [inputKey]: e.target.value }))}
                 onKeyDown={(e) => {
                     if (e.key === "Enter") {
                         e.preventDefault();
@@ -22,16 +21,18 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
                     }
                 }}
                 placeholder={placeholder}
-                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
             />
             <button
                 type="button"
                 onClick={() => handleAdd(category, inputKey)}
-                className="btn-ghost !px-3"
+                className="btn-ghost w-full sm:w-auto sm:!px-3"
             >
                 <Plus size={16} />
             </button>
         </div>
+
+        {/* List of added SWOT items */}
         <div className="space-y-1">
             {swot[category].map((item, index) => (
                 <div
@@ -53,15 +54,16 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
 );
 
 SwotSection.propTypes = {
-    title: PropTypes.string.isRequidanger,
-    category: PropTypes.string.isRequidanger,
-    inputKey: PropTypes.string.isRequidanger,
-    color: PropTypes.string.isRequidanger,
-    inputs: PropTypes.object.isRequidanger,
-    setInputs: PropTypes.func.isRequidanger,
-    swot: PropTypes.object.isRequidanger,
-    handleAdd: PropTypes.func.isRequidanger,
-    handleRemove: PropTypes.func.isRequidanger,
+    title: PropTypes.string.isRequired,
+    category: PropTypes.string.isRequired,
+    inputKey: PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
+    inputs: PropTypes.object.isRequired,
+    setInputs: PropTypes.func.isRequired,
+    swot: PropTypes.object.isRequired,
+    handleAdd: PropTypes.func.isRequired,
+    handleRemove: PropTypes.func.isRequired,
+    placeholder: PropTypes.string.isRequired,
 };
 
 export const SwotStep = ({ data, onNext, onPrevious }) => {
@@ -90,7 +92,6 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                 [category]: [...prev[category], value.trim()],
             }));
             setInputs((prev) => ({ ...prev, [inputKey]: "" }));
-            if (error) setError("");
         }
     };
 
@@ -103,15 +104,8 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const total = swot.strengths.length + swot.weaknesses.length + swot.opportunities.length + swot.threats.length;
-        if (total === 0) {
-            setError(t("swot_require_one"));
-            return;
-        }
         onNext({ swot });
     };
-
-    const [error, setError] = useState("");
 
     return (
         <form
@@ -122,9 +116,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 
             <p className="text-secondary-600 dark:text-secondary-400 text-sm">{t("swot_help")}</p>
 
-            {error && <p className="text-danger-500 text-sm">{error}</p>}
-
-            <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${error ? "ring-danger-300 rounded-md p-3 ring" : ""}`}>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <SwotSection
                     title={t("strengths_title")}
                     category="strengths"
@@ -195,7 +187,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
 };
 
 SwotStep.propTypes = {
-    data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
-    onPrevious: PropTypes.func.isRequidanger,
+    data: PropTypes.object.isRequired,
+    onNext: PropTypes.func.isRequired,
+    onPrevious: PropTypes.func.isRequired,
 };

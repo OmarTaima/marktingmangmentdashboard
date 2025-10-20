@@ -1,22 +1,34 @@
 import { useState, useEffect } from "react";
 import { Download, Edit2, Save } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import LocalizedArrow from "@/components/LocalizedArrow";
 import { useNavigate } from "react-router-dom";
 
 const ContractPage = () => {
     const { t, lang } = useLang();
     const navigate = useNavigate();
     const [clientData, setClientData] = useState(null);
+    const [clients, setClients] = useState([]);
+    const [selectedClientId, setSelectedClientId] = useState(localStorage.getItem("selectedClientId") || "");
     const [planData, setPlanData] = useState(null);
     const [packageData, setPackageData] = useState(null);
     const [contractTerms, setContractTerms] = useState("");
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
-        // Load everything from localStorage once (on mount or when lang changes)
+        // load list of clients for the preview cards
+        try {
+            const clientsRaw = localStorage.getItem("clients");
+            if (clientsRaw) {
+                const parsed = JSON.parse(clientsRaw);
+                if (Array.isArray(parsed)) setClients(parsed);
+            }
+        } catch (e) {
+            // ignore parse errors
+        }
+
         const selectedId = localStorage.getItem("selectedClientId");
 
-        // try to load clients list and resolve by selectedId
         let resolvedClient = null;
         const clientsRaw = localStorage.getItem("clients");
         if (clientsRaw) {
@@ -25,23 +37,18 @@ const ContractPage = () => {
                 if (selectedId) {
                     resolvedClient = clients.find((c) => String(c.id) === String(selectedId)) || null;
                 }
-            } catch (e) {
-                // ignore parse errors
-            }
+            } catch (e) {}
         }
 
-        // fallback to single clientData stored
         const clientRaw = localStorage.getItem("clientData");
         if (!resolvedClient && clientRaw) {
             try {
                 resolvedClient = JSON.parse(clientRaw);
-            } catch (e) {
-                // ignore
-            }
+            } catch (e) {}
         }
         setClientData(resolvedClient);
+        if (selectedId) setSelectedClientId(String(selectedId));
 
-        // load plan and package (use local vars so we can use them immediately)
         let planObj = null;
         const planRaw = localStorage.getItem("campaign_plan_0");
         if (planRaw) {
@@ -60,14 +67,12 @@ const ContractPage = () => {
             } catch (e) {}
         }
 
-        // if user previously saved custom contract terms, respect them
         const savedTerms = localStorage.getItem("contractTerms");
         if (savedTerms) {
             setContractTerms(savedTerms);
             return;
         }
 
-        // templates use simple placeholders that we will replace
         const englishTemplate = `MARKETING SERVICES AGREEMENT
 
 This Agreement is entered into as of [DATE] between:
@@ -156,6 +161,24 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
         setContractTerms(filled);
     }, [lang]);
 
+    const handlePreview = (client) => {
+        try {
+            localStorage.setItem("selectedClientId", String(client.id));
+        } catch (e) {}
+        setClientData(client);
+        setSelectedClientId(String(client.id));
+        // ensure we're on contracts page
+        navigate("/contracts");
+    };
+
+    const handleClearSelection = () => {
+        try {
+            localStorage.removeItem("selectedClientId");
+        } catch (e) {}
+        setSelectedClientId("");
+        setClientData(null);
+    };
+
     const handleSave = () => {
         localStorage.setItem("contractTerms", contractTerms);
         setIsEditing(false);
@@ -179,126 +202,204 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            {/* Header Section */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="title">{t("contracts_title")}</h1>
                     <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("contracts_subtitle")}</p>
                 </div>
-                <div className="flex flex-nowrap items-center gap-1 sm:gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
                     {isEditing ? (
                         <button
                             onClick={handleSave}
-                            className="btn-primary btn-sm flex items-center gap-2 whitespace-nowrap"
-                            aria-label={t("save_contract")}
+                            className="btn-primary btn-sm flex items-center gap-2"
                         >
                             <Save size={16} />
-                            <span className="hidden sm:inline">{t("save_contract")}</span>
+                            <span>{t("save_contract")}</span>
                         </button>
                     ) : (
                         <>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="btn-ghost btn-sm flex items-center gap-2 whitespace-nowrap"
-                                aria-label={t("edit")}
+                                className="btn-ghost btn-sm flex items-center gap-2"
                             >
                                 <Edit2 size={16} />
-                                <span className="hidden sm:inline">{t("edit")}</span>
+                                <span>{t("edit")}</span>
                             </button>
                             <button
                                 onClick={handleDownload}
-                                className="btn-primary btn-sm flex items-center gap-2 whitespace-nowrap"
-                                aria-label={t("download_contract")}
+                                className="btn-primary btn-sm flex items-center gap-2"
                             >
                                 <Download size={16} />
-                                <span className="hidden sm:inline">{t("download_contract")}</span>
+                                <span>{t("download_contract")}</span>
                             </button>
                         </>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {/* Summary Cards */}
-                <div className="space-y-4 md:col-span-1 lg:col-span-1 xl:col-span-1">
-                    {clientData ? (
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-3">{t("client_info")}</h3>
-                            <div className="space-y-2 text-sm">
-                                <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
-                                    {clientData.business?.businessName}
-                                </p>
-                                <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.personal?.fullName}</p>
-                                <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.contact?.businessEmail}</p>
+            {/* Main Content Grid */}
+            {!selectedClientId ? (
+                <div>
+                    {clients.length > 0 ? (
+                        <>
+                            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
+                                {t("select_a_client_to_preview") || "Select a client to preview"}
+                            </h2>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {clients.map((client) => {
+                                    const savedPlan = localStorage.getItem(`plan_${client.id}`);
+                                    const plan = savedPlan ? JSON.parse(savedPlan) : null;
+                                    return (
+                                        <div
+                                            key={client.id}
+                                            className="card group hover:border-primary-500 relative flex h-full flex-col transition-all"
+                                        >
+                                            <div className="flex-1">
+                                                <h3 className="card-title text-lg">{client.business?.businessName || t("unnamed_client")}</h3>
+                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                                    {client.business?.category || t("no_category")}
+                                                </p>
+                                                {plan ? (
+                                                    <div className="text-secondary-600 dark:text-secondary-400 mt-3 space-y-1 text-xs">
+                                                        <p>
+                                                            💰 {t("budget_usd")}: ${plan.budget || "N/A"}
+                                                        </p>
+                                                        <p>
+                                                            📅 {t("timeline")}: {plan.timeline || "N/A"}
+                                                        </p>
+                                                        <p>
+                                                            🎯 {t("services_to_provide")}: {plan.services?.length || 0}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-3 text-xs text-yellow-600 dark:text-yellow-400">
+                                                        ⚠️ {t("no_plan_created_yet")}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row">
+                                                <button
+                                                    onClick={() => handlePreview(client)}
+                                                    className="btn-primary w-full"
+                                                >
+                                                    {t("preview_contract")}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
+                        </>
                     ) : (
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-3">{t("client_info")}</h3>
-                            <div className="space-y-2 text-sm">
-                                <p className="text-secondary-600 dark:text-secondary-400">{t("no_client_selected")}</p>
-                                <button
-                                    className="btn btn-primary mt-2"
-                                    onClick={handleSelectClient}
+                        <div className="card">
+                            <div className="py-8 text-center">
+                                <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("no_clients_found")}</p>
+                                <a
+                                    href="/onboarding"
+                                    className="btn-primary"
                                 >
-                                    {t("select_client")}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {packageData && (
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-3">{t("package_label")}</h3>
-                            <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{packageData.name}</p>
-                            <p className="text-primary-500 mt-2 text-2xl font-bold">{packageData.price}</p>
-                        </div>
-                    )}
-
-                    {planData && (
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-3">{t("campaign_info")}</h3>
-                            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                                <div>
-                                    <span className="text-secondary-500">{t("budget_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">${planData.budget}</p>
-                                </div>
-                                <div>
-                                    <span className="text-secondary-500">{t("timeline_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">{planData.timeline}</p>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <span className="text-secondary-500">{t("services_label")}</span>
-                                    <p className="text-secondary-900 dark:text-secondary-50 break-words">
-                                        {(t("services_selected") || "{count} selected").replace(
-                                            "{count}",
-                                            String(planData.selectedServices?.length || 0),
-                                        )}
-                                    </p>
-                                </div>
+                                    {t("add_your_first_client")}
+                                </a>
                             </div>
                         </div>
                     )}
                 </div>
-
-                {/* Contract Editor */}
-                <div className="md:col-span-1 lg:col-span-2 xl:col-span-3">
-                    <div className="card transition-colors duration-300">
-                        <h3 className="card-title mb-4">{t("contract_terms")}</h3>
-                        {isEditing ? (
-                            <textarea
-                                value={contractTerms}
-                                onChange={(e) => setContractTerms(e.target.value)}
-                                rows={25}
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
-                            />
-                        ) : (
-                            <div className="bg-secondary-50 text-secondary-900 dark:bg-secondary-800/50 dark:text-secondary-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">
-                                {contractTerms}
-                            </div>
-                        )}
+            ) : (
+                <>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleClearSelection}
+                            className="btn-ghost"
+                        >
+                            <LocalizedArrow size={20} />
+                        </button>
                     </div>
-                </div>
-            </div>
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        {/* Summary Cards */}
+                        <div className="space-y-4 lg:col-span-1">
+                            {clientData ? (
+                                <div className="card">
+                                    <h3 className="card-title mb-3">{t("client_info")}</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
+                                            {clientData.business?.businessName}
+                                        </p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.personal?.fullName}</p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.contact?.businessEmail}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="card">
+                                    <h3 className="card-title mb-3">{t("client_info")}</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <p className="text-secondary-600 dark:text-secondary-400">{t("no_client_selected")}</p>
+                                        <button
+                                            className="btn-primary mt-2 w-full sm:w-auto"
+                                            onClick={handleSelectClient}
+                                        >
+                                            {t("select_client")}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {packageData && (
+                                <div className="card">
+                                    <h3 className="card-title mb-3">{t("package_label")}</h3>
+                                    <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{packageData.name}</p>
+                                    <p className="text-primary-500 mt-2 text-2xl font-bold">{packageData.price}</p>
+                                </div>
+                            )}
+
+                            {planData && (
+                                <div className="card">
+                                    <h3 className="card-title mb-3">{t("campaign_info")}</h3>
+                                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                                        <div>
+                                            <span className="text-secondary-500">{t("budget_label")}</span>
+                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">${planData.budget}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-secondary-500">{t("timeline_label")}</span>
+                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{planData.timeline}</p>
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <span className="text-secondary-500">{t("services_label")}</span>
+                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">
+                                                {(t("services_selected") || "{count} selected").replace(
+                                                    "{count}",
+                                                    String(planData.selectedServices?.length || 0),
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Contract Editor */}
+                        <div className="lg:col-span-2">
+                            <div className="card">
+                                <h3 className="card-title mb-4">{t("contract_terms")}</h3>
+                                {isEditing ? (
+                                    <textarea
+                                        value={contractTerms}
+                                        onChange={(e) => setContractTerms(e.target.value)}
+                                        rows={25}
+                                        className="border-secondary-300 text-secondary-900 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
+                                    />
+                                ) : (
+                                    <div className="bg-secondary-50 text-secondary-900 dark:bg-secondary-800/50 dark:text-secondary-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">
+                                        {contractTerms}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

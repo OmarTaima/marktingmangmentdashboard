@@ -14,9 +14,9 @@ const ClientsPage = () => {
     }, []);
 
     const loadClients = () => {
-        const stodangerClients = localStorage.getItem("clients");
-        if (stodangerClients) {
-            setClients(JSON.parse(stodangerClients));
+        const storedClients = localStorage.getItem("clients");
+        if (storedClients) {
+            setClients(JSON.parse(storedClients));
         }
     };
 
@@ -25,7 +25,6 @@ const ClientsPage = () => {
     };
 
     const handleViewClient = (clientId) => {
-        // Store selected client ID for campaign planning
         localStorage.setItem("selectedClientId", clientId);
         navigate(`/clients/${clientId}`);
     };
@@ -37,22 +36,24 @@ const ClientsPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="title">{t("clients_title")}</h1>
                     <p className="text-secondary-600 dark:text-secondary-400">{t("manage_your_client_database")}</p>
                 </div>
                 <button
                     onClick={handleAddNewClient}
-                    className="btn-primary flex items-center gap-2"
+                    className="btn-primary flex w-full items-center justify-center gap-2 sm:w-auto"
                 >
                     <Plus size={16} />
                     {t("add_new_client")}
                 </button>
             </div>
 
+            {/* No clients placeholder */}
             {clients.length === 0 ? (
-                <div className="border-secondary-300 dark:border-secondary-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed">
+                <div className="border-secondary-300 dark:border-secondary-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed text-center">
                     <Building2
                         size={64}
                         className="text-secondary-400"
@@ -68,57 +69,70 @@ const ClientsPage = () => {
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     {clients.map((client) => (
                         <div
                             key={client.id}
-                            className="card cursor-pointer transition-colors duration-300 hover:shadow-lg"
+                            className="card flex h-full min-w-0 flex-col justify-between transition-colors duration-300 hover:shadow-lg"
                         >
+                            {/* Top content */}
                             <div className="space-y-4">
                                 <ClientInfo
                                     client={client}
                                     compact
                                 />
 
-                                {/* Stats */}
-                                <div className="border-secondary-200 dark:border-secondary-700 grid grid-cols-1 gap-2 border-t pt-3 sm:grid-cols-3">
-                                    <div className="text-center">
-                                        <p className="text-primary-600 dark:text-primary-400 text-lg font-bold">{client.segments?.length || 0}</p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("segments_label")}</p>
+                                {/* Stats Section */}
+                                <div className="border-secondary-200 dark:border-secondary-700 flex flex-wrap justify-center gap-3 border-t pt-3">
+                                    <div className="flex min-w-[80px] flex-col items-center justify-center px-2">
+                                        <p className="text-primary-600 dark:text-primary-400 text-base font-bold sm:text-lg">
+                                            {client.segments?.length || 0}
+                                        </p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                            {t("segments_label")}
+                                        </p>
                                     </div>
-                                    <div className="text-center">
-                                        <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{client.competitors?.length || 0}</p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("competitors_label")}</p>
+
+                                    <div className="flex min-w-[80px] flex-col items-center justify-center px-2">
+                                        <p className="text-base font-bold text-orange-600 sm:text-lg dark:text-orange-400">
+                                            {client.competitors?.length || 0}
+                                        </p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                            {t("competitors_label")}
+                                        </p>
                                     </div>
-                                    <div className="text-center">
-                                        <p className="text-lg font-bold text-green-600 dark:text-green-400">
+
+                                    <div className="flex min-w-[80px] flex-col items-center justify-center px-2">
+                                        <p className="text-base font-bold text-green-600 sm:text-lg dark:text-green-400">
                                             {(client.swot?.strengths?.length || 0) +
                                                 (client.swot?.weaknesses?.length || 0) +
                                                 (client.swot?.opportunities?.length || 0) +
                                                 (client.swot?.threats?.length || 0)}
                                         </p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 text-xs">{t("swot_items")}</p>
+                                        <p className="text-secondary-600 dark:text-secondary-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                            {t("swot_items")}
+                                        </p>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Actions */}
-                                <div className="border-secondary-200 dark:border-secondary-700 flex flex-col gap-2 border-t pt-3 sm:flex-row">
-                                    <button
-                                        onClick={() => handleViewClient(client.id)}
-                                        className="btn-ghost flex-1 text-sm"
-                                    >
-                                        <Target size={14} />
-                                        {t("view_details")}
-                                    </button>
+                            {/* Action Buttons (Always stay inside) */}
+                            <div className="border-secondary-200 dark:border-secondary-700 mt-auto flex min-w-0 flex-col gap-2 border-t pt-3 sm:flex-row">
+                                <button
+                                    onClick={() => handleViewClient(client.id)}
+                                    className="btn-ghost flex min-w-0 flex-1 items-center justify-center gap-2 text-sm"
+                                >
+                                    <Target size={14} />
+                                    {t("view_details")}
+                                </button>
 
-                                    <button
-                                        onClick={() => handleToPlanning(client.id)}
-                                        className="btn-primary flex-1 text-sm"
-                                    >
-                                        <TrendingUp size={14} />
-                                        {t("plan_campaign")}
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => handleToPlanning(client.id)}
+                                    className="btn-primary flex min-w-0 flex-1 items-center justify-center gap-2 text-sm"
+                                >
+                                    <TrendingUp size={14} />
+                                    {t("plan_campaign")}
+                                </button>
                             </div>
                         </div>
                     ))}
