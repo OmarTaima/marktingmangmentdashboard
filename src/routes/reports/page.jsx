@@ -10,6 +10,7 @@ const ReportsPage = () => {
     const paramClient = searchParams.get("client");
     const clientId = localStorage.getItem("selectedClientId") || paramClient || "0";
     const [selectedMonth, setSelectedMonth] = useState("2025-01");
+
     const [clientData, setClientData] = useState(null);
     const { t } = useLang();
 
@@ -104,16 +105,6 @@ const ReportsPage = () => {
                                 <LocalizedArrow size={20} />
                             </Link>
                         )}
-                    </div>
-
-                    <div className="ml-auto">
-                        <input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 max-w-[10rem] flex-shrink-0 rounded-lg border bg-white px-4 py-2 focus:outline-none md:max-w-xs"
-                            aria-label={t("select_month") || "Select month"}
-                        />
                     </div>
                 </div>
 
