@@ -20,17 +20,16 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
 
     const handleAddSegment = () => {
         const newErrors = {};
-        if (fieldValidations.segmentName.required && !currentSegment.name?.trim()) {
+
+        // Make segment name/description optional; validate presence only if provided
+        if (currentSegment.name && !currentSegment.name.trim()) {
             newErrors.name = t(fieldValidations.segmentName.messageKey);
         }
-        if (fieldValidations.segmentDescription.required && !currentSegment.description?.trim()) {
+        if (currentSegment.description && !currentSegment.description.trim()) {
             newErrors.description = t(fieldValidations.segmentDescription.messageKey);
         }
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
 
+        setErrors(newErrors);
         setSegments([...segments, currentSegment]);
         setCurrentSegment({
             name: "",
@@ -63,7 +62,7 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
 
             <div className="bg-secondary-50 dark:bg-secondary-800/50 space-y-3 rounded-lg p-4">
                 <div>
-                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("segment_name")} *</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("segment_name")}</label>
                     <input
                         type="text"
                         value={currentSegment.name}
@@ -78,7 +77,7 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                 </div>
 
                 <div>
-                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")} *</label>
+                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")}</label>
                     <textarea
                         value={currentSegment.description}
                         onChange={(e) => {

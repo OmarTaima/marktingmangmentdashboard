@@ -50,9 +50,9 @@ export const navbarLinks = [
                 path: "/planning",
             },
             {
-                label: "Campaigns",
-                icon: Megaphone,
-                path: "/campaigns",
+                label: "Quotations",
+                icon: FileText,
+                path: "/quotations",
             },
             {
                 label: "Packages",
@@ -76,9 +76,9 @@ export const navbarLinks = [
             },
 
             {
-                label: "Strategies",
+                label: "Add Packages",
                 icon: Target,
-                path: "/strategies",
+                path: "/packages/add",
             },
 
             {

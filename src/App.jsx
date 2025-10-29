@@ -7,8 +7,10 @@ import OnboardingPage from "./routes/onboarding/page";
 import ClientsPage from "./routes/clients/page";
 import ClientDetailPage from "./routes/clients/detail/page";
 import PlanningPage from "./routes/planning/page";
-import CampaignsPage from "./routes/campaigns/page";
+import ServicesPage from "./routes/services/page";
+import QuotationsPage from "./routes/quotations/page";
 import PackagesPage from "./routes/packages/page";
+import AddPackagePage from "./routes/packages/add";
 import ContractPage from "./routes/contracts/page";
 import ReportsPage from "./routes/reports/page";
 
@@ -26,8 +28,10 @@ function App() {
                     { path: "clients", element: <ClientsPage /> },
                     { path: "clients/:id", element: <ClientDetailPage /> },
                     { path: "planning", element: <PlanningPage /> },
-                    { path: "campaigns", element: <CampaignsPage /> },
+                    { path: "services", element: <ServicesPage /> },
+                    { path: "quotations", element: <QuotationsPage /> },
                     { path: "packages", element: <PackagesPage /> },
+                    { path: "packages/add", element: <AddPackagePage /> },
                     { path: "contracts", element: <ContractPage /> },
                     { path: "reports", element: <ReportsPage /> },
                 ],
@@ -40,10 +44,7 @@ function App() {
                 path: "users",
                 element: <h1 className="title">Users</h1>,
             },
-            {
-                path: "services",
-                element: <h1 className="title">Services</h1>,
-            },
+
             {
                 path: "strategies",
                 element: <h1 className="title">Strategies</h1>,

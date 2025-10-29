@@ -10,6 +10,7 @@ import { SegmentsStep } from "./steps/SegmentsStep";
 import { CompetitorsStep } from "./steps/CompetitorsStep";
 
 import { useLang } from "@/hooks/useLang";
+import { User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users } from "lucide-react";
 
 const steps = [
     { id: 1, name: "Personal Info", component: PersonalInfoStep },
@@ -140,29 +141,37 @@ const OnboardingPage = () => {
                 {/* Progress Bar */}
                 <div className="mb-6">
                     <div className="mb-2 flex items-center justify-between">
-                        {steps.map((step, index) => (
-                            <div
-                                key={step.id}
-                                className="flex flex-1 items-center"
-                            >
+                        {steps.map((step, index) => {
+                            const icons = [User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users];
+                            const Icon = icons[index] || User;
+                            return (
                                 <div
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${
-                                        index <= currentStep
-                                            ? "bg-primary-500 text-white"
-                                            : "bg-secondary-200 text-secondary-600 dark:bg-secondary-700 dark:text-secondary-400"
-                                    }`}
+                                    key={step.id}
+                                    className="flex flex-1 items-center"
                                 >
-                                    {index + 1}
-                                </div>
-                                {index < steps.length - 1 && (
-                                    <div
-                                        className={`h-1 flex-1 transition-colors ${
-                                            index < currentStep ? "bg-primary-500" : "bg-secondary-200 dark:bg-secondary-700"
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentStep(index)}
+                                        aria-label={`Go to step ${index + 1} - ${step.name}`}
+                                        tabIndex={0}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors focus:outline-none ${
+                                            index <= currentStep
+                                                ? "bg-primary-500 text-white"
+                                                : "bg-secondary-200 text-secondary-600 dark:bg-secondary-700 dark:text-secondary-400"
                                         }`}
-                                    />
-                                )}
-                            </div>
-                        ))}
+                                    >
+                                        <Icon size={16} />
+                                    </button>
+                                    {index < steps.length - 1 && (
+                                        <div
+                                            className={`h-1 flex-1 transition-colors ${
+                                                index < currentStep ? "bg-primary-500" : "bg-secondary-200 dark:bg-secondary-700"
+                                            }`}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                     <div className="mt-2 text-center">
                         <span className="text-secondary-600 dark:text-secondary-400 text-sm font-medium">

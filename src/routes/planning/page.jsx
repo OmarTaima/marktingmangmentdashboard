@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Edit2, FileText, Check, Loader2 } from "lucide-react";
+import { Save, Edit2, FileText, Check, Loader2, Plus, Trash2, Calendar } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 
 const PlanningPage = () => {
-    const { t } = useLang();
+    const { t, lang } = useLang();
     const [clients, setClients] = useState([]);
     const [selectedClientId, setSelectedClientId] = useState(localStorage.getItem("selectedClientId") || "");
     const [selectedClient, setSelectedClient] = useState(null);
@@ -12,9 +12,12 @@ const PlanningPage = () => {
         objective: "",
         strategy: "",
         services: [],
+        servicesPricing: {},
         budget: "",
         timeline: "",
     });
+    const [plans, setPlans] = useState([]);
+    const [selectedPlanId, setSelectedPlanId] = useState("");
     const [isEditing, setIsEditing] = useState(true);
     const [finalStrategy, setFinalStrategy] = useState("");
     const [isResetting, setIsResetting] = useState(false);
@@ -25,8 +28,8 @@ const PlanningPage = () => {
     const [overlayFadeIn, setOverlayFadeIn] = useState(false);
     const [planErrors, setPlanErrors] = useState({});
 
-    // Available services options
-    const availableServices = [
+    // Services master list (persisted). Initialize with defaults if missing.
+    const INITIAL_SERVICES = [
         "Social Media Management",
         "Content Creation",
         "Paid Advertising",
@@ -40,6 +43,74 @@ const PlanningPage = () => {
         "Community Management",
         "Brand Strategy",
     ];
+
+    const [availableServices, setAvailableServices] = useState(INITIAL_SERVICES);
+    const [customServiceInput, setCustomServiceInput] = useState("");
+    const [customServicePrice, setCustomServicePrice] = useState("");
+    const [clientCustomServices, setClientCustomServices] = useState([]); // per-client custom services
+
+    // Load master services list from localStorage (services_master). If missing, seed with INITIAL_SERVICES
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("services_master");
+            if (stored) {
+                const parsed = JSON.parse(stored) || [];
+                setAvailableServices(parsed);
+            } else {
+                localStorage.setItem("services_master", JSON.stringify(INITIAL_SERVICES));
+                setAvailableServices(INITIAL_SERVICES);
+            }
+        } catch (e) {
+            // ignore and keep defaults
+            setAvailableServices(INITIAL_SERVICES);
+        }
+    }, []);
+
+    const handleAddCustomService = () => {
+        const val = (customServiceInput || "").trim();
+        if (!val) return;
+        // Avoid duplicates by English label (case-insensitive) across global and client-local services
+        const combinedForDup = (availableServices || []).concat(clientCustomServices || []);
+        if (
+            combinedForDup.some((s) => {
+                const en = typeof s === "string" ? s : s.en || "";
+                return en.toLowerCase() === val.toLowerCase();
+            })
+        ) {
+            setCustomServiceInput("");
+            return;
+        }
+        // Use the inline price input value instead of prompt/alert
+        const price = (customServicePrice || "").toString().trim();
+        if (!price) {
+            // silently ignore invalid input (no alert as requested)
+            return;
+        }
+        if (isNaN(Number(price))) {
+            return;
+        }
+
+        if (!selectedClientId) return; // ensure we have a client to attach to
+
+        const newItem = { id: `svc_${Date.now()}`, en: val, ar: "", price };
+        // Save this custom service only for the current client
+        const updated = [...(clientCustomServices || []), newItem];
+        setClientCustomServices(updated);
+        try {
+            localStorage.setItem(`services_custom_${selectedClientId}`, JSON.stringify(updated));
+        } catch (e) {}
+
+        // Also add it to the current plan (selected) so it's immediately selected for this client
+        const identifier = newItem.en || newItem.id;
+        setPlanData((prev) => ({
+            ...prev,
+            services: [...(prev.services || []), identifier],
+            servicesPricing: { ...(prev.servicesPricing || {}), [identifier]: price },
+        }));
+
+        setCustomServiceInput("");
+        setCustomServicePrice("");
+    };
 
     useEffect(() => {
         // Load clients on mount
@@ -57,6 +128,24 @@ const PlanningPage = () => {
         }, 150);
         return () => clearTimeout(timer);
     }, []);
+
+    // load per-client custom services when selectedClientId changes
+    useEffect(() => {
+        if (!selectedClientId) {
+            setClientCustomServices([]);
+            return;
+        }
+        try {
+            const stored = localStorage.getItem(`services_custom_${selectedClientId}`);
+            if (stored) {
+                setClientCustomServices(JSON.parse(stored) || []);
+            } else {
+                setClientCustomServices([]);
+            }
+        } catch (e) {
+            setClientCustomServices([]);
+        }
+    }, [selectedClientId]);
 
     useEffect(() => {
         if (selectedClientId) {
@@ -118,21 +207,34 @@ const PlanningPage = () => {
             if (client) {
                 setSelectedClient(client);
 
-                // Load existing plan for this client
-                const savedPlan = localStorage.getItem(`plan_${selectedClientId}`);
-                if (savedPlan) {
-                    const parsedPlan = JSON.parse(savedPlan);
-                    setPlanData(parsedPlan);
-                    setIsEditing(false);
+                // Load existing plans for this client (support multiple plans)
+                const savedPlans = localStorage.getItem(`plans_${selectedClientId}`);
+                if (savedPlans) {
+                    try {
+                        const parsed = JSON.parse(savedPlans) || [];
+                        setPlans(parsed);
+                        if (parsed.length > 0) {
+                            // pick first plan by default
+                            setSelectedPlanId(parsed[0].id);
+                            setPlanData(parsed[0]);
+                            setIsEditing(false);
+                        } else {
+                            // no plans, reset to empty
+                            setPlans([]);
+                            setSelectedPlanId("");
+                            setPlanData({ objective: "", strategy: "", services: [], budget: "", timeline: "" });
+                            setIsEditing(true);
+                        }
+                    } catch (e) {
+                        setPlans([]);
+                        setSelectedPlanId("");
+                        setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                        setIsEditing(true);
+                    }
                 } else {
-                    // Reset to empty plan
-                    setPlanData({
-                        objective: "",
-                        strategy: "",
-                        services: [],
-                        budget: "",
-                        timeline: "",
-                    });
+                    setPlans([]);
+                    setSelectedPlanId("");
+                    setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
                     setIsEditing(true);
                 }
             }
@@ -157,25 +259,122 @@ const PlanningPage = () => {
             return;
         }
 
-        // Save plan
-        localStorage.setItem(`plan_${selectedClientId}`, JSON.stringify(planData));
+        // Save plan to plans_{clientId}
+        const savedPlans = localStorage.getItem(`plans_${selectedClientId}`);
+        let parsed = [];
+        try {
+            parsed = savedPlans ? JSON.parse(savedPlans) : [];
+        } catch (e) {
+            parsed = [];
+        }
+
+        if (selectedPlanId) {
+            // update existing plan
+            const idx = parsed.findIndex((p) => p.id === selectedPlanId);
+            if (idx !== -1) {
+                parsed[idx] = { ...parsed[idx], ...planData, id: selectedPlanId };
+            } else {
+                parsed.push({ ...planData, id: selectedPlanId });
+            }
+        } else {
+            // create new plan
+            const newId = `plan_${Date.now()}`;
+            parsed.push({ ...planData, id: newId });
+            setSelectedPlanId(newId);
+        }
+
+        localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(parsed));
+        setPlans(parsed);
         setIsEditing(false);
         setPlanErrors({});
         alert(t("plan_saved_success"));
     };
 
+    const handleCreateNewPlan = () => {
+        const newPlan = { id: `plan_${Date.now()}`, objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" };
+        const updated = [...plans, newPlan];
+        try {
+            localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(updated));
+        } catch (e) {}
+        setPlans(updated);
+        setSelectedPlanId(newPlan.id);
+        setPlanData(newPlan);
+        setIsEditing(true);
+    };
+
+    const handleSelectPlan = (planId) => {
+        const plan = plans.find((p) => p.id === planId);
+        if (plan) {
+            setSelectedPlanId(planId);
+            // ensure servicesPricing exists on loaded plan
+            setPlanData({ ...plan, servicesPricing: plan.servicesPricing || {} });
+            setIsEditing(false);
+        }
+    };
+
+    // Helper: return plans sorted newest-first (by timestamp in id)
+    const getSortedPlansDesc = () =>
+        plans.slice().sort((a, b) => {
+            const ta = Number((a.id || "").split("_")[1]) || 0;
+            const tb = Number((b.id || "").split("_")[1]) || 0;
+            return tb - ta;
+        });
+
+    const handleDeletePlan = (planId) => {
+        if (!confirm(t("confirm_delete_plan") || "Delete this plan?")) return;
+        const updated = plans.filter((p) => p.id !== planId);
+        try {
+            localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(updated));
+        } catch (e) {}
+        setPlans(updated);
+        if (selectedPlanId === planId) {
+            if (updated.length > 0) {
+                setSelectedPlanId(updated[updated.length - 1].id);
+                setPlanData(updated[updated.length - 1]);
+                setIsEditing(false);
+            } else {
+                setSelectedPlanId("");
+                setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                setIsEditing(true);
+            }
+        }
+    };
+
     const toggleService = (service) => {
         if (planData.services.includes(service)) {
+            // simply unselect the service (remove from the plan) and remove its price from the plan pricing map
+            const newServices = planData.services.filter((s) => s !== service);
+            const newPricing = { ...(planData.servicesPricing || {}) };
+            if (Object.prototype.hasOwnProperty.call(newPricing, service)) delete newPricing[service];
+
             setPlanData({
                 ...planData,
-                services: planData.services.filter((s) => s !== service),
+                services: newServices,
+                servicesPricing: newPricing,
             });
         } else {
+            // add service and initialize its price from master list if available
+            let defaultPrice = "";
+            try {
+                const combined = (availableServices || []).concat(clientCustomServices || []);
+                const found = combined.find((s) => {
+                    if (!s) return false;
+                    if (typeof s === "string") return s === service;
+                    return s.en === service || s.ar === service || s.id === service;
+                });
+                if (found && typeof found === "object") defaultPrice = found.price || "";
+            } catch (e) {}
+
             setPlanData({
                 ...planData,
                 services: [...planData.services, service],
+                servicesPricing: { ...(planData.servicesPricing || {}), [service]: defaultPrice },
             });
         }
+    };
+
+    const updateServicePrice = (service, value) => {
+        setPlanData((prev) => ({ ...prev, servicesPricing: { ...(prev.servicesPricing || {}), [service]: value } }));
     };
 
     const handleDownload = () => {
@@ -199,34 +398,87 @@ const PlanningPage = () => {
                         <p className="text-secondary-600 dark:text-secondary-400">{t("campaign_planning_subtitle")}</p>
                     </div>
                     {selectedClientId && (
-                        <div className="flex gap-2">
-                            {!isEditing && finalStrategy && (
+                        <div className="flex items-center gap-2">
+                            {/* Plan selector + create/delete */}
+                            <div className="flex items-center gap-2">
+                                {plans.length > 0 ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            {getSortedPlansDesc().map((p) => {
+                                                // derive timestamp from id format plan_{ts}
+                                                const parts = (p.id || "").split("_");
+                                                const ts = Number(parts[1]) || 0;
+                                                const dateLabel = ts ? new Date(ts).toLocaleDateString() : t("untitled_plan");
+                                                const title = (p.objective && p.objective.trim()) || t("untitled_plan");
+                                                return (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => handleSelectPlan(p.id)}
+                                                        title={title}
+                                                        aria-label={title}
+                                                        className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${
+                                                            selectedPlanId === p.id
+                                                                ? "bg-primary-500 text-white"
+                                                                : "bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-300"
+                                                        }`}
+                                                    >
+                                                        <Calendar size={14} />
+                                                        <span className="whitespace-nowrap">{dateLabel}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <button
-                                    onClick={handleDownload}
-                                    className="btn-ghost flex items-center gap-2"
+                                    type="button"
+                                    onClick={handleCreateNewPlan}
+                                    className="btn-ghost flex items-center gap-2 px-3 py-2"
                                 >
-                                    <FileText size={16} />
-                                    {t("download_strategy")}
+                                    <Plus size={14} />
+                                    {t("new_plan")}
                                 </button>
-                            )}
-                            {isEditing ? (
-                                <button
-                                    onClick={handleSavePlan}
-                                    className="btn-primary flex items-center gap-2"
-                                    disabled={!selectedClientId}
-                                >
-                                    <Save size={16} />
-                                    {t("save_plan")}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="btn-primary flex items-center gap-2"
-                                >
-                                    <Edit2 size={16} />
-                                    {t("edit_plan")}
-                                </button>
-                            )}
+                                {plans.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeletePlan(selectedPlanId)}
+                                        className="btn-ghost text-danger-500 px-3 py-2"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                {!isEditing && finalStrategy && (
+                                    <button
+                                        onClick={handleDownload}
+                                        className="btn-ghost flex items-center gap-2"
+                                    >
+                                        <FileText size={16} />
+                                        {t("download_strategy")}
+                                    </button>
+                                )}
+                                {isEditing ? (
+                                    <button
+                                        onClick={handleSavePlan}
+                                        className="btn-primary flex items-center gap-2"
+                                        disabled={!selectedClientId}
+                                    >
+                                        <Save size={16} />
+                                        {t("save_plan")}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="btn-primary flex items-center gap-2"
+                                    >
+                                        <Edit2 size={16} />
+                                        {t("edit_plan")}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -380,26 +632,94 @@ const PlanningPage = () => {
                             <div className="card transition-colors duration-300 lg:col-span-2">
                                 <h3 className="card-title mb-4">{t("services_to_provide")}</h3>
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                                    {availableServices.map((service) => (
-                                        <button
-                                            key={service}
-                                            onClick={() => toggleService(service)}
+                                    {(availableServices || []).concat(clientCustomServices || []).map((service) => {
+                                        const identifier = typeof service === "string" ? service : service.en || "";
+                                        const label =
+                                            typeof service === "string"
+                                                ? t(service)
+                                                : lang === "ar"
+                                                  ? service.ar || service.en
+                                                  : service.en || service.ar;
+                                        const price = typeof service === "string" ? "" : service.price || "";
+                                        const isSelected = planData.services.includes(identifier);
+                                        return (
+                                            <div
+                                                key={identifier}
+                                                className="flex flex-col items-stretch"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleService(identifier)}
+                                                    disabled={!isEditing}
+                                                    className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
+                                                        isSelected
+                                                            ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-950 dark:text-primary-300"
+                                                            : "dark:hover:bg-secondary-750 border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 bg-white"
+                                                    } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {isSelected && (
+                                                            <Check
+                                                                size={16}
+                                                                className="flex-shrink-0"
+                                                            />
+                                                        )}
+                                                        <span className="truncate break-words">{label}</span>
+                                                    </div>
+                                                    {/* show static price when not selected, otherwise show inline input */}
+                                                    <div className="flex items-center gap-2">
+                                                        {!isSelected && price ? (
+                                                            <div className="text-secondary-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
+                                                        ) : null}
+
+                                                        {isSelected ? (
+                                                            <div className="text-secondary-600 text-sm">
+                                                                {(planData.servicesPricing && planData.servicesPricing[identifier]) || price
+                                                                    ? `${(planData.servicesPricing && planData.servicesPricing[identifier]) || price} ${lang === "ar" ? "ج.م" : "EGP"}`
+                                                                    : null}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {/* Add custom service input */}
+                                <div className="mt-3 flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={customServiceInput}
+                                        onChange={(e) => setCustomServiceInput(e.target.value)}
+                                        placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
+                                        disabled={!isEditing}
+                                        className="border-secondary-300 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            value={customServicePrice}
+                                            onChange={(e) => setCustomServicePrice(e.target.value)}
+                                            placeholder={t("service_price") || "Price"}
                                             disabled={!isEditing}
-                                            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
-                                                planData.services.includes(service)
-                                                    ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-950 dark:text-primary-300"
-                                                    : "dark:hover:bg-secondary-750 border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 bg-white"
-                                            } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
-                                        >
-                                            {planData.services.includes(service) && (
-                                                <Check
-                                                    size={16}
-                                                    className="flex-shrink-0"
-                                                />
-                                            )}
-                                            <span className="truncate break-words">{t(service)}</span>
-                                        </button>
-                                    ))}
+                                            className="border-secondary-300 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                        />
+                                        <div className="text-secondary-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddCustomService}
+                                        disabled={
+                                            !isEditing ||
+                                            !customServiceInput.trim() ||
+                                            !customServicePrice.toString().trim() ||
+                                            isNaN(Number(customServicePrice))
+                                        }
+                                        className="btn-ghost flex items-center gap-2 px-3 py-2"
+                                    >
+                                        <Plus size={14} />
+                                        {t("add")}
+                                    </button>
                                 </div>
                             </div>
 

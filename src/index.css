@@ -135,6 +135,18 @@
     @apply !border-secondary-300 dark:!border-secondary-700 dark:!bg-secondary-900 !rounded-lg !border !bg-white transition-colors;
 }
 
+/* Remove number input spinners for a cleaner price input UI */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    appearance: textfield;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield; /* Firefox */
+}
+
 .recharts-tooltip-label {
     @apply text-secondary-900 dark:text-secondary-50 text-base font-medium;
 }

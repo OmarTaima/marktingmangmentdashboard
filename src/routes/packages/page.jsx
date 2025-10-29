@@ -1,44 +1,57 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLang } from "@/hooks/useLang";
 import { Check } from "lucide-react";
-
-const packages = [
-    {
-        id: "starter",
-        name: "Starter Package",
-        price: "$1,500/month",
-        items: ["Social Media (2 posts/week)", "Basic Graphics", "Monthly Report"],
-    },
-    {
-        id: "growth",
-        name: "Growth Package",
-        price: "$3,500/month",
-        items: ["Social Media (5 posts/week)", "Professional Content", "Reels/Videos (2/week)", "Paid Ads Management", "Bi-weekly Reports"],
-    },
-    {
-        id: "premium",
-        name: "Premium Package",
-        price: "$6,500/month",
-        items: [
-            "Daily Social Media Posts",
-            "Premium Content Creation",
-            "Reels/Videos (4/week)",
-            "Multi-Platform Ads",
-            "Influencer Partnerships",
-            "Website Management",
-            "Weekly Reports",
-            "Dedicated Account Manager",
-        ],
-    },
-];
-
+// Packages are loaded from persisted `packages_master` now. No static defaults are used.
 const PackagesPage = () => {
-    const { t } = useLang();
-    const [selectedPackage, setSelectedPackage] = useState(null);
+    const { t, lang } = useLang();
+    const [selectedPackage, setSelectedPackage] = useState(() => {
+        try {
+            const stored = localStorage.getItem("selectedPackage");
+            return stored ? JSON.parse(stored) : null;
+        } catch (e) {
+            return null;
+        }
+    });
+    const [packages, setPackages] = useState([]);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("packages_master");
+            if (stored) {
+                const parsed = JSON.parse(stored) || [];
+                // normalize parsed packages to shape { id, name, price, items }
+                const normalized = parsed.map((p) => {
+                    const rawItems = p.features || p.items || [];
+                    const items = Array.isArray(rawItems)
+                        ? rawItems.map((f) => {
+                              if (!f) return "";
+                              if (typeof f === "string") return f;
+                              if (typeof f === "object") return lang === "ar" ? f.ar || f.en || "" : f.en || f.ar || "";
+                              return String(f);
+                          })
+                        : [];
+
+                    return {
+                        id: p.id || `pkg_${Date.now()}`,
+                        name: (lang === "ar" ? p.ar || p.en : p.en || p.ar) || p.name || "",
+                        price: p.price || "",
+                        items,
+                    };
+                });
+                setPackages(normalized);
+            } else {
+                setPackages([]);
+            }
+        } catch (e) {
+            setPackages([]);
+        }
+    }, [lang]);
 
     const handleSelectPackage = (pkg) => {
         setSelectedPackage(pkg);
-        localStorage.setItem("selectedPackage", JSON.stringify(pkg));
+        try {
+            localStorage.setItem("selectedPackage", JSON.stringify(pkg));
+        } catch (e) {}
         alert(`${pkg.name} ${t("package_selected_message")}`);
     };
 
@@ -59,8 +72,12 @@ const PackagesPage = () => {
                         onClick={() => setSelectedPackage(pkg)}
                     >
                         <div>
-                            <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
-                            <p className="text-primary-500 mb-4 text-2xl font-bold break-words sm:text-3xl">{pkg.price}</p>
+                            <div className="text-center">
+                                <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
+                                <p className="text-primary-500 mb-4 text-2xl font-bold break-words sm:text-3xl">
+                                    {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
+                                </p>
+                            </div>
                             <ul className="space-y-2 sm:space-y-3">
                                 {pkg.items.map((item, index) => (
                                     <li

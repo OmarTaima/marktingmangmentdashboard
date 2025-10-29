@@ -31,21 +31,14 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
 
     const handleAddCompetitor = () => {
         const newErrors = {};
-        if (fieldValidations.competitorName.required && !currentCompetitor.name?.trim()) {
-            newErrors.name = t(fieldValidations.competitorName.messageKey);
-        }
-        if (fieldValidations.competitorDescription.required && !currentCompetitor.description?.trim()) {
-            newErrors.description = t(fieldValidations.competitorDescription.messageKey);
-        }
+
+        // Only validate website format if provided. Name/description are optional now.
         if (currentCompetitor.website && !validators.isValidURL(currentCompetitor.website, { allowProtocolLess: true })) {
             newErrors.website = t("invalid_website");
         }
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
+        // Persist the competitor even if name/description empty; show non-blocking errors.
+        setErrors(newErrors);
         setCompetitors([...competitors, currentCompetitor]);
         setCurrentCompetitor({
             name: "",
@@ -58,7 +51,6 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
             swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
         });
         setSwotInput({ strength: "", weakness: "", opportunity: "", threat: "" });
-        setErrors({});
     };
 
     const handleRemoveCompetitor = (index) => {
@@ -111,7 +103,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div>
                                 <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">
-                                    {t("competitor_name")} *
+                                    {t("competitor_name")}
                                 </label>
                                 <input
                                     type="text"
@@ -144,7 +136,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                         </div>
 
                         <div className="mt-3">
-                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")} *</label>
+                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("description")}</label>
                             <textarea
                                 value={currentCompetitor.description}
                                 onChange={(e) => {

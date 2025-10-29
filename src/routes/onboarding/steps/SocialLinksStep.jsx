@@ -97,13 +97,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        // Check if there are any validation errors
-        if (Object.keys(urlErrors).length > 0) {
-            alert("Please fix the invalid URLs before continuing");
-            return;
-        }
-
+        // Non-blocking: show URL errors but allow moving forward
         onNext({
             socialLinks: {
                 business: businessLinks,

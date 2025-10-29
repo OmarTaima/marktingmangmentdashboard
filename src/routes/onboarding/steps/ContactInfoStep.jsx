@@ -23,17 +23,17 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
         const newErrors = {};
 
         // Validate business phone
-        if (!validators.isValidEgyptianMobile(formData.businessPhone || "")) {
+        if (formData.businessPhone && !validators.isValidEgyptianMobile(formData.businessPhone || "")) {
             newErrors.businessPhone = t(fieldValidations.businessPhone.messageKey);
         }
 
         // Validate WhatsApp
-        if (!validators.isValidEgyptianMobile(formData.businessWhatsApp || "")) {
+        if (formData.businessWhatsApp && !validators.isValidEgyptianMobile(formData.businessWhatsApp || "")) {
             newErrors.businessWhatsApp = t(fieldValidations.businessWhatsApp.messageKey);
         }
 
         // Validate business email
-        if (!validators.isValidEmail(formData.businessEmail || "")) {
+        if (formData.businessEmail && !validators.isValidEmail(formData.businessEmail || "")) {
             newErrors.businessEmail = t(fieldValidations.businessEmail.messageKey || "invalid_email");
         }
 
@@ -41,13 +41,8 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
         if (formData.website && !validators.isValidURL(formData.website, { allowProtocolLess: true })) {
             newErrors.website = t(fieldValidations.website.messageKey || "invalid_website");
         }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        setErrors({});
+        // Non-blocking: show errors but allow moving forward
+        setErrors(newErrors);
         onNext({ contact: formData });
     };
 
@@ -66,7 +61,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("contact_info")}</h2>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_phone")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_phone")}</label>
                 <input
                     type="tel"
                     name="businessPhone"
@@ -81,7 +76,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_whatsapp")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_whatsapp")}</label>
                 <input
                     type="tel"
                     name="businessWhatsApp"
@@ -96,7 +91,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_email")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_email")}</label>
                 <input
                     type="email"
                     name="businessEmail"

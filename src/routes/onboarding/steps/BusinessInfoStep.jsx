@@ -20,25 +20,22 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         const newErrors = {};
-        if (fieldValidations.businessName.required && !formData.businessName?.trim()) {
+
+        // Keep validations informative but non-blocking. Only validate formats or presence when user provided values.
+        if (formData.businessName && !formData.businessName.trim()) {
             newErrors.businessName = t(fieldValidations.businessName.messageKey);
         }
-        if (fieldValidations.category.required && !formData.category) {
+        if (formData.category && !formData.category) {
             newErrors.category = t(fieldValidations.category.messageKey);
         }
-        if (fieldValidations.description.required && !formData.description?.trim()) {
+        if (formData.description && !formData.description.trim()) {
             newErrors.description = t(fieldValidations.description.messageKey);
         }
-        if (fieldValidations.mainOfficeAddress.required && !formData.mainOfficeAddress?.trim()) {
+        if (formData.mainOfficeAddress && !formData.mainOfficeAddress.trim()) {
             newErrors.mainOfficeAddress = t(fieldValidations.mainOfficeAddress.messageKey);
         }
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        setErrors({});
+        setErrors(newErrors);
         onNext({ business: formData });
     };
 
@@ -54,7 +51,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("business_info")}</h2>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_name")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_name")}</label>
                 <input
                     type="text"
                     name="businessName"
@@ -67,7 +64,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_category")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_category")}</label>
                 <select
                     name="category"
                     value={formData.category}
@@ -91,7 +88,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_description")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_description")}</label>
                 <textarea
                     name="description"
                     value={formData.description}
@@ -105,7 +102,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("main_office_address")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("main_office_address")}</label>
                 <textarea
                     name="mainOfficeAddress"
                     value={formData.mainOfficeAddress}

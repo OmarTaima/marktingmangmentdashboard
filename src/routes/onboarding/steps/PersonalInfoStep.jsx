@@ -22,27 +22,23 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
 
         const newErrors = {};
 
-        // fullName required
-        if (fieldValidations.fullName.required && !formData.fullName?.trim()) {
+        // fullName: optional — don't block progression; only warn when empty based on previous rules (kept permissive)
+        if (formData.fullName && !formData.fullName.trim()) {
             newErrors.fullName = t(fieldValidations.fullName.messageKey);
         }
 
-        // email validation
-        if (fieldValidations.email.required && !validators.isValidEmail(formData.email || "")) {
+        // email validation: only when provided
+        if (formData.email && !validators.isValidEmail(formData.email || "")) {
             newErrors.email = t(fieldValidations.email.messageKey || "invalid_email");
         }
 
-        // phone validation
-        if (!validators.isValidEgyptianMobile(formData.phone || "")) {
+        // phone validation: only when provided
+        if (formData.phone && !validators.isValidEgyptianMobile(formData.phone || "")) {
             newErrors.phone = t(fieldValidations.phone.messageKey);
         }
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
-        setErrors({});
+        // Show non-blocking errors but allow navigation
+        setErrors(newErrors);
         onNext({ personal: formData });
     };
 
@@ -61,13 +57,12 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("personal_info")}</h2>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("full_name")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("full_name")}</label>
                 <input
                     type="text"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
-                    requidanger
                     placeholder={t("full_name_placeholder")}
                     className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.fullName ? "border-danger-500" : "border-secondary-300"}`}
                 />
@@ -75,13 +70,12 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("email_address")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("email_address")}</label>
                 <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    requidanger
                     placeholder={t("email_placeholder")}
                     className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.email ? "border-danger-500" : "border-secondary-300"}`}
                 />
@@ -89,14 +83,13 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("phone_number")} *</label>
+                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("phone_number")}</label>
                 <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
                     className={`w-full rounded-lg border ${errors.phone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
                 />
@@ -138,7 +131,6 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
 
 PersonalInfoStep.propTypes = {
     data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
     onPrevious: PropTypes.func.isRequidanger,
     isFirst: PropTypes.bool.isRequidanger,
 };

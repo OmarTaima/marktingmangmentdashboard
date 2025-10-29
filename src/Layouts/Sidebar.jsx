@@ -84,11 +84,15 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed }, ref) => {
                                 <NavLink
                                     key={link.label}
                                     to={link.path}
-                                    className={cn(
-                                        "sidebar-item flex items-center justify-start gap-x-3",
-                                        collapsed && "md:w-[45px]",
-                                        isArabic && "flex-row-reverse justify-end",
-                                    )}
+                                    end
+                                    className={({ isActive }) =>
+                                        cn(
+                                            "sidebar-item flex items-center justify-start gap-x-3",
+                                            collapsed && "md:w-[45px]",
+                                            isArabic && "flex-row-reverse justify-end",
+                                            isActive && "active",
+                                        )
+                                    }
                                     onClick={() => {
                                         // Only auto-close sidebar on small screens (mobile/tablet)
                                         if (typeof window !== "undefined" && window.innerWidth < 768) {

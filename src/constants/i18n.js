@@ -303,6 +303,10 @@ ar.select_a_client_to_preview = "اختر عميل للمعاينة";
 ar.view_contract = "عرض العقد";
 ar.preview_contract = "معاينة العقد";
 
+// custom / global quotations
+en.custom_quotation = "Custom Quotation";
+ar.custom_quotation = "عرض سعر مخصص";
+
 // Planning / Campaign page translations
 en.campaign_planning = "Campaign Planning";
 en.campaign_planning_subtitle = "Create strategic plans for your clients";
@@ -317,12 +321,21 @@ en.objective_placeholder = "What are the main goals for this campaign? (e.g., In
 en.strategic_approach = "Strategic Approach";
 en.strategy_placeholder = "Describe the overall strategy to achieve the objectives (target channels, content themes, engagement tactics, etc.)";
 en.services_to_provide = "Services to Provide";
-en.budget_usd = "Budget (USD)";
+en.budget_usd = "Budget (EGP)";
 en.timeline = "Timeline";
 en.final_strategy_document = "Final Strategy Document";
 en.download_strategy = "Download Strategy";
 en.save_plan = "Save Plan";
 en.edit_plan = "Edit Plan";
+en.new_plan = "New Plan";
+en.untitled_plan = "Untitled Plan";
+en.confirm_delete_plan = "Are you sure you want to delete this plan?";
+en.add_custom_service_placeholder = "Add custom service in English";
+en.add_custom_service_placeholder_arabic = "Add Custom Service in Arabic";
+en.manage_services = "Manage Services";
+en.manage_services_sub = "Create, edit and remove services that will be available across the app.";
+en.confirm_delete_service = "Are you sure you want to delete this service?";
+en.no_services_defined = "No services defined yet.";
 en.no_clients_found = "No clients found";
 en.plan_saved_success = "✅ Plan saved successfully!";
 en.please_select_client_first = "Please select a client first";
@@ -399,6 +412,11 @@ en.social_media = "Social Media";
 en.age_label = "Age:";
 en.gender_label = "Gender:";
 
+// Arabic translations for new keys
+ar.new_plan = "خطة جديدة";
+ar.untitled_plan = "خطة غير مسماة";
+ar.confirm_delete_plan = "هل أنت متأكد أنك تريد حذف هذه الخطة؟";
+
 en.view_client_details = "View Client Details";
 
 // Contracts / preview translations
@@ -444,7 +462,7 @@ ar.objective_placeholder = "ما هي الأهداف الرئيسية لهذه �
 ar.strategic_approach = "النهج الاستراتيجي";
 ar.strategy_placeholder = "صف الاستراتيجية العامة لتحقيق الأهداف (قنوات الاستهداف، مواضيع المحتوى، تكتيكات التفاعل، إلخ)";
 ar.services_to_provide = "الخدمات المقدمة";
-ar.budget_usd = "الميزانية (دولار أمريكي)";
+ar.budget_usd = "الميزانية (ج.م)";
 ar.timeline = "الجدول الزمني";
 ar.final_strategy_document = "وثيقة الاستراتيجية النهائية";
 ar.download_strategy = "تحميل الاستراتيجية";
@@ -453,6 +471,12 @@ ar.edit_plan = "تعديل الخطة";
 ar.no_clients_found = "لم يتم العثور على عملاء";
 ar.plan_saved_success = "✅ تم حفظ الخطة بنجاح!";
 ar.please_select_client_first = "الرجاء اختيار عميل أولاً";
+ar.add_custom_service_placeholder = "اضف خدمات مخصصه باللغه الانجليزيه";
+ar.add_custom_service_placeholder_arabic = "اضف خدمات مخصصه باللغه العربيه";
+ar.manage_services = "إدارة الخدمات";
+ar.manage_services_sub = "أنشئ، عدل أو احذف الخدمات التي ستكون متاحة في التطبيق.";
+ar.confirm_delete_service = "هل أنت متأكد أنك تريد حذف هذه الخدمة؟";
+ar.no_services_defined = "لم يتم اضافه خدمات بعد.";
 ar.contact_label = "جهة الاتصال:";
 ar.email_label = "البريد الإلكتروني:";
 ar.business_name_label = "العميل: ";
@@ -717,5 +741,97 @@ ar.view_client_details = "عرض تفاصيل العميل";
 ar.view_raw_data = "عرض البيانات الخام (انقر لتوسيع)";
 ar.cancel = "إلغاء";
 ar.invalid_budget = "يرجى إدخال ميزانية صالحة (رقم موجَب)";
+en.english_only = "Please enter English text only in this field.";
+en.arabic_only = "Please enter Arabic text only in this field.";
+en.invalid_price = "Please enter a valid price.";
+
+ar.english_only = "الرجاء إدخال نص باللغة الإنجليزية فقط في هذا الحقل.";
+ar.arabic_only = "الرجاء إدخال نص باللغة العربية فقط في هذا الحقل.";
+ar.invalid_price = "الرجاء إدخال سعر صالح.";
+// Services price label
+en.service_price = "Price";
+ar.service_price = "السعر";
+
+// Packages / Add Packages translations
+en.add_packages = "Add Packages";
+en.add_packages_sub = "Create and manage packages available for clients.";
+en.create_package = "Create Package";
+en.package_name_en = "Package name (English)";
+en.package_name_ar = "Package name (Arabic)";
+en.package_price = "Price";
+en.package_features = "Features (one at a time)";
+en.feature_placeholder = "Add Feature in English";
+en.package_features_note = "Features added will be saved with the package.";
+en.add_package = "Add Package";
+en.existing_packages = "Existing Packages";
+en.no_packages_yet = "No packages yet.";
+en.confirm_delete_package = "Are you sure you want to delete this package?";
+en.save_changes = "Save";
+
+ar.add_packages = "إضافة باقات";
+ar.add_packages_sub = "أنشئ وأدر الباقات المتاحة للعملاء.";
+ar.create_package = "إنشاء باقة";
+ar.package_name_en = "اسم الباقة (بالإنجليزية)";
+ar.package_name_ar = "اسم الباقة (بالعربية)";
+ar.package_price = "السعر";
+ar.package_features = "المميزات (واحدة في كل مرة)";
+ar.feature_placeholder = "اضف ميزة باللغة الإنجليزية";
+ar.package_features_note = "ستُحفظ المميزات مع الباقة.";
+ar.add_package = "أضف باقة";
+ar.existing_packages = "الباقات الحالية";
+ar.no_packages_yet = "لا توجد باقات بعد.";
+ar.confirm_delete_package = "هل أنت متأكد أنك تريد حذف هذه الباقة؟";
+ar.save_changes = "حفظ";
+en.feature_placeholder_ar = "Add Feature in Arabic";
+ar.feature_placeholder_ar = "أضف ميزة باللغة العربية";
+
+// Sidebar exact-match keys (used directly from navbarLinks labels)
+en["Add Packages"] = "Add Packages";
+ar["Add Packages"] = "إضافة باقات";
+
+// Ensure exact-match key for the capitalized sidebar label
+en["Quotations"] = "Quotations";
+ar["Quotations"] = "عروض الأسعار";
+
+// Quotations translations
+en.quotations = "Quotations";
+en.create_and_manage_quotations = "Create and manage quotations";
+en.select_a_client = "Select a client";
+en.create_quotation = "Create Quotation";
+en.select_services = "Select services";
+en.custom = "Custom";
+en.custom_service_name = "Custom service name";
+en.service_price = "Price";
+en.selected_services_count = "Selected services";
+en.total = "Total";
+en.existing_quotations = "Existing quotations";
+en.no_quotations_yet = "No quotations yet";
+en.create_another = "Create another";
+en.create_global_quotation = "Create Global Quotation";
+en.create_quotation_without_client = "Create quotation without client";
+en.create_global_quotation_help = "Create a quotation without selecting a client";
+en.global_quotation = "Global Quotation";
+en.global_client_name = "Quotation name";
+en.quotation_name_placeholder = "e.g., Quote for Prospect";
+
+ar.quotations = "عروض الأسعار";
+ar.create_and_manage_quotations = "إنشاء وإدارة عروض الأسعار";
+ar.select_a_client = "اختر عميل";
+ar.create_quotation = "إنشاء عرض";
+ar.select_services = "اختر الخدمات";
+ar.custom = "مخصص";
+ar.custom_service_name = "اسم الخدمة المخصصة";
+ar.service_price = "السعر";
+ar.selected_services_count = "المختارة";
+ar.total = "المجموع";
+ar.existing_quotations = "عروض الأسعار الحالية";
+ar.no_quotations_yet = "لا توجد عروض بعد";
+ar.create_another = "إنشاء آخر";
+ar.create_global_quotation = "إنشاء عرض بدون عميل";
+ar.create_quotation_without_client = "إنشاء عرض بدون عميل";
+ar.create_global_quotation_help = "إنشاء عرض دون اختيار عميل";
+ar.global_quotation = "عرض عام";
+ar.global_client_name = "اسم العرض";
+ar.quotation_name_placeholder = "مثال: عرض لمشتري محتمل";
 
 export default { en, ar };
