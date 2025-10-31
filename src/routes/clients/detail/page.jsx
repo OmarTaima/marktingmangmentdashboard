@@ -8,13 +8,13 @@ import validators from "@/constants/validators";
 import ClientInfo from "@/routes/clients/ClientInfo";
 
 const inputBaseClass =
-    "w-full rounded-lg border border-primary-light-600 bg-dark-50 px-3 py-2 text-sm text-light-900 placeholder-dark-400 focus:border-light-500 focus:ring-2 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-100";
+    "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
 
 const buttonGhostClass =
-    "rounded-lg border border-primary-light-600 bg-dark-50 px-2.5 py-1 text-xs text-dark-700 hover:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-200 dark:hover:bg-dark-700";
+    "rounded-lg border border-light-200 bg-light-100 px-2.5 py-1 text-xs text-light-500 hover:bg-light-200 dark:border-dark-700 dark:bg-dark-900/40 dark:text-dark-50 dark:hover:bg-dark-800";
 
 const buttonAddClass =
-    "rounded-lg border border-primary-light-400 bg-light-50 px-3 py-1 text-xs font-medium text-light-300 hover:bg-primary-light-100 dark:border-light-300 dark:bg-dark-900/40 dark:text-dark-300 dark:hover:bg-primary-dark-600/60";
+    "rounded-lg border border-light-200 bg-light-100 px-3 py-1 text-xs font-medium text-light-500 hover:bg-light-200 dark:border-dark-700 dark:bg-dark-900/40 dark:text-dark-50 dark:hover:bg-dark-800";
 
 const ClientDetailPage = () => {
     const { id } = useParams();
@@ -200,7 +200,7 @@ const ClientDetailPage = () => {
                                     },
                                     opportunities: {
                                         label: t("opportunities") || "Opportunities",
-                                        color: "text-dark-600",
+                                        color: "text-secdark-700",
                                     },
                                     threats: {
                                         label: t("threats") || "Threats",
@@ -326,7 +326,7 @@ const ClientDetailPage = () => {
                                         ) : (
                                             <>
                                                 <h4 className="text-light-900 dark:text-dark-50 font-medium">{segment.name}</h4>
-                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">{segment.description}</p>
+                                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{segment.description}</p>
                                                 <div className="text-dark-500 dark:text-dark-400 mt-2 flex gap-4 text-xs">
                                                     {segment.targetAge && <span>Age: {segment.targetAge}</span>}
                                                     {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
@@ -422,7 +422,7 @@ const ClientDetailPage = () => {
                                         ) : (
                                             <>
                                                 <h4 className="text-light-900 dark:text-dark-50 font-medium">{competitor.name}</h4>
-                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">{competitor.description}</p>
+                                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{competitor.description}</p>
                                                 {competitor.website && (
                                                     <a
                                                         href={competitor.website}
@@ -471,10 +471,10 @@ const ClientDetailPage = () => {
                             {(editing ? draft.socialLinks?.business || [] : client.socialLinks?.business || []).map((link, idx) => {
                                 const platformLower = (link.platform || "").toLowerCase();
                                 let Icon = null;
-                                let colorClass = "text-primary-light-600";
+                                let colorClass = "text-light-600";
                                 if (platformLower.includes("facebook")) {
                                     Icon = SiFacebook;
-                                    colorClass = "text-dark-600";
+                                    colorClass = "text-secdark-700";
                                 } else if (platformLower.includes("instagram")) {
                                     Icon = SiInstagram;
                                     colorClass = "text-pink-600";
@@ -536,7 +536,7 @@ const ClientDetailPage = () => {
                                                     href={link.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-dark-600 hover:underline"
+                                                    className="text-secdark-700 hover:underline"
                                                 >
                                                     {link.platform}
                                                 </a>

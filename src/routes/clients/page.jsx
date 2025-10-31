@@ -40,7 +40,7 @@ const ClientsPage = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="title">{t("clients_title")}</h1>
-                    <p className="text-primary-light-600 dark:text-dark-400">{t("manage_your_client_database")}</p>
+                    <p className="text-light-600 dark:text-dark-400">{t("manage_your_client_database")}</p>
                 </div>
                 <button
                     onClick={handleAddNewClient}
@@ -53,12 +53,12 @@ const ClientsPage = () => {
 
             {/* No clients placeholder */}
             {clients.length === 0 ? (
-                <div className="border-primary-light-600 dark:border-dark-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed text-center">
+                <div className="border-light-600 dark:border-dark-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed text-center">
                     <Building2
                         size={64}
                         className="text-dark-400"
                     />
-                    <p className="text-primary-light-600 dark:text-dark-400 text-lg font-medium">{t("no_clients_yet")}</p>
+                    <p className="text-light-600 dark:text-dark-400 text-lg font-medium">{t("no_clients_yet")}</p>
                     <p className="text-dark-500 dark:text-dark-400 text-sm">{t("get_started_add_first")}</p>
                     <button
                         onClick={handleAddNewClient}
@@ -85,10 +85,10 @@ const ClientsPage = () => {
                                 {/* Stats Section */}
                                 <div className="border-dark-200 dark:border-dark-700 flex flex-wrap justify-center gap-3 border-t pt-3">
                                     <div className="flex min-w-[80px] flex-col items-center justify-center px-2">
-                                        <p className="text-dark-600 dark:text-primary-dark-400 text-base font-bold sm:text-lg">
+                                        <p className="text-secdark-700 dark:text-secdark-100 text-base font-bold sm:text-lg">
                                             {client.segments?.length || 0}
                                         </p>
-                                        <p className="text-primary-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                        <p className="text-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
                                             {t("segments_label")}
                                         </p>
                                     </div>
@@ -97,7 +97,7 @@ const ClientsPage = () => {
                                         <p className="text-base font-bold text-orange-600 sm:text-lg dark:text-orange-400">
                                             {client.competitors?.length || 0}
                                         </p>
-                                        <p className="text-primary-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                        <p className="text-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
                                             {t("competitors_label")}
                                         </p>
                                     </div>
@@ -109,7 +109,7 @@ const ClientsPage = () => {
                                                 (client.swot?.opportunities?.length || 0) +
                                                 (client.swot?.threats?.length || 0)}
                                         </p>
-                                        <p className="text-primary-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
+                                        <p className="text-light-600 dark:text-dark-400 text-center text-[11px] whitespace-nowrap sm:text-xs">
                                             {t("swot_items")}
                                         </p>
                                     </div>

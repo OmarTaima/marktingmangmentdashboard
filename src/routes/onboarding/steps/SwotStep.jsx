@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
@@ -21,7 +21,7 @@ const SwotSection = ({ title, category, inputKey, color, inputs, setInputs, swot
                     }
                 }}
                 placeholder={placeholder}
-                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
             />
             <button
                 type="button"
@@ -102,6 +102,11 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
         }));
     };
 
+    useEffect(() => {
+        if (typeof onUpdate === "function") onUpdate({ swot });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [swot]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         onNext({ swot });
@@ -114,7 +119,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
         >
             <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("swot_analysis")}</h2>
 
-            <p className="text-primary-light-600 dark:text-dark-400 text-sm">{t("swot_help")}</p>
+            <p className="text-light-600 dark:text-dark-400 text-sm">{t("swot_help")}</p>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <SwotSection
@@ -145,7 +150,7 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
                     title={t("opportunities_title")}
                     category="opportunities"
                     inputKey="opportunity"
-                    color="text-dark-600 dark:text-primary-dark-400"
+                    color="text-secdark-700 dark:text-secdark-100"
                     inputs={inputs}
                     setInputs={setInputs}
                     swot={swot}
@@ -190,4 +195,5 @@ SwotStep.propTypes = {
     data: PropTypes.object.isRequired,
     onNext: PropTypes.func.isRequired,
     onPrevious: PropTypes.func.isRequired,
+    onUpdate: PropTypes.func,
 };

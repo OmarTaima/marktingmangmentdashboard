@@ -395,7 +395,7 @@ const PlanningPage = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="title">{t("campaign_planning")}</h1>
-                        <p className="text-primary-light-600 dark:text-dark-400">{t("campaign_planning_subtitle")}</p>
+                        <p className="text-light-600 dark:text-dark-400">{t("campaign_planning_subtitle")}</p>
                     </div>
                     {selectedClientId && (
                         <div className="flex items-center gap-2">
@@ -420,7 +420,7 @@ const PlanningPage = () => {
                                                         className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${
                                                             selectedPlanId === p.id
                                                                 ? "bg-light-500 text-white"
-                                                                : "bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-primary-dark-600"
+                                                                : "bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50"
                                                         }`}
                                                     >
                                                         <Calendar size={14} />
@@ -500,11 +500,11 @@ const PlanningPage = () => {
                                                 <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                                 {client.business?.businessName || t("unnamed_client")}
                                             </h3>
-                                            <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
+                                            <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
                                                 <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                                                 {client.business?.category || t("no_category")}
                                             </p>
-                                            <div className="text-primary-light-600 dark:text-dark-400 mt-3 text-sm">
+                                            <div className="text-light-600 dark:text-dark-400 mt-3 text-sm">
                                                 <p>
                                                     {t("contact_label")} {client.personal?.fullName || "N/A"}
                                                 </p>
@@ -541,7 +541,7 @@ const PlanningPage = () => {
                         ) : (
                             <div className="card">
                                 <div className="py-8 text-center">
-                                    <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
+                                    <p className="text-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
                                     <a
                                         href="/onboarding"
                                         className="btn-primary"
@@ -587,7 +587,7 @@ const PlanningPage = () => {
                                             <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                             {selectedClient.business?.businessName}
                                         </h2>
-                                        <p className="text-primary-light-600 dark:text-dark-400 text-sm">
+                                        <p className="text-light-600 dark:text-dark-400 text-sm">
                                             <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                                             {selectedClient.business?.category}
                                         </p>
@@ -607,7 +607,7 @@ const PlanningPage = () => {
                                     placeholder={t("objective_placeholder")}
                                     rows={4}
                                     disabled={!isEditing}
-                                    className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-primary-light-600"}`}
+                                    className={`text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-light-600"}`}
                                 />
                                 {planErrors.objective && <p className="text-danger-500 mt-1 text-sm">{planErrors.objective}</p>}
                             </div>
@@ -621,7 +621,7 @@ const PlanningPage = () => {
                                     placeholder={t("strategy_placeholder")}
                                     rows={6}
                                     disabled={!isEditing}
-                                    className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-primary-light-600"}`}
+                                    className={`text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-light-600"}`}
                                 />
                                 {planErrors.strategy && <p className="text-danger-500 mt-1 text-sm">{planErrors.strategy}</p>}
                             </div>
@@ -651,8 +651,8 @@ const PlanningPage = () => {
                                                     disabled={!isEditing}
                                                     className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
                                                         isSelected
-                                                            ? "border-light-500 bg-light-50 text-light-300 dark:border-primary-dark-400 dark:bg-dark-950 dark:text-dark-300"
-                                                            : "dark:hover:bg-secondary-750 border-primary-light-600 text-dark-700 hover:bg-dark-50 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-600 bg-white"
+                                                            ? "border-light-500 bg-light-500 dark:border-secdark-600 dark:bg-secdark-600 dark:text-dark-50 text-white"
+                                                            : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
                                                     } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
                                                 >
                                                     <div className="flex items-center gap-2">
@@ -667,11 +667,11 @@ const PlanningPage = () => {
                                                     {/* show static price when not selected, otherwise show inline input */}
                                                     <div className="flex items-center gap-2">
                                                         {!isSelected && price ? (
-                                                            <div className="text-primary-light-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
+                                                            <div className="text-light-600 dark:text-dark-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
                                                         ) : null}
 
                                                         {isSelected ? (
-                                                            <div className="text-primary-light-600 text-sm">
+                                                            <div className="text-light-600 dark:text-dark-600 text-sm">
                                                                 {(planData.servicesPricing && planData.servicesPricing[identifier]) || price
                                                                     ? `${(planData.servicesPricing && planData.servicesPricing[identifier]) || price} ${lang === "ar" ? "ج.م" : "EGP"}`
                                                                     : null}
@@ -691,7 +691,7 @@ const PlanningPage = () => {
                                         onChange={(e) => setCustomServiceInput(e.target.value)}
                                         placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
                                         disabled={!isEditing}
-                                        className="border-primary-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                        className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
                                     />
                                     <div className="flex items-center gap-2">
                                         <input
@@ -700,9 +700,9 @@ const PlanningPage = () => {
                                             onChange={(e) => setCustomServicePrice(e.target.value)}
                                             placeholder={t("service_price") || "Price"}
                                             disabled={!isEditing}
-                                            className="border-primary-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                            className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
                                         />
-                                        <div className="text-primary-light-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
+                                        <div className="text-light-600 dark:text-dark-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
                                     </div>
                                     <button
                                         type="button"
@@ -731,7 +731,7 @@ const PlanningPage = () => {
                                         onChange={(e) => setPlanData({ ...planData, budget: e.target.value })}
                                         placeholder="5000"
                                         disabled={!isEditing}
-                                        className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none ${planErrors.budget ? "border-danger-500" : "border-primary-light-600"}`}
+                                        className={`text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none ${planErrors.budget ? "border-danger-500" : "border-light-600"}`}
                                     />
                                     {planErrors.budget && <p className="text-danger-500 mt-1 text-sm">{planErrors.budget}</p>}
                                 </div>
@@ -746,7 +746,7 @@ const PlanningPage = () => {
                                     onChange={(e) => setPlanData({ ...planData, timeline: e.target.value })}
                                     placeholder="e.g., 3 months, Q1 2025, Jan-Mar"
                                     disabled={!isEditing}
-                                    className="border-primary-light-600 text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
+                                    className="border-light-600 text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
                                 />
                             </div>
                         </div>

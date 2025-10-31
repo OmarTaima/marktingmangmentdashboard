@@ -62,6 +62,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
         setBusinessLinks((prevLinks) => {
             const updated = [...prevLinks];
             updated[index] = { ...updated[index], url: value };
+            if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
             return updated;
         });
 
@@ -86,13 +87,17 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
 
     const handleAddCustom = () => {
         if (newCustom.platform && newCustom.url) {
-            setCustomLinks([...customLinks, newCustom]);
+            const next = [...customLinks, newCustom];
+            setCustomLinks(next);
+            if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });
             setNewCustom({ platform: "", url: "" });
         }
     };
 
     const handleRemoveCustom = (index) => {
-        setCustomLinks(customLinks.filter((_, i) => i !== index));
+        const next = customLinks.filter((_, i) => i !== index);
+        setCustomLinks(next);
+        if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });
     };
 
     const handleSubmit = (e) => {
@@ -127,7 +132,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     <Icon className={`${platform.color} h-5 w-5`} />
                                     <label
                                         className={cn(
-                                            "text-dark-700 dark:text-primary-dark-600 text-sm font-medium",
+                                            "text-dark-700 dark:text-secdark-200 text-sm font-medium",
                                             dirFor(platform.name) === "rtl" ? "text-right" : "text-left",
                                         )}
                                     >
@@ -143,7 +148,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                         dir={dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") }))}
                                         className={cn(
                                             "focus:border-light-500 w-full rounded-lg border px-4 py-2 focus:outline-none",
-                                            urlErrors[index] ? "border-danger-500" : "border-primary-light-600",
+                                            urlErrors[index] ? "border-danger-500" : "border-light-600",
                                             dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") })) === "rtl"
                                                 ? "text-right"
                                                 : "text-left",
@@ -163,7 +168,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                 <div className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("platform_name")}</label>
+                            <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("platform_name")}</label>
                             <input
                                 type="text"
                                 value={newCustom.platform}
@@ -172,11 +177,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     setNewCustom((prev) => ({ ...prev, platform: value }));
                                 }}
                                 placeholder={t("platform_name_placeholder")}
-                                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("url")}</label>
+                            <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("url")}</label>
                             <input
                                 type="url"
                                 value={newCustom.url}
@@ -186,7 +191,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                 }}
                                 placeholder={t("website_placeholder")}
                                 dir={dirFor(t("website_placeholder"))}
-                                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                             />
                         </div>
                     </div>
@@ -205,11 +210,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                         {customLinks.map((link, index) => (
                             <div
                                 key={index}
-                                className="border-primary-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between rounded-lg border bg-white p-3"
+                                className="border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between rounded-lg border bg-white p-3"
                             >
                                 <div>
                                     <span className="text-light-900 dark:text-dark-50 font-medium">{link.platform}</span>
-                                    <p className="text-primary-light-600 dark:text-dark-400 truncate text-sm">{link.url}</p>
+                                    <p className="text-light-600 dark:text-dark-400 truncate text-sm">{link.url}</p>
                                 </div>
                                 <button
                                     type="button"
@@ -251,4 +256,5 @@ SocialLinksStep.propTypes = {
     data: PropTypes.object,
     onNext: PropTypes.func.isRequired,
     onPrevious: PropTypes.func.isRequired,
+    onUpdate: PropTypes.func,
 };

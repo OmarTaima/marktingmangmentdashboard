@@ -192,7 +192,7 @@ const AddPackagePage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("add_packages") || "Add Packages"}</h1>
-                    <p className="text-primary-light-600 dark:text-dark-400">
+                    <p className="text-light-600 dark:text-dark-400">
                         {t("add_packages_sub") || "Create and manage packages available for clients."}
                     </p>
                 </div>
@@ -270,7 +270,7 @@ const AddPackagePage = () => {
                                 return (
                                     <span
                                         key={`feat-${idx}`}
-                                        className="bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                                        className="bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                     >
                                         <span>{label}</span>
                                         <button
@@ -337,7 +337,7 @@ const AddPackagePage = () => {
                         packages.map((p, idx) => (
                             <div
                                 key={p.id}
-                                className="border-primary-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                             >
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between">
@@ -356,7 +356,7 @@ const AddPackagePage = () => {
                                                 return (
                                                     <span
                                                         key={`${p.id}-feat-${fi}`}
-                                                        className="bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                                                        className="bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                                     >
                                                         <span>{label}</span>
                                                         <button
@@ -388,7 +388,7 @@ const AddPackagePage = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-primary-light-600">{t("no_packages_yet") || "No packages yet."}</p>
+                        <p className="text-light-600">{t("no_packages_yet") || "No packages yet."}</p>
                     )}
                 </div>
             </div>

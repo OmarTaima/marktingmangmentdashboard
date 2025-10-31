@@ -115,7 +115,7 @@ const ReportsPage = () => {
                             ? `${clientData.business?.businessName} - ${t("monthly_report") || "Monthly Report"}`
                             : t("campaign_reports") || "Campaign Reports"}
                     </h1>
-                    <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
+                    <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
                         {clientData
                             ? t("reports_subtitle_selected") || "Reports for the selected client"
                             : t("reports_subtitle") || "Overview of campaign reports"}
@@ -133,7 +133,7 @@ const ReportsPage = () => {
                         <h3 className="text-light-900 dark:text-dark-50 mb-2 text-lg font-medium">
                             {t("no_client_selected") || "No Client Selected"}
                         </h3>
-                        <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("please_complete_onboarding")}</p>
+                        <p className="text-light-600 dark:text-dark-400 mb-4">{t("please_complete_onboarding")}</p>
                         <Link
                             to="/campaigns"
                             className="btn-primary inline-flex items-center gap-2"
@@ -148,9 +148,9 @@ const ReportsPage = () => {
                     <div className="card from-light-500 bg-gradient-to-br to-purple-600 text-white transition-colors duration-300">
                         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                             <div>
-                                <p className="text-primary-light-100 mb-1">{t("total_earnings")}</p>
+                                <p className="text-light-100 mb-1">{t("total_earnings")}</p>
                                 <h2 className="text-4xl font-bold">{reportData.earnings.total}</h2>
-                                <p className="text-primary-light-100 mt-2 flex items-center gap-2">
+                                <p className="text-light-100 mt-2 flex items-center gap-2">
                                     <TrendingUp size={16} />
                                     {t("earnings_change_text").replace("{change}", reportData.earnings.change)}
                                 </p>
@@ -173,7 +173,7 @@ const ReportsPage = () => {
                                 className="card transition-colors duration-300"
                             >
                                 <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-primary-light-600 dark:text-dark-400">{t(metric.key) || metric.label}</span>
+                                    <span className="text-light-600 dark:text-dark-400">{t(metric.key) || metric.label}</span>
                                     <metric.icon
                                         size={20}
                                         className="text-light-500"
@@ -196,10 +196,10 @@ const ReportsPage = () => {
                                     <div className="mb-2 flex items-center justify-between">
                                         <span className="text-light-900 dark:text-dark-50 font-medium">{platform.name}</span>
                                         <div className="flex gap-6 text-sm">
-                                            <span className="text-primary-light-600 dark:text-dark-400">
+                                            <span className="text-light-600 dark:text-dark-400">
                                                 {t("reach") || "Reach"}: <strong>{platform.reach.toLocaleString()}</strong>
                                             </span>
-                                            <span className="text-primary-light-600 dark:text-dark-400">
+                                            <span className="text-light-600 dark:text-dark-400">
                                                 {t("engagement") || "Engagement"}: <strong>{platform.engagement.toLocaleString()}</strong>
                                             </span>
                                         </div>

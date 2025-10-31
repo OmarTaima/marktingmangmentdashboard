@@ -59,7 +59,7 @@ const PackagesPage = () => {
         <div className="space-y-6 px-4 sm:px-6 lg:px-8">
             <div>
                 <h1 className="title text-xl sm:text-2xl lg:text-3xl">{t("service_packages")}</h1>
-                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm sm:text-base">{t("service_packages_subtitle")}</p>
+                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm sm:text-base">{t("service_packages_subtitle")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -74,7 +74,7 @@ const PackagesPage = () => {
                         <div>
                             <div className="text-center">
                                 <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
-                                <p className="text-light-500 dark:text-dark-600 mb-4 text-2xl font-bold break-words sm:text-3xl">
+                                <p className="text-light-500 dark:text-secdark-700 mb-4 text-2xl font-bold break-words sm:text-3xl">
                                     {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
                                 </p>
                             </div>

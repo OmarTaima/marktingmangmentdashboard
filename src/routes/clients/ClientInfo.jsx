@@ -25,7 +25,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
     };
 
     const inputBaseClass =
-        "w-full rounded-lg border border-primary-light-600 bg-dark-50 px-3 py-2 text-sm text-light-900 placeholder-dark-400 focus:border-primary-500 focus:ring-2 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-100";
+        "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
 
     // small helpers to display validation state for a given value
     const makeInvalidClass = (invalid) => (invalid ? " border-red-500 ring-1 ring-red-200 dark:ring-red-900/30" : "");
@@ -38,7 +38,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                         <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                         {client.business?.businessName || t("unnamed_business")}
                     </h3>
-                    <p className="text-primary-light-600 dark:text-dark-400 text-sm">
+                    <p className="text-light-600 dark:text-dark-400 text-sm">
                         <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                         {client.business?.category || t("no_category")}
                     </p>
@@ -46,25 +46,25 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
 
                 <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3 text-sm">
                     {client.personal?.fullName && (
-                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
+                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Users size={14} />
                             <span>{client.personal.fullName}</span>
                         </div>
                     )}
                     {client.contact?.businessEmail && (
-                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
+                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Mail size={14} />
                             <span className="truncate">{client.contact.businessEmail}</span>
                         </div>
                     )}
                     {client.contact?.businessPhone && (
-                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
+                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Phone size={14} />
                             <span>{client.contact.businessPhone}</span>
                         </div>
                     )}
                     {client.branches && client.branches.length > 0 && (
-                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
+                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
                             <MapPin size={14} />
                             <span>
                                 {client.branches.length} {client.branches.length === 1 ? t("branches_singular") : t("branches_plural")}
@@ -141,7 +141,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                 <div className="space-y-4">
                     {(editing || client.personal?.fullName || client.personal?.email || client.personal?.phone) && (
                         <div className="space-y-2">
-                            <h4 className="text-dark-700 dark:text-primary-dark-600 text-sm font-semibold">{t("contact_person")}</h4>
+                            <h4 className="text-dark-700 dark:text-dark-50 text-sm font-semibold">{t("contact_person")}</h4>
                             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                                 {client.personal?.fullName && (
                                     <div>
@@ -227,7 +227,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
 
                     {(editing || client.contact?.businessEmail || client.contact?.businessPhone || client.contact?.website) && (
                         <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3">
-                            <h4 className="text-dark-700 dark:text-primary-dark-600 text-sm font-semibold">{t("business_contact")}</h4>
+                            <h4 className="text-dark-700 dark:text-dark-50 text-sm font-semibold">{t("business_contact")}</h4>
                             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                                 {client.contact?.businessEmail && (
                                     <div>

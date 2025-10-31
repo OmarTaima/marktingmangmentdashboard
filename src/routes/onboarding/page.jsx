@@ -66,15 +66,42 @@ const OnboardingPage = () => {
         }
     }, [editId]);
 
+    // Load draft from localStorage when not editing an existing client
+    useEffect(() => {
+        if (editId) return; // editing mode takes precedence
+        try {
+            const draft = localStorage.getItem("onboarding_draft");
+            if (draft) {
+                const parsed = JSON.parse(draft);
+                setFormData((prev) => ({ ...prev, ...parsed }));
+            }
+        } catch (err) {
+            // ignore
+        }
+    }, [editId]);
+
+    // Persist draft whenever formData changes
+    useEffect(() => {
+        try {
+            localStorage.setItem("onboarding_draft", JSON.stringify(formData));
+        } catch (err) {
+            // ignore storage errors
+        }
+    }, [formData]);
+
     const CurrentStepComponent = steps[currentStep].component;
 
     const handleNext = (stepData) => {
-        const stepKey = Object.keys(stepData)[0];
-        const updatedFormData = { ...formData, [stepKey]: stepData[stepKey] };
+        // Build an updated snapshot combining current formData and incoming step data.
+        const updatedFormData = stepData
+            ? { ...formData, [Object.keys(stepData)[0]]: stepData[Object.keys(stepData)[0]] }
+            : { ...formData };
+
+        // persist immediately to state
         setFormData(updatedFormData);
 
         if (currentStep < steps.length - 1) {
-            setCurrentStep(currentStep + 1);
+            setCurrentStep((s) => s + 1);
         } else {
             // If editing, update existing client instead of creating new
             if (editId) {
@@ -87,6 +114,8 @@ const OnboardingPage = () => {
                     localStorage.setItem("clients", JSON.stringify(clients));
                     console.log("✅ Updated client:", updatedClient);
                     alert("Client updated successfully!");
+                    // clear draft
+                    localStorage.removeItem("onboarding_draft");
                     navigate("/clients");
                     return;
                 }
@@ -113,6 +142,9 @@ const OnboardingPage = () => {
             // Save back to localStorage
             localStorage.setItem("clients", JSON.stringify(clients));
 
+            // clear draft
+            localStorage.removeItem("onboarding_draft");
+
             console.log("✅ Saved client data:", newClient);
             console.log("Total clients:", clients.length);
             console.log("Segments count:", updatedFormData.segments?.length || 0);
@@ -125,7 +157,13 @@ const OnboardingPage = () => {
         }
     };
 
-    const handlePrevious = () => {
+    const handlePrevious = (stepData) => {
+        // optionally merge step data before going back
+        if (stepData) {
+            const stepKey = Object.keys(stepData)[0];
+            setFormData((prev) => ({ ...prev, [stepKey]: stepData[stepKey] }));
+        }
+
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
         }
@@ -151,13 +189,18 @@ const OnboardingPage = () => {
                                 >
                                     <button
                                         type="button"
-                                        onClick={() => setCurrentStep(index)}
+                                        onClick={() => {
+                                            try {
+                                                localStorage.setItem("onboarding_draft", JSON.stringify(formData));
+                                            } catch (e) {}
+                                            setCurrentStep(index);
+                                        }}
                                         aria-label={`Go to step ${index + 1} - ${step.name}`}
                                         tabIndex={0}
                                         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors focus:outline-none ${
                                             index <= currentStep
                                                 ? "bg-light-500 text-white"
-                                                : "bg-dark-200 text-primary-light-600 dark:bg-dark-700 dark:text-dark-400"
+                                                : "bg-dark-200 text-light-600 dark:bg-dark-700 dark:text-dark-400"
                                         }`}
                                     >
                                         <Icon size={16} />
@@ -174,7 +217,7 @@ const OnboardingPage = () => {
                         })}
                     </div>
                     <div className="mt-2 text-center">
-                        <span className="text-primary-light-600 dark:text-dark-400 text-sm font-medium">
+                        <span className="text-light-600 dark:text-dark-400 text-sm font-medium">
                             Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].name)}
                         </span>
                     </div>
@@ -186,6 +229,12 @@ const OnboardingPage = () => {
                         data={formData}
                         onNext={handleNext}
                         onPrevious={handlePrevious}
+                        onUpdate={(stepData) => {
+                            if (stepData) {
+                                const key = Object.keys(stepData)[0];
+                                setFormData((prev) => ({ ...prev, [key]: stepData[key] }));
+                            }
+                        }}
                         isFirst={currentStep === 0}
                         isLast={currentStep === steps.length - 1}
                     />

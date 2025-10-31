@@ -117,7 +117,7 @@ const ServicesPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("Services")}</h1>
-                    <p className="text-primary-light-600 dark:text-dark-400">
+                    <p className="text-light-600 dark:text-dark-400">
                         {t("manage_services_sub") || "Manage available services shown throughout the app."}
                     </p>
                 </div>
@@ -131,7 +131,7 @@ const ServicesPage = () => {
                         services.map((s, idx) => (
                             <div
                                 key={s.id || `${s}${idx}`}
-                                className="border-primary-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                             >
                                 <div className="flex w-full items-center gap-3">
                                     {editingIndex === idx ? (
@@ -208,7 +208,7 @@ const ServicesPage = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-primary-light-600">{t("no_services_defined") || "No services defined yet."}</p>
+                        <p className="text-light-600">{t("no_services_defined") || "No services defined yet."}</p>
                     )}
                 </div>
 

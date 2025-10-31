@@ -13,6 +13,7 @@ const ContractPage = () => {
     const [planData, setPlanData] = useState(null);
     const [packageData, setPackageData] = useState(null);
     const [contractTerms, setContractTerms] = useState("");
+    const [termsInput, setTermsInput] = useState("");
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
@@ -206,7 +207,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="title">{t("contracts_title")}</h1>
-                    <p className="text-primary-light-600 dark:text-dark-400 mt-1">{t("contracts_subtitle")}</p>
+                    <p className="text-light-600 dark:text-dark-400 mt-1">{t("contracts_subtitle")}</p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                     {isEditing ? (
@@ -257,11 +258,11 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                         >
                                             <div className="flex-1">
                                                 <h3 className="card-title text-lg">{client.business?.businessName || t("unnamed_client")}</h3>
-                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
+                                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
                                                     {client.business?.category || t("no_category")}
                                                 </p>
                                                 {plan ? (
-                                                    <div className="text-primary-light-600 dark:text-dark-400 mt-3 space-y-1 text-xs">
+                                                    <div className="text-light-600 dark:text-dark-400 mt-3 space-y-1 text-xs">
                                                         <p>
                                                             💰 {t("budget_usd")}: ${plan.budget || "N/A"}
                                                         </p>
@@ -295,7 +296,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                     ) : (
                         <div className="card">
                             <div className="py-8 text-center">
-                                <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
+                                <p className="text-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
                                 <a
                                     href="/onboarding"
                                     className="btn-primary"
@@ -326,20 +327,47 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                         <p className="text-light-900 dark:text-dark-50 font-medium break-words">
                                             {clientData.business?.businessName}
                                         </p>
-                                        <p className="text-primary-light-600 dark:text-dark-400 break-words">{clientData.personal?.fullName}</p>
-                                        <p className="text-primary-light-600 dark:text-dark-400 break-words">{clientData.contact?.businessEmail}</p>
+                                        <p className="text-light-600 dark:text-dark-400 break-words">{clientData.personal?.fullName}</p>
+                                        <p className="text-light-600 dark:text-dark-400 break-words">{clientData.contact?.businessEmail}</p>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="card">
                                     <h3 className="card-title mb-3">{t("client_info")}</h3>
                                     <div className="space-y-2 text-sm">
-                                        <p className="text-primary-light-600 dark:text-dark-400">{t("no_client_selected")}</p>
+                                        <p className="text-light-600 dark:text-dark-400">{t("no_client_selected")}</p>
                                         <button
                                             className="btn-primary mt-2 w-full sm:w-auto"
                                             onClick={handleSelectClient}
                                         >
                                             {t("select_client")}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Terms quick-insert card placed under client info */}
+                            {selectedClientId && (
+                                <div className="card">
+                                    <h3 className="card-title mb-3">{t("add_term") || "Add Term"}</h3>
+                                    <div className="flex gap-2">
+                                        <input
+                                            placeholder={t("terms_placeholder") || "Enter a term to insert into contract"}
+                                            value={termsInput}
+                                            onChange={(e) => setTermsInput(e.target.value)}
+                                            className="border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const trimmed = (termsInput || "").trim();
+                                                if (!trimmed) return;
+                                                setContractTerms((prev) => (prev ? `${prev}\n\n${trimmed}` : trimmed));
+                                                setTermsInput("");
+                                            }}
+                                            className="btn-primary btn-sm"
+                                        >
+                                            {t("insert_term") || "Insert"}
                                         </button>
                                     </div>
                                 </div>
@@ -388,7 +416,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                         value={contractTerms}
                                         onChange={(e) => setContractTerms(e.target.value)}
                                         rows={25}
-                                        className="border-primary-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
+                                        className="border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
                                     />
                                 ) : (
                                     <div className="bg-dark-50 text-light-900 dark:bg-dark-800/50 dark:text-dark-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">

@@ -39,7 +39,9 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
 
         // Persist the competitor even if name/description empty; show non-blocking errors.
         setErrors(newErrors);
-        setCompetitors([...competitors, currentCompetitor]);
+        const next = [...competitors, currentCompetitor];
+        setCompetitors(next);
+        if (typeof onUpdate === "function") onUpdate({ competitors: next });
         setCurrentCompetitor({
             name: "",
             description: "",
@@ -54,7 +56,9 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
     };
 
     const handleRemoveCompetitor = (index) => {
-        setCompetitors(competitors.filter((_, i) => i !== index));
+        const next = competitors.filter((_, i) => i !== index);
+        setCompetitors(next);
+        if (typeof onUpdate === "function") onUpdate({ competitors: next });
     };
 
     const handleAddSwotItem = (category) => {
@@ -93,16 +97,14 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
         >
             <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold transition-colors duration-300">{t("competitor_analysis")}</h2>
 
-            <p className="text-primary-light-600 dark:text-dark-400 mb-4 text-sm transition-colors duration-300">{t("competitor_analysis_help")}</p>
+            <p className="text-light-600 dark:text-dark-400 mb-4 text-sm transition-colors duration-300">{t("competitor_analysis_help")}</p>
 
             <div className="bg-dark-50 dark:bg-dark-800/50 space-y-4 rounded-lg p-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4">
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div>
-                                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">
-                                    {t("competitor_name")}
-                                </label>
+                                <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("competitor_name")}</label>
                                 <input
                                     type="text"
                                     value={currentCompetitor.name}
@@ -110,12 +112,12 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                         setCurrentCompetitor({ ...currentCompetitor, name: e.target.value });
                                         if (errors.name) setErrors({ ...errors, name: "" });
                                     }}
-                                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : "border-primary-light-600"}`}
+                                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : "border-light-600"}`}
                                 />
                                 {errors.name && <p className="text-danger-500 mt-1 text-sm">{errors.name}</p>}
                             </div>
                             <div>
-                                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("website_url")}</label>
+                                <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("website_url")}</label>
                                 <input
                                     type="url"
                                     value={currentCompetitor.website}
@@ -125,14 +127,14 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                     }}
                                     placeholder={t("website_placeholder")}
                                     dir={dirFor(t("website_placeholder"))}
-                                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.website ? "border-danger-500" : "border-primary-light-600"}`}
+                                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.website ? "border-danger-500" : "border-light-600"}`}
                                 />
                                 {errors.website && <p className="text-danger-500 mt-1 text-sm">{errors.website}</p>}
                             </div>
                         </div>
 
                         <div className="mt-3">
-                            <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("description")}</label>
+                            <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("description")}</label>
                             <textarea
                                 value={currentCompetitor.description}
                                 onChange={(e) => {
@@ -140,7 +142,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                     if (errors.description) setErrors({ ...errors, description: "" });
                                 }}
                                 rows={3}
-                                className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full resize-none rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.description ? "border-danger-500" : "border-primary-light-600"}`}
+                                className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full resize-none rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.description ? "border-danger-500" : "border-light-600"}`}
                             />
                             {errors.description && <p className="text-danger-500 mt-1 text-sm">{errors.description}</p>}
                         </div>
@@ -149,7 +151,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                             <div>
                                 <label
                                     dir="ltr"
-                                    className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium"
+                                    className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium"
                                 >
                                     {t("facebook_label")}
                                 </label>
@@ -159,13 +161,13 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                     onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, facebook: e.target.value })}
                                     placeholder="https://facebook.com/..."
                                     dir={dirFor("https://facebook.com/...")}
-                                    className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
+                                    className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
                                 />
                             </div>
                             <div>
                                 <label
                                     dir="ltr"
-                                    className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium"
+                                    className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium"
                                 >
                                     {t("instagram_label")}
                                 </label>
@@ -175,7 +177,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                     onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, instagram: e.target.value })}
                                     placeholder="https://instagram.com/..."
                                     dir={dirFor("https://instagram.com/...")}
-                                    className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
+                                    className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
                                 />
                             </div>
                         </div>
@@ -188,7 +190,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                         key={category}
                                         className="space-y-1"
                                     >
-                                        <label className="text-primary-light-600 dark:text-dark-400 block text-xs font-medium">{t(category)}</label>
+                                        <label className="text-light-600 dark:text-dark-400 block text-xs font-medium">{t(category)}</label>
                                         <div className="flex gap-1">
                                             <input
                                                 type="text"
@@ -200,7 +202,7 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
                                                         handleAddSwotItem(category);
                                                     }
                                                 }}
-                                                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 flex-1 rounded border bg-white px-2 py-1 text-sm transition-colors duration-300"
+                                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 flex-1 rounded border bg-white px-2 py-1 text-sm transition-colors duration-300"
                                             />
                                             <button
                                                 type="button"
@@ -248,19 +250,19 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
 
                 {competitors.length > 0 && (
                     <div className="space-y-2">
-                        <h3 className="text-dark-700 dark:text-primary-dark-600 text-sm font-medium">
+                        <h3 className="text-dark-700 dark:text-secdark-200 text-sm font-medium">
                             {t("added_competitors", { count: competitors.length })}
                         </h3>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {competitors.map((competitor, index) => (
                                 <div
                                     key={index}
-                                    className="border-primary-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3 transition-colors duration-300"
+                                    className="border-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3 transition-colors duration-300"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
                                             <h4 className="text-light-900 dark:text-dark-50 truncate font-medium">{competitor.name}</h4>
-                                            <p className="text-primary-light-600 dark:text-dark-400 line-clamp-3 text-sm">{competitor.description}</p>
+                                            <p className="text-light-600 dark:text-dark-400 line-clamp-3 text-sm">{competitor.description}</p>
                                         </div>
                                         <div className="flex flex-shrink-0 gap-2">
                                             <button
@@ -337,4 +339,5 @@ CompetitorsStep.propTypes = {
     onNext: PropTypes.func.isRequired,
     onPrevious: PropTypes.func.isRequired,
     isLast: PropTypes.bool,
+    onUpdate: PropTypes.func,
 };
