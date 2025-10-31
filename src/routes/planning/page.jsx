@@ -395,7 +395,7 @@ const PlanningPage = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="title">{t("campaign_planning")}</h1>
-                        <p className="text-secondary-600 dark:text-secondary-400">{t("campaign_planning_subtitle")}</p>
+                        <p className="text-primary-light-600 dark:text-dark-400">{t("campaign_planning_subtitle")}</p>
                     </div>
                     {selectedClientId && (
                         <div className="flex items-center gap-2">
@@ -419,8 +419,8 @@ const PlanningPage = () => {
                                                         aria-label={title}
                                                         className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${
                                                             selectedPlanId === p.id
-                                                                ? "bg-primary-500 text-white"
-                                                                : "bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-300"
+                                                                ? "bg-light-500 text-white"
+                                                                : "bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-primary-dark-600"
                                                         }`}
                                                     >
                                                         <Calendar size={14} />
@@ -489,24 +489,22 @@ const PlanningPage = () => {
                     <div>
                         {clients.length > 0 ? (
                             <>
-                                <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
-                                    {t("select_a_client_to_plan")}
-                                </h2>
+                                <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">{t("select_a_client_to_plan")}</h2>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                     {clients.map((client) => (
                                         <div
                                             key={client.id}
-                                            className="card hover:border-primary-500 transition-colors duration-300"
+                                            className="card hover:border-light-500 transition-colors duration-300"
                                         >
                                             <h3 className="card-title text-lg">
                                                 <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                                 {client.business?.businessName || t("unnamed_client")}
                                             </h3>
-                                            <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                            <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
                                                 <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                                                 {client.business?.category || t("no_category")}
                                             </p>
-                                            <div className="text-secondary-600 dark:text-secondary-400 mt-3 text-sm">
+                                            <div className="text-primary-light-600 dark:text-dark-400 mt-3 text-sm">
                                                 <p>
                                                     {t("contact_label")} {client.personal?.fullName || "N/A"}
                                                 </p>
@@ -543,7 +541,7 @@ const PlanningPage = () => {
                         ) : (
                             <div className="card">
                                 <div className="py-8 text-center">
-                                    <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("no_clients_found")}</p>
+                                    <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
                                     <a
                                         href="/onboarding"
                                         className="btn-primary"
@@ -559,7 +557,7 @@ const PlanningPage = () => {
                 {selectedClient && !isLoading && !isTransitioning && (
                     <>
                         {/* Client Info Header */}
-                        <div className="card bg-secondary-50 dark:bg-secondary-800/50">
+                        <div className="card bg-dark-50 dark:bg-dark-800/50">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <button
@@ -585,11 +583,11 @@ const PlanningPage = () => {
                                         <LocalizedArrow size={20} />
                                     </button>
                                     <div>
-                                        <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
+                                        <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">
                                             <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                                             {selectedClient.business?.businessName}
                                         </h2>
-                                        <p className="text-secondary-600 dark:text-secondary-400 text-sm">
+                                        <p className="text-primary-light-600 dark:text-dark-400 text-sm">
                                             <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                                             {selectedClient.business?.category}
                                         </p>
@@ -609,7 +607,7 @@ const PlanningPage = () => {
                                     placeholder={t("objective_placeholder")}
                                     rows={4}
                                     disabled={!isEditing}
-                                    className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-secondary-300"}`}
+                                    className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-primary-light-600"}`}
                                 />
                                 {planErrors.objective && <p className="text-danger-500 mt-1 text-sm">{planErrors.objective}</p>}
                             </div>
@@ -623,7 +621,7 @@ const PlanningPage = () => {
                                     placeholder={t("strategy_placeholder")}
                                     rows={6}
                                     disabled={!isEditing}
-                                    className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-secondary-300"}`}
+                                    className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-primary-light-600"}`}
                                 />
                                 {planErrors.strategy && <p className="text-danger-500 mt-1 text-sm">{planErrors.strategy}</p>}
                             </div>
@@ -653,8 +651,8 @@ const PlanningPage = () => {
                                                     disabled={!isEditing}
                                                     className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
                                                         isSelected
-                                                            ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-950 dark:text-primary-300"
-                                                            : "dark:hover:bg-secondary-750 border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 bg-white"
+                                                            ? "border-light-500 bg-light-50 text-light-300 dark:border-primary-dark-400 dark:bg-dark-950 dark:text-dark-300"
+                                                            : "dark:hover:bg-secondary-750 border-primary-light-600 text-dark-700 hover:bg-dark-50 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-600 bg-white"
                                                     } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
                                                 >
                                                     <div className="flex items-center gap-2">
@@ -669,11 +667,11 @@ const PlanningPage = () => {
                                                     {/* show static price when not selected, otherwise show inline input */}
                                                     <div className="flex items-center gap-2">
                                                         {!isSelected && price ? (
-                                                            <div className="text-secondary-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
+                                                            <div className="text-primary-light-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
                                                         ) : null}
 
                                                         {isSelected ? (
-                                                            <div className="text-secondary-600 text-sm">
+                                                            <div className="text-primary-light-600 text-sm">
                                                                 {(planData.servicesPricing && planData.servicesPricing[identifier]) || price
                                                                     ? `${(planData.servicesPricing && planData.servicesPricing[identifier]) || price} ${lang === "ar" ? "ج.م" : "EGP"}`
                                                                     : null}
@@ -693,7 +691,7 @@ const PlanningPage = () => {
                                         onChange={(e) => setCustomServiceInput(e.target.value)}
                                         placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
                                         disabled={!isEditing}
-                                        className="border-secondary-300 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                        className="border-primary-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
                                     />
                                     <div className="flex items-center gap-2">
                                         <input
@@ -702,9 +700,9 @@ const PlanningPage = () => {
                                             onChange={(e) => setCustomServicePrice(e.target.value)}
                                             placeholder={t("service_price") || "Price"}
                                             disabled={!isEditing}
-                                            className="border-secondary-300 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                            className="border-primary-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
                                         />
-                                        <div className="text-secondary-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
+                                        <div className="text-primary-light-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
                                     </div>
                                     <button
                                         type="button"
@@ -733,7 +731,7 @@ const PlanningPage = () => {
                                         onChange={(e) => setPlanData({ ...planData, budget: e.target.value })}
                                         placeholder="5000"
                                         disabled={!isEditing}
-                                        className={`text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none ${planErrors.budget ? "border-danger-500" : "border-secondary-300"}`}
+                                        className={`text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white py-3 pr-4 pl-8 transition-colors focus:outline-none ${planErrors.budget ? "border-danger-500" : "border-primary-light-600"}`}
                                     />
                                     {planErrors.budget && <p className="text-danger-500 mt-1 text-sm">{planErrors.budget}</p>}
                                 </div>
@@ -748,7 +746,7 @@ const PlanningPage = () => {
                                     onChange={(e) => setPlanData({ ...planData, timeline: e.target.value })}
                                     placeholder="e.g., 3 months, Q1 2025, Jan-Mar"
                                     disabled={!isEditing}
-                                    className="border-secondary-300 text-secondary-900 disabled:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 dark:disabled:bg-secondary-900 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
+                                    className="border-primary-light-600 text-light-900 disabled:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-light-900 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none"
                                 />
                             </div>
                         </div>
@@ -757,8 +755,8 @@ const PlanningPage = () => {
                         {finalStrategy && (
                             <div className="card">
                                 <h3 className="card-title mb-4">{t("final_strategy_document")}</h3>
-                                <div className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-4">
-                                    <pre className="text-secondary-900 dark:text-secondary-50 font-mono text-xs leading-relaxed whitespace-pre-wrap">
+                                <div className="bg-dark-50 dark:bg-dark-800/50 rounded-lg p-4">
+                                    <pre className="text-light-900 dark:text-dark-50 font-mono text-xs leading-relaxed whitespace-pre-wrap">
                                         {finalStrategy}
                                     </pre>
                                 </div>
@@ -773,7 +771,7 @@ const PlanningPage = () => {
                     className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${overlayFadeIn ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
                 >
                     <div className="absolute inset-0 bg-black/40" />
-                    <Loader2 className="text-primary-500 relative h-12 w-12 animate-spin" />
+                    <Loader2 className="text-light-500 relative h-12 w-12 animate-spin" />
                 </div>
             )}
         </div>

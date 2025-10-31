@@ -58,53 +58,50 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("contact_info")}</h2>
+            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("contact_info")}</h2>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_phone")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_phone")}</label>
                 <input
                     type="tel"
                     name="businessPhone"
                     value={formData.businessPhone}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${errors.businessPhone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
+                    className={`w-full rounded-lg border ${errors.businessPhone ? "border-danger-500" : "border-primary-light-600"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 focus:outline-none`}
                 />
                 {errors.businessPhone && <p className="text-danger-500 mt-1 text-sm">{errors.businessPhone}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_whatsapp")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_whatsapp")}</label>
                 <input
                     type="tel"
                     name="businessWhatsApp"
                     value={formData.businessWhatsApp}
                     onChange={handleChange}
                     placeholder={t("phone_placeholder")}
-                    requidanger
                     dir={dirFor(t("phone_placeholder"))}
-                    className={`w-full rounded-lg border ${errors.businessWhatsApp ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 focus:outline-none`}
+                    className={`w-full rounded-lg border ${errors.businessWhatsApp ? "border-danger-500" : "border-primary-light-600"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 focus:outline-none`}
                 />
                 {errors.businessWhatsApp && <p className="text-danger-500 mt-1 text-sm">{errors.businessWhatsApp}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_email")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_email")}</label>
                 <input
                     type="email"
                     name="businessEmail"
                     value={formData.businessEmail}
                     onChange={handleChange}
-                    requidanger
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessEmail ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessEmail ? "border-danger-500" : "border-primary-light-600"}`}
                 />
                 {errors.businessEmail && <p className="text-danger-500 mt-1 text-sm">{errors.businessEmail}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("website_url")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("website_url")}</label>
                 <input
                     type="url"
                     name="website"
@@ -112,7 +109,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     placeholder={t("website_placeholder")}
                     dir={dirFor(t("website_placeholder"))}
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.website ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.website ? "border-danger-500" : "border-primary-light-600"}`}
                 />
                 {errors.website && <p className="text-danger-500 mt-1 text-sm">{errors.website}</p>}
             </div>
@@ -120,7 +117,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
             <div className="flex justify-between gap-4 pt-4">
                 <button
                     type="button"
-                    onClick={onPrevious}
+                    onClick={() => onPrevious({ contact: formData })}
                     className="btn-ghost px-6 py-2"
                 >
                     {t("previous")}
@@ -137,7 +134,7 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
 };
 
 ContactInfoStep.propTypes = {
-    data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
-    onPrevious: PropTypes.func.isRequidanger,
+    data: PropTypes.object,
+    onNext: PropTypes.func.isRequired,
+    onPrevious: PropTypes.func.isRequired,
 };

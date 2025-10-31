@@ -3,43 +3,54 @@
 @variant dark (&:is(.dark *));
 
 @theme static {
-    --color-primary-50: oklch(97% 0.014 254.604);
-    --color-primary-100: oklch(93.2% 0.032 255.585);
-    --color-primary-200: oklch(88.2% 0.059 254.128);
-    --color-primary-300: oklch(80.9% 0.105 251.813);
-    --color-primary-400: oklch(70.7% 0.165 254.624);
-    --color-primary-500: oklch(62.3% 0.214 259.815);
-    --color-primary-600: oklch(54.6% 0.245 262.881);
-    --color-primary-700: oklch(48.8% 0.243 264.376);
-    --color-primary-800: oklch(42.4% 0.199 265.638);
-    --color-primary-900: oklch(37.9% 0.146 265.522);
-    --color-primary-950: oklch(28.2% 0.091 267.935);
+    /* === Light Colors === */
+    --color-light-50: #fef8f6;
+    --color-light-100: #fdedea;
+    --color-light-200: #fad6d1;
+    --color-light-300: #f5b2aa;
+    --color-light-500: #e42e2b; /* core red */
+    --color-light-700: #a83c39;
+    --color-light-900: #6b2e2c;
 
-    --color-secondary-50: oklch(98.4% 0.003 247.858);
-    --color-secondary-100: oklch(96.8% 0.007 247.896);
-    --color-secondary-200: oklch(92.9% 0.013 255.508);
-    --color-secondary-300: oklch(86.9% 0.022 252.894);
-    --color-secondary-400: oklch(70.4% 0.04 256.788);
-    --color-secondary-500: oklch(55.4% 0.046 257.417);
-    --color-secondary-600: oklch(44.6% 0.043 257.281);
-    --color-secondary-700: oklch(37.2% 0.044 257.287);
-    --color-secondary-800: oklch(27.9% 0.041 260.031);
-    --color-secondary-900: oklch(20.8% 0.042 265.755);
-    --color-secondary-950: oklch(12.9% 0.042 264.695);
+    /* === Primary Colors for Light Mode === */
+    --color-primary-light-100: #fdedea;
+    --color-primary-light-400: #e87c78;
+    --color-primary-light-600: #c45a56;
+    --color-primary-light-800: #8c403d;
 
-    --color-danger-50: oklch(97.1% 0.013 17.38);
-    --color-danger-100: oklch(93.6% 0.032 17.717);
-    --color-danger-200: oklch(88.5% 0.062 18.334);
-    --color-danger-300: oklch(80.8% 0.114 19.571);
-    --color-danger-400: oklch(70.4% 0.191 22.216);
-    --color-danger-500: oklch(63.7% 0.237 25.331);
-    --color-danger-600: oklch(57.7% 0.245 27.325);
-    --color-danger-700: oklch(50.5% 0.213 27.518);
-    --color-danger-800: oklch(44.4% 0.177 26.899);
-    --color-danger-900: oklch(39.6% 0.141 25.723);
-    --color-danger-950: oklch(25.8% 0.092 26.042);
+    /* === Slate-Inspired Dark Mode === */
+
+    /* Backgrounds & Panels (Neutral Gray) */
+    --color-dark-950: #020617; /* darkest background */
+    --color-dark-900: #111827; /* deep panels / modals */
+    --color-dark-800: #1f2937; /* hover / active surfaces */
+    --color-dark-700: #374151; /* buttons / highlights background */
+    --color-dark-600: #b91c1c; /* secondary panels / muted content */
+    --color-dark-500: #6b7280; /* main content area / primary panel */
+    --color-dark-400: #a0abb5; /* card backgrounds */
+    --color-dark-300: #d1d7dd; /* borders / secondary surfaces */
+    --color-dark-200: #e8ebee; /* light panels/cards */
+    --color-dark-50: #f9fafb; /* subtle background / highlights */
+
+    /* Primary / Red Accent (Hue 27°) */
+    --color-primary-dark-100: #ffd1c8; /* subtle red highlight */
+    --color-primary-dark-400: #ff6b5b; /* main buttons / highlights */
+    --color-primary-dark-600: #991b1b; /* hover */
+    --color-primary-dark-800: #cc2e2b; /* brn Broder */
+
+    /* === Danger Colors (Cyan / Teal) === */
+    --color-danger-50: #f0fdff;
+    --color-danger-100: #dcf7fb;
+    --color-danger-200: #b8eef5;
+    --color-danger-300: #82e0ea;
+    --color-danger-400: #45c8d6;
+    --color-danger-500: #22a4b5;
+    --color-danger-600: #1d8390;
+    --color-danger-700: #1d6974;
+    --color-danger-800: #1e545c;
+    --color-danger-900: #1d464d;
+    --color-danger-950: #0d292e;
 }
-
 @layer base {
     body {
         @apply [scrollbar-color:_#cbd5e1_transparent] dark:[scrollbar-color:_#334155_transparent];
@@ -51,30 +62,30 @@
     }
 
     .sidebar-group-title {
-        @apply text-secondary-600 dark:text-secondary-400 overflow-hidden text-sm font-medium text-ellipsis;
+        @apply text-primary-light-600 dark:text-dark-400 overflow-hidden text-sm font-medium text-ellipsis;
     }
 
     .sidebar-item {
-        @apply text-secondary-900 hover:bg-primary-50 dark:text-secondary-50 dark:hover:bg-primary-950 flex h-[40px] w-full flex-shrink-0 items-center gap-x-3 rounded-lg p-3 text-base font-medium transition-colors;
+        @apply text-light-900 hover:bg-light-50 dark:text-dark-50 dark:hover:bg-dark-700 flex h-[40px] w-full flex-shrink-0 items-center gap-x-3 rounded-lg p-3 text-base font-medium transition-colors;
         &.active {
-            @apply bg-primary-500 dark:bg-primary-600 text-secondary-50;
+            @apply bg-light-500 dark:bg-dark-600 text-dark-50;
         }
     }
 
     .title {
-        @apply text-secondary-900 dark:text-secondary-50 text-3xl font-semibold transition-colors;
+        @apply text-light-900 dark:text-dark-50 text-3xl font-semibold transition-colors;
     }
 
     .btn-ghost {
-        @apply border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-600 dark:text-secondary-200 dark:hover:bg-secondary-700 dark:bg-secondary-800 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border bg-white px-4 py-2 transition-colors;
+        @apply border-primary-light-600 text-dark-700 hover:bg-dark-50 dark:border-dark-700 dark:text-dark-200 dark:hover:bg-dark-700 dark:bg-dark-800 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border bg-white px-4 py-2 transition-colors;
     }
 
     .btn-primary {
-        @apply border-primary-600 hover:bg-primary-600 dark:bg-primary-600 bg-primary-500 dark:border-primary-500 dark:hover:bg-primary-700 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border px-4 py-2 text-white transition-colors;
+        @apply border-dark-600 hover:bg-dark-600 dark:bg-dark-600 bg-light-500 dark:border-dark-600 dark:hover:bg-primary-dark-600 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border px-4 py-2 text-white transition-colors;
     }
 
     .btn-secondary {
-        @apply border-secondary-300 bg-secondary-100 text-secondary-700 hover:bg-secondary-200 dark:border-secondary-600 dark:bg-secondary-700 dark:text-secondary-200 dark:hover:bg-secondary-600 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border px-4 py-2 transition-colors;
+        @apply border-primary-light-600 bg-primary-light-100 text-dark-700 hover:bg-dark-200 dark:border-dark-600 dark:bg-dark-700 dark:text-dark-200 dark:hover:bg-primary-dark-600 flex h-10 flex-shrink-0 items-center justify-center gap-x-2 rounded-lg border px-4 py-2 transition-colors;
     }
 
     .btn-danger {
@@ -87,15 +98,15 @@
     }
 
     .link {
-        @apply text-secondary-900 dark:text-secondary-50 text-base font-medium transition-colors hover:underline;
+        @apply text-light-900 dark:text-dark-50 text-base font-medium transition-colors hover:underline;
     }
 
     .input {
-        @apply dark:focus:border-primary-600 has-[input:focus]:border-primary-500 border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:text-secondary-50 hidden h-10 flex-shrink-0 items-center gap-x-2 rounded-lg border px-2 text-base transition-colors md:flex md:w-auto lg:w-80;
+        @apply dark:focus:border-dark-600 has-[input:focus]:border-light-500 border-primary-light-600 text-light-900 dark:border-dark-700 dark:text-dark-50 hidden h-10 flex-shrink-0 items-center gap-x-2 rounded-lg border px-2 text-base transition-colors md:flex md:w-auto lg:w-80;
     }
 
     .card {
-        @apply border-secondary-300 dark:border-secondary-700 dark:bg-secondary-900 flex flex-col gap-y-4 rounded-lg border bg-white p-4 transition-colors;
+        @apply border-primary-light-600 dark:border-dark-700 dark:bg-dark-900 flex flex-col gap-y-4 rounded-lg border bg-white p-4 transition-colors;
     }
 
     .card-header {
@@ -103,7 +114,7 @@
     }
 
     .card-title {
-        @apply text-secondary-900 dark:text-secondary-50 font-medium transition-colors;
+        @apply text-light-900 dark:text-dark-50 font-medium transition-colors;
     }
 
     .card-body {
@@ -111,15 +122,15 @@
     }
 
     .table {
-        @apply text-secondary-900 dark:text-secondary-50 h-full w-full;
+        @apply text-light-900 dark:text-dark-50 h-full w-full;
     }
 
     .table-header {
-        @apply bg-secondary-200 dark:bg-secondary-800 sticky top-0 transition-[background];
+        @apply bg-dark-200 dark:bg-dark-800 sticky top-0 transition-[background];
     }
 
     .table-row {
-        @apply border-secondary-300 dark:border-secondary-700 border-b transition-colors last:border-none;
+        @apply border-primary-light-600 dark:border-dark-700 border-b transition-colors last:border-none;
     }
 
     .table-head {
@@ -132,7 +143,7 @@
 }
 
 .recharts-default-tooltip {
-    @apply !border-secondary-300 dark:!border-secondary-700 dark:!bg-secondary-900 !rounded-lg !border !bg-white transition-colors;
+    @apply !border-primary-light-600 dark:!border-dark-700 dark:!bg-dark-900 !rounded-lg !border !bg-white transition-colors;
 }
 
 /* Remove number input spinners for a cleaner price input UI */
@@ -148,9 +159,21 @@ input[type="number"] {
 }
 
 .recharts-tooltip-label {
-    @apply text-secondary-900 dark:text-secondary-50 text-base font-medium;
+    @apply text-light-900 dark:text-dark-50 text-base font-medium;
 }
 
 .recharts-tooltip-item {
-    @apply dark:!text-primary-600 !text-primary-500 text-base font-medium;
+    @apply dark:!text-dark-600 !text-light-500 text-base font-medium;
+}
+
+@layer components {
+    /* Hide the visible scrollbar in the sidebar while preserving scroll behavior */
+    .sidebar-scroll {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+    }
+
+    .sidebar-scroll::-webkit-scrollbar {
+        display: none; /* WebKit browsers */
+    }
 }

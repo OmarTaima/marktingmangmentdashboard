@@ -206,7 +206,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="title">{t("contracts_title")}</h1>
-                    <p className="text-secondary-600 dark:text-secondary-400 mt-1">{t("contracts_subtitle")}</p>
+                    <p className="text-primary-light-600 dark:text-dark-400 mt-1">{t("contracts_subtitle")}</p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                     {isEditing ? (
@@ -243,7 +243,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                 <div>
                     {clients.length > 0 ? (
                         <>
-                            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
+                            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">
                                 {t("select_a_client_to_preview") || "Select a client to preview"}
                             </h2>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -253,15 +253,15 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                     return (
                                         <div
                                             key={client.id}
-                                            className="card group hover:border-primary-500 relative flex h-full flex-col transition-all"
+                                            className="card group hover:border-light-500 relative flex h-full flex-col transition-all"
                                         >
                                             <div className="flex-1">
                                                 <h3 className="card-title text-lg">{client.business?.businessName || t("unnamed_client")}</h3>
-                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
                                                     {client.business?.category || t("no_category")}
                                                 </p>
                                                 {plan ? (
-                                                    <div className="text-secondary-600 dark:text-secondary-400 mt-3 space-y-1 text-xs">
+                                                    <div className="text-primary-light-600 dark:text-dark-400 mt-3 space-y-1 text-xs">
                                                         <p>
                                                             💰 {t("budget_usd")}: ${plan.budget || "N/A"}
                                                         </p>
@@ -295,7 +295,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                     ) : (
                         <div className="card">
                             <div className="py-8 text-center">
-                                <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("no_clients_found")}</p>
+                                <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
                                 <a
                                     href="/onboarding"
                                     className="btn-primary"
@@ -323,18 +323,18 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                 <div className="card">
                                     <h3 className="card-title mb-3">{t("client_info")}</h3>
                                     <div className="space-y-2 text-sm">
-                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
+                                        <p className="text-light-900 dark:text-dark-50 font-medium break-words">
                                             {clientData.business?.businessName}
                                         </p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.personal?.fullName}</p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 break-words">{clientData.contact?.businessEmail}</p>
+                                        <p className="text-primary-light-600 dark:text-dark-400 break-words">{clientData.personal?.fullName}</p>
+                                        <p className="text-primary-light-600 dark:text-dark-400 break-words">{clientData.contact?.businessEmail}</p>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="card">
                                     <h3 className="card-title mb-3">{t("client_info")}</h3>
                                     <div className="space-y-2 text-sm">
-                                        <p className="text-secondary-600 dark:text-secondary-400">{t("no_client_selected")}</p>
+                                        <p className="text-primary-light-600 dark:text-dark-400">{t("no_client_selected")}</p>
                                         <button
                                             className="btn-primary mt-2 w-full sm:w-auto"
                                             onClick={handleSelectClient}
@@ -348,8 +348,8 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                             {packageData && (
                                 <div className="card">
                                     <h3 className="card-title mb-3">{t("package_label")}</h3>
-                                    <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{packageData.name}</p>
-                                    <p className="text-primary-500 mt-2 text-2xl font-bold">{packageData.price}</p>
+                                    <p className="text-light-900 dark:text-dark-50 font-medium break-words">{packageData.name}</p>
+                                    <p className="text-light-500 mt-2 text-2xl font-bold">{packageData.price}</p>
                                 </div>
                             )}
 
@@ -358,16 +358,16 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                     <h3 className="card-title mb-3">{t("campaign_info")}</h3>
                                     <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                                         <div>
-                                            <span className="text-secondary-500">{t("budget_label")}</span>
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">${planData.budget}</p>
+                                            <span className="text-dark-500">{t("budget_label")}</span>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">${planData.budget}</p>
                                         </div>
                                         <div>
-                                            <span className="text-secondary-500">{t("timeline_label")}</span>
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{planData.timeline}</p>
+                                            <span className="text-dark-500">{t("timeline_label")}</span>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">{planData.timeline}</p>
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <span className="text-secondary-500">{t("services_label")}</span>
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">
+                                            <span className="text-dark-500">{t("services_label")}</span>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">
                                                 {(t("services_selected") || "{count} selected").replace(
                                                     "{count}",
                                                     String(planData.selectedServices?.length || 0),
@@ -388,10 +388,10 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                                         value={contractTerms}
                                         onChange={(e) => setContractTerms(e.target.value)}
                                         rows={25}
-                                        className="border-secondary-300 text-secondary-900 focus:border-primary-500 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
+                                        className="border-primary-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-4 py-3 font-mono text-sm transition-colors duration-300 focus:outline-none"
                                     />
                                 ) : (
-                                    <div className="bg-secondary-50 text-secondary-900 dark:bg-secondary-800/50 dark:text-secondary-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">
+                                    <div className="bg-dark-50 text-light-900 dark:bg-dark-800/50 dark:text-dark-50 rounded-lg p-6 font-mono text-sm break-words whitespace-pre-wrap">
                                         {contractTerms}
                                     </div>
                                 )}

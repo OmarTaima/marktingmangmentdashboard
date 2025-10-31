@@ -48,29 +48,27 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("business_info")}</h2>
+            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("business_info")}</h2>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_name")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_name")}</label>
                 <input
                     type="text"
                     name="businessName"
                     value={formData.businessName}
                     onChange={handleChange}
-                    requidanger
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessName ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.businessName ? "border-danger-500" : "border-primary-light-600"}`}
                 />
                 {errors.businessName && <p className="text-danger-500 mt-1 text-sm">{errors.businessName}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_category")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_category")}</label>
                 <select
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    requidanger
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.category ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.category ? "border-danger-500" : "border-primary-light-600"}`}
                 >
                     <option value="">{t("select_category")}</option>
                     <option value="retail">{t("option_retail")}</option>
@@ -88,34 +86,32 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("business_description")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("business_description")}</label>
                 <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    requidanger
                     rows={4}
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.description ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.description ? "border-danger-500" : "border-primary-light-600"}`}
                     placeholder={t("describe_business_placeholder")}
                 />
                 {errors.description && <p className="text-danger-500 mt-1 text-sm">{errors.description}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("main_office_address")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("main_office_address")}</label>
                 <textarea
                     name="mainOfficeAddress"
                     value={formData.mainOfficeAddress}
                     onChange={handleChange}
-                    requidanger
                     rows={2}
-                    className={`text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.mainOfficeAddress ? "border-danger-500" : "border-secondary-300"}`}
+                    className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.mainOfficeAddress ? "border-danger-500" : "border-primary-light-600"}`}
                 />
                 {errors.mainOfficeAddress && <p className="text-danger-500 mt-1 text-sm">{errors.mainOfficeAddress}</p>}
             </div>
 
             <div>
-                <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("established_year")}</label>
+                <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("established_year")}</label>
                 <input
                     type="number"
                     name="establishedYear"
@@ -123,14 +119,14 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
                     onChange={handleChange}
                     min="1900"
                     max={new Date().getFullYear()}
-                    className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                    className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 />
             </div>
 
             <div className="flex justify-between gap-4 pt-4">
                 <button
                     type="button"
-                    onClick={onPrevious}
+                    onClick={() => onPrevious({ business: formData })}
                     className="btn-ghost px-6 py-2"
                 >
                     {t("previous")}
@@ -147,7 +143,7 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
 };
 
 BusinessInfoStep.propTypes = {
-    data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
-    onPrevious: PropTypes.func.isRequidanger,
+    data: PropTypes.object,
+    onNext: PropTypes.func.isRequired,
+    onPrevious: PropTypes.func.isRequired,
 };

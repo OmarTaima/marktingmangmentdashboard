@@ -156,8 +156,8 @@ const OnboardingPage = () => {
                                         tabIndex={0}
                                         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors focus:outline-none ${
                                             index <= currentStep
-                                                ? "bg-primary-500 text-white"
-                                                : "bg-secondary-200 text-secondary-600 dark:bg-secondary-700 dark:text-secondary-400"
+                                                ? "bg-light-500 text-white"
+                                                : "bg-dark-200 text-primary-light-600 dark:bg-dark-700 dark:text-dark-400"
                                         }`}
                                     >
                                         <Icon size={16} />
@@ -165,7 +165,7 @@ const OnboardingPage = () => {
                                     {index < steps.length - 1 && (
                                         <div
                                             className={`h-1 flex-1 transition-colors ${
-                                                index < currentStep ? "bg-primary-500" : "bg-secondary-200 dark:bg-secondary-700"
+                                                index < currentStep ? "bg-light-500" : "bg-dark-200 dark:bg-dark-700"
                                             }`}
                                         />
                                     )}
@@ -174,7 +174,7 @@ const OnboardingPage = () => {
                         })}
                     </div>
                     <div className="mt-2 text-center">
-                        <span className="text-secondary-600 dark:text-secondary-400 text-sm font-medium">
+                        <span className="text-primary-light-600 dark:text-dark-400 text-sm font-medium">
                             Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].name)}
                         </span>
                     </div>

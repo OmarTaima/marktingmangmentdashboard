@@ -1,7 +1,6 @@
 import { forwardRef, useEffect } from "react";
 import { cn } from "../utils/cn";
-import LightLogo from "../assets/logo-light.svg";
-import DarkLogo from "../assets/logo-dark.svg";
+import Logo from "../assets/logo.jpg";
 import PropTypes from "prop-types";
 import { navbarLinks } from "../constants";
 import { NavLink, useLocation } from "react-router-dom";
@@ -37,30 +36,25 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed }, ref) => {
                 ref={ref}
                 dir={isArabic ? "rtl" : "ltr"}
                 className={cn(
-                    "shadow:sm dark:bg-secondary-900 fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden bg-white transition-all duration-300 ease-in-out",
+                    "shadow:sm dark:bg-dark-900 fixed z-[100] flex h-full w-[240px] flex-col overflow-x-hidden bg-white transition-all duration-300 ease-in-out",
                     borderSide,
-                    "border-secondary-200 dark:border-secondary-700",
+                    "border-dark-200 dark:border-dark-700",
                     desktopPosition,
                     collapsed ? "md:w-20 md:items-center" : "md:w-[240px]",
                     mobileOffset,
                 )}
             >
                 {/* Logo */}
-                <div className={cn("flex items-center gap-x-3 p-3", isArabic && "flex-row-reverse")}>
+                <div className={cn("flex items-center gap-x-3 p-4", isArabic && "flex-row-reverse")}>
                     <img
-                        src={LightLogo}
-                        alt="Logo Light"
-                        className="dark:hidden"
-                    />
-                    <img
-                        src={DarkLogo}
-                        alt="Logo Dark"
-                        className="hidden dark:block"
+                        src={Logo}
+                        alt="Logo"
+                        className={cn("h-6 w-auto object-contain md:h-8")}
                     />
                     {!collapsed && (
                         <p
                             className={cn(
-                                "text-secondary-900 dark:text-secondary-50 w-full text-lg font-medium transition-colors",
+                                "text-light-900 dark:text-dark-50 w-full text-lg font-medium transition-colors",
                                 isArabic ? "text-right" : "text-left",
                             )}
                         >
@@ -70,7 +64,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed }, ref) => {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex w-full flex-col gap-y-4 overflow-x-hidden overflow-y-auto p-3 [scrollbar-width:_thin]">
+                <div className="sidebar-scroll flex w-full flex-col gap-y-4 overflow-x-hidden overflow-y-auto p-3">
                     {navbarLinks.map((navbarLink) => (
                         <nav
                             key={navbarLink.title}

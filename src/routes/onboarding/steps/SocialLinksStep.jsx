@@ -11,7 +11,7 @@ const mainPlatforms = [
     {
         name: "Facebook",
         icon: SiFacebook,
-        color: "text-primary-600",
+        color: "text-blue-600",
         domains: ["facebook.com", "fb.com", "fb.me"],
     },
     {
@@ -23,13 +23,13 @@ const mainPlatforms = [
     {
         name: "TikTok",
         icon: SiTiktok,
-        color: "text-secondary-900 dark:text-white",
+        color: "text-light-900 dark:text-white",
         domains: ["tiktok.com", "vm.tiktok.com"],
     },
     {
         name: "X (Twitter)",
         icon: SiX,
-        color: "text-secondary-900 dark:text-white",
+        color: "text-light-900 dark:text-white",
         domains: ["twitter.com", "x.com", "t.co"],
     },
 ];
@@ -111,10 +111,10 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-6"
         >
-            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("social_media_links")}</h2>
+            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("social_media_links")}</h2>
 
             <div>
-                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">{t("main_marketing_platforms")}</h3>
+                <h3 className="text-light-900 dark:text-dark-50 mb-3 text-lg font-medium">{t("main_marketing_platforms")}</h3>
                 <div className="space-y-4">
                     {mainPlatforms.map((platform, index) => {
                         const Icon = platform.icon;
@@ -127,7 +127,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     <Icon className={`${platform.color} h-5 w-5`} />
                                     <label
                                         className={cn(
-                                            "text-secondary-700 dark:text-secondary-300 text-sm font-medium",
+                                            "text-dark-700 dark:text-primary-dark-600 text-sm font-medium",
                                             dirFor(platform.name) === "rtl" ? "text-right" : "text-left",
                                         )}
                                     >
@@ -142,12 +142,12 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                         placeholder={t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") })}
                                         dir={dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") }))}
                                         className={cn(
-                                            "focus:border-primary-500 w-full rounded-lg border px-4 py-2 focus:outline-none",
-                                            urlErrors[index] ? "border-danger-500" : "border-secondary-300",
+                                            "focus:border-light-500 w-full rounded-lg border px-4 py-2 focus:outline-none",
+                                            urlErrors[index] ? "border-danger-500" : "border-primary-light-600",
                                             dirFor(t("platform_placeholder", { platform: platform.name.toLowerCase().replace(/\s+/g, "") })) === "rtl"
                                                 ? "text-right"
                                                 : "text-left",
-                                            "text-secondary-900 dark:bg-secondary-800 dark:text-secondary-50 bg-white",
+                                            "text-light-900 dark:bg-dark-800 dark:text-dark-50 bg-white",
                                         )}
                                     />
                                     {urlErrors[index] && <p className="text-danger-500 mt-1 text-xs">{urlErrors[index]}</p>}
@@ -159,11 +159,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
             </div>
 
             <div>
-                <h3 className="text-secondary-900 dark:text-secondary-50 mb-3 text-lg font-medium">{t("other_platforms")}</h3>
-                <div className="bg-secondary-50 dark:bg-secondary-800/50 space-y-3 rounded-lg p-4">
+                <h3 className="text-light-900 dark:text-dark-50 mb-3 text-lg font-medium">{t("other_platforms")}</h3>
+                <div className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("platform_name")}</label>
+                            <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("platform_name")}</label>
                             <input
                                 type="text"
                                 value={newCustom.platform}
@@ -172,11 +172,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                     setNewCustom((prev) => ({ ...prev, platform: value }));
                                 }}
                                 placeholder={t("platform_name_placeholder")}
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("url")}</label>
+                            <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("url")}</label>
                             <input
                                 type="url"
                                 value={newCustom.url}
@@ -186,7 +186,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                                 }}
                                 placeholder={t("website_placeholder")}
                                 dir={dirFor(t("website_placeholder"))}
-                                className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                                className="border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                             />
                         </div>
                     </div>
@@ -205,11 +205,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                         {customLinks.map((link, index) => (
                             <div
                                 key={index}
-                                className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800 flex items-center justify-between rounded-lg border bg-white p-3"
+                                className="border-primary-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between rounded-lg border bg-white p-3"
                             >
                                 <div>
-                                    <span className="text-secondary-900 dark:text-secondary-50 font-medium">{link.platform}</span>
-                                    <p className="text-secondary-600 dark:text-secondary-400 truncate text-sm">{link.url}</p>
+                                    <span className="text-light-900 dark:text-dark-50 font-medium">{link.platform}</span>
+                                    <p className="text-primary-light-600 dark:text-dark-400 truncate text-sm">{link.url}</p>
                                 </div>
                                 <button
                                     type="button"
@@ -227,7 +227,11 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
             <div className="flex justify-between gap-4 pt-4">
                 <button
                     type="button"
-                    onClick={onPrevious}
+                    onClick={() =>
+                        onPrevious({
+                            socialLinks: { business: businessLinks, custom: customLinks },
+                        })
+                    }
                     className="btn-ghost px-6 py-2"
                 >
                     {t("previous")}
@@ -244,7 +248,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
 };
 
 SocialLinksStep.propTypes = {
-    data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
-    onPrevious: PropTypes.func.isRequidanger,
+    data: PropTypes.object,
+    onNext: PropTypes.func.isRequired,
+    onPrevious: PropTypes.func.isRequired,
 };

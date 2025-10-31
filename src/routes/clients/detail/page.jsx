@@ -8,13 +8,13 @@ import validators from "@/constants/validators";
 import ClientInfo from "@/routes/clients/ClientInfo";
 
 const inputBaseClass =
-    "w-full rounded-lg border border-secondary-300 bg-secondary-50 px-3 py-2 text-sm text-secondary-900 placeholder-secondary-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-100";
+    "w-full rounded-lg border border-primary-light-600 bg-dark-50 px-3 py-2 text-sm text-light-900 placeholder-dark-400 focus:border-light-500 focus:ring-2 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-100";
 
 const buttonGhostClass =
-    "rounded-lg border border-secondary-300 bg-secondary-50 px-2.5 py-1 text-xs text-secondary-700 hover:bg-secondary-100 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-200 dark:hover:bg-secondary-700";
+    "rounded-lg border border-primary-light-600 bg-dark-50 px-2.5 py-1 text-xs text-dark-700 hover:bg-primary-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-200 dark:hover:bg-dark-700";
 
 const buttonAddClass =
-    "rounded-lg border border-primary-400 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 hover:bg-primary-100 dark:border-primary-700 dark:bg-primary-900/40 dark:text-primary-300 dark:hover:bg-primary-800/60";
+    "rounded-lg border border-primary-light-400 bg-light-50 px-3 py-1 text-xs font-medium text-light-300 hover:bg-primary-light-100 dark:border-light-300 dark:bg-dark-900/40 dark:text-dark-300 dark:hover:bg-primary-dark-600/60";
 
 const ClientDetailPage = () => {
     const { id } = useParams();
@@ -113,7 +113,7 @@ const ClientDetailPage = () => {
     if (!client) {
         return (
             <div className="flex min-h-[400px] items-center justify-center">
-                <div className="text-secondary-500 text-center">{t("loading") || "Loading..."}</div>
+                <div className="text-dark-500 text-center">{t("loading") || "Loading..."}</div>
             </div>
         );
     }
@@ -129,7 +129,7 @@ const ClientDetailPage = () => {
                     >
                         <LocalizedArrow className="h-4 w-4" />
                     </button>
-                    <h1 className="text-secondary-900 dark:text-secondary-50 text-xl font-semibold">
+                    <h1 className="text-light-900 dark:text-dark-50 text-xl font-semibold">
                         {client.business?.businessName || client.personal?.fullName || t("unnamed_business")}
                     </h1>
                 </div>
@@ -200,7 +200,7 @@ const ClientDetailPage = () => {
                                     },
                                     opportunities: {
                                         label: t("opportunities") || "Opportunities",
-                                        color: "text-primary-600",
+                                        color: "text-dark-600",
                                     },
                                     threats: {
                                         label: t("threats") || "Threats",
@@ -228,7 +228,7 @@ const ClientDetailPage = () => {
                                                                 onChange={(e) => updateDraftPath(`swot.${key}.${idx}`, e.target.value)}
                                                             />
                                                         ) : (
-                                                            <div className="text-secondary-900 dark:text-secondary-50">{item}</div>
+                                                            <div className="text-light-900 dark:text-dark-50">{item}</div>
                                                         )}
                                                         {editing && (
                                                             <button
@@ -247,7 +247,7 @@ const ClientDetailPage = () => {
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="text-secondary-500">{t("none_listed") || "None listed"}</div>
+                                                <div className="text-dark-500">{t("none_listed") || "None listed"}</div>
                                             )}
                                             {editing && (
                                                 <button
@@ -280,7 +280,7 @@ const ClientDetailPage = () => {
                                 {(editing ? draft.segments || [] : client.segments || []).map((segment, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3 transition-colors duration-300"
+                                        className="bg-dark-50 dark:bg-dark-800/50 rounded-lg p-3 transition-colors duration-300"
                                     >
                                         {editing ? (
                                             <>
@@ -325,9 +325,9 @@ const ClientDetailPage = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{segment.name}</h4>
-                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{segment.description}</p>
-                                                <div className="text-secondary-500 dark:text-secondary-400 mt-2 flex gap-4 text-xs">
+                                                <h4 className="text-light-900 dark:text-dark-50 font-medium">{segment.name}</h4>
+                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">{segment.description}</p>
+                                                <div className="text-dark-500 dark:text-dark-400 mt-2 flex gap-4 text-xs">
                                                     {segment.targetAge && <span>Age: {segment.targetAge}</span>}
                                                     {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
                                                 </div>
@@ -337,7 +337,7 @@ const ClientDetailPage = () => {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-secondary-500 text-sm">{t("no_segments_defined") || "No segments defined"}</p>
+                            <p className="text-dark-500 text-sm">{t("no_segments_defined") || "No segments defined"}</p>
                         )}
                         {editing && (
                             <div className="mt-2">
@@ -371,7 +371,7 @@ const ClientDetailPage = () => {
                                 {(editing ? draft.competitors || [] : client.competitors || []).map((competitor, idx) => (
                                     <div
                                         key={idx}
-                                        className="bg-secondary-50 dark:bg-secondary-800/50 rounded-lg p-3 transition-colors duration-300"
+                                        className="bg-dark-50 dark:bg-dark-800/50 rounded-lg p-3 transition-colors duration-300"
                                     >
                                         {editing ? (
                                             <>
@@ -421,14 +421,14 @@ const ClientDetailPage = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <h4 className="text-secondary-900 dark:text-secondary-50 font-medium">{competitor.name}</h4>
-                                                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">{competitor.description}</p>
+                                                <h4 className="text-light-900 dark:text-dark-50 font-medium">{competitor.name}</h4>
+                                                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">{competitor.description}</p>
                                                 {competitor.website && (
                                                     <a
                                                         href={competitor.website}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-primary-500 mt-1 text-xs break-words hover:underline"
+                                                        className="text-light-500 mt-1 text-xs break-words hover:underline"
                                                     >
                                                         {competitor.website}
                                                     </a>
@@ -439,7 +439,7 @@ const ClientDetailPage = () => {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-secondary-500 text-sm">{t("no_competitors_tracked") || "No competitors tracked"}</p>
+                            <p className="text-dark-500 text-sm">{t("no_competitors_tracked") || "No competitors tracked"}</p>
                         )}
                         {editing && (
                             <div className="mt-2">
@@ -471,19 +471,19 @@ const ClientDetailPage = () => {
                             {(editing ? draft.socialLinks?.business || [] : client.socialLinks?.business || []).map((link, idx) => {
                                 const platformLower = (link.platform || "").toLowerCase();
                                 let Icon = null;
-                                let colorClass = "text-secondary-600";
+                                let colorClass = "text-primary-light-600";
                                 if (platformLower.includes("facebook")) {
                                     Icon = SiFacebook;
-                                    colorClass = "text-primary-600";
+                                    colorClass = "text-dark-600";
                                 } else if (platformLower.includes("instagram")) {
                                     Icon = SiInstagram;
                                     colorClass = "text-pink-600";
                                 } else if (platformLower.includes("tiktok")) {
                                     Icon = SiTiktok;
-                                    colorClass = "text-secondary-900 dark:text-white";
+                                    colorClass = "text-light-900 dark:text-white";
                                 } else if (platformLower.includes("x") || platformLower.includes("twitter")) {
                                     Icon = SiX;
-                                    colorClass = "text-secondary-900 dark:text-white";
+                                    colorClass = "text-light-900 dark:text-white";
                                 }
 
                                 return (
@@ -536,7 +536,7 @@ const ClientDetailPage = () => {
                                                     href={link.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-primary-600 hover:underline"
+                                                    className="text-dark-600 hover:underline"
                                                 >
                                                     {link.platform}
                                                 </a>

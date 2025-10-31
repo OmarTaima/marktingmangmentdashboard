@@ -45,14 +45,14 @@ const DashboardPage = () => {
                         className="card"
                     >
                         <div className="card-header">
-                            <div className="bg-primary-500/20 text-primary-500 dark:bg-primary-600/20 dark:text-primary-600 w-fit rounded-lg p-2 transition-colors">
+                            <div className="bg-light-500/20 text-light-500 dark:bg-dark-600/20 dark:text-dark-600 w-fit rounded-lg p-2 transition-colors">
                                 <Icon size={26} />
                             </div>
                             <p className="card-title">{title}</p>
                         </div>
-                        <div className="card-body bg-secondary-100 dark:bg-secondary-950 transition-colors">
-                            <p className="text-secondary-900 dark:text-secondary-50 text-2xl font-bold transition-colors sm:text-3xl">{value}</p>
-                            <span className="border-primary-500 text-primary-500 dark:border-primary-600 dark:text-primary-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 text-sm font-medium">
+                        <div className="card-body bg-primary-light-100 dark:bg-dark-950 transition-colors">
+                            <p className="text-light-900 dark:text-dark-50 text-2xl font-bold transition-colors sm:text-3xl">{value}</p>
+                            <span className="border-light-500 text-light-500 dark:border-dark-600 dark:text-dark-600 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 text-sm font-medium">
                                 <TrendingUp size={16} />
                                 {change}
                             </span>
@@ -81,11 +81,11 @@ const DashboardPage = () => {
                                         className="size-9 flex-shrink-0 rounded-full object-cover sm:size-10"
                                     />
                                     <div className="flex flex-col">
-                                        <p className="text-secondary-900 dark:text-secondary-50 text-sm font-medium sm:text-base">{sale.name}</p>
-                                        <p className="text-secondary-600 dark:text-secondary-400 text-xs sm:text-sm">{sale.email}</p>
+                                        <p className="text-light-900 dark:text-dark-50 text-sm font-medium sm:text-base">{sale.name}</p>
+                                        <p className="text-primary-light-600 dark:text-dark-400 text-xs sm:text-sm">{sale.email}</p>
                                     </div>
                                 </div>
-                                <p className="text-secondary-900 dark:text-secondary-50 text-sm font-medium sm:text-base">${sale.total}</p>
+                                <p className="text-light-900 dark:text-dark-50 text-sm font-medium sm:text-base">${sale.total}</p>
                             </div>
                         ))}
                     </div>
@@ -125,7 +125,7 @@ const DashboardPage = () => {
                                             />
                                             <div className="flex flex-col">
                                                 <p className="text-sm sm:text-base">{product.name}</p>
-                                                <p className="text-secondary-600 dark:text-secondary-400 text-xs sm:text-sm">{product.description}</p>
+                                                <p className="text-primary-light-600 dark:text-dark-400 text-xs sm:text-sm">{product.description}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -142,7 +142,7 @@ const DashboardPage = () => {
                                     </td>
                                     <td className="table-cell">
                                         <div className="flex items-center gap-x-3">
-                                            <button className="text-primary-500 dark:text-primary-600">
+                                            <button className="text-light-500 dark:text-dark-600">
                                                 <PencilLine size={18} />
                                             </button>
                                             <button className="text-danger-500">

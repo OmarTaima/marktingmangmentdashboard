@@ -25,7 +25,7 @@ const en = {
     privacy_policy: "Privacy Policy",
     terms_of_service: "Terms of Service",
     copyright: "© 2024 XD Code All Rights Reserved",
-    app_name: "Vite UI",
+    app_name: "Saber Group",
     // Navbar groups and links (keys match constants/index.jsx strings)
     Overview: "Overview",
     Dashboard: "Dashboard",
@@ -177,7 +177,7 @@ const ar = {
     privacy_policy: "سياسة الخصوصية",
     terms_of_service: "شروط الخدمة",
     copyright: "© 2024 جميع الحقوق محفوظة",
-    app_name: "Vite UI",
+    app_name: "صابر جروب",
     // Navbar groups and links
     Overview: "نظرة عامة",
     Dashboard: "لوحة القيادة",

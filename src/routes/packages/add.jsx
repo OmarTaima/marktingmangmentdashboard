@@ -192,7 +192,7 @@ const AddPackagePage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("add_packages") || "Add Packages"}</h1>
-                    <p className="text-secondary-600 dark:text-secondary-400">
+                    <p className="text-primary-light-600 dark:text-dark-400">
                         {t("add_packages_sub") || "Create and manage packages available for clients."}
                     </p>
                 </div>
@@ -206,28 +206,26 @@ const AddPackagePage = () => {
                         value={nameEn}
                         onChange={(e) => setNameEn(e.target.value)}
                         placeholder={t("package_name_en") || "Package name (English)"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <input
                         value={nameAr}
                         onChange={(e) => setNameAr(e.target.value)}
                         placeholder={t("package_name_ar") || "اسم الباقة (بالعربية)"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <input
                         type="number"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         placeholder={t("package_price") || "Price"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                 </div>
                 {priceError && <p className="text-danger-500 mt-1 text-xs">{priceError}</p>}
 
                 <div className="mt-3">
-                    <label className="text-secondary-700 dark:text-secondary-400 text-sm">
-                        {t("package_features") || "Features (one at a time)"}
-                    </label>
+                    <label className="text-dark-700 dark:text-dark-400 text-sm">{t("package_features") || "Features (one at a time)"}</label>
                     <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
                         <input
                             value={featureInputEn}
@@ -239,7 +237,7 @@ const AddPackagePage = () => {
                                 }
                             }}
                             placeholder={t("feature_placeholder") || "e.g., 10 posts / month"}
-                            className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <input
                             value={featureInputAr}
@@ -251,7 +249,7 @@ const AddPackagePage = () => {
                                 }
                             }}
                             placeholder={t("feature_placeholder_ar") || "مثال: 10 منشورات / شهر"}
-                            className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <div className="flex items-center">
                             <button
@@ -272,13 +270,13 @@ const AddPackagePage = () => {
                                 return (
                                     <span
                                         key={`feat-${idx}`}
-                                        className="bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                                        className="bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                     >
                                         <span>{label}</span>
                                         <button
                                             type="button"
                                             onClick={() => removeFeature(idx)}
-                                            className="text-secondary-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"
+                                            className="text-dark-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"
                                             aria-label="Remove feature"
                                         >
                                             <X size={12} />
@@ -289,9 +287,7 @@ const AddPackagePage = () => {
                         </div>
                     )}
                     {featureError && <p className="text-danger-500 mt-2 text-xs">{featureError}</p>}
-                    <p className="text-secondary-500 mt-2 text-xs">
-                        {t("package_features_note") || "Features added will be saved with the package."}
-                    </p>
+                    <p className="text-dark-500 mt-2 text-xs">{t("package_features_note") || "Features added will be saved with the package."}</p>
                 </div>
 
                 <div className="mt-4 flex gap-2">
@@ -341,14 +337,14 @@ const AddPackagePage = () => {
                         packages.map((p, idx) => (
                             <div
                                 key={p.id}
-                                className="border-secondary-300 text-secondary-900 dark:bg-secondary-800 dark:border-secondary-700 dark:text-secondary-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                className="border-primary-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                             >
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <span className="font-medium">{lang === "ar" ? p.ar || p.en : p.en || p.ar}</span>
                                         </div>
-                                        <div className="text-secondary-700 dark:text-secondary-400 text-sm">
+                                        <div className="text-dark-700 dark:text-dark-400 text-sm">
                                             {p.price ? `${p.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
                                         </div>
                                     </div>
@@ -360,12 +356,12 @@ const AddPackagePage = () => {
                                                 return (
                                                     <span
                                                         key={`${p.id}-feat-${fi}`}
-                                                        className="bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                                                        className="bg-primary-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                                     >
                                                         <span>{label}</span>
                                                         <button
                                                             onClick={() => removeFeatureFromPackage(idx, fi)}
-                                                            className="text-secondary-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"
+                                                            className="text-dark-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"
                                                         >
                                                             <X size={12} />
                                                         </button>
@@ -392,7 +388,7 @@ const AddPackagePage = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-secondary-600">{t("no_packages_yet") || "No packages yet."}</p>
+                        <p className="text-primary-light-600">{t("no_packages_yet") || "No packages yet."}</p>
                     )}
                 </div>
             </div>

@@ -117,7 +117,7 @@ const ServicesPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("Services")}</h1>
-                    <p className="text-secondary-600 dark:text-secondary-400">
+                    <p className="text-primary-light-600 dark:text-dark-400">
                         {t("manage_services_sub") || "Manage available services shown throughout the app."}
                     </p>
                 </div>
@@ -131,7 +131,7 @@ const ServicesPage = () => {
                         services.map((s, idx) => (
                             <div
                                 key={s.id || `${s}${idx}`}
-                                className="border-secondary-300 text-secondary-900 dark:bg-secondary-800 dark:border-secondary-700 dark:text-secondary-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                className="border-primary-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                             >
                                 <div className="flex w-full items-center gap-3">
                                     {editingIndex === idx ? (
@@ -139,29 +139,29 @@ const ServicesPage = () => {
                                             <input
                                                 value={editingValue}
                                                 onChange={(e) => setEditingValue(e.target.value)}
-                                                className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                 placeholder={t("english_label") || "English"}
                                             />
                                             <input
                                                 value={inputAr}
                                                 onChange={(e) => setInputAr(e.target.value)}
-                                                className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                 placeholder={t("arabic_label") || "Arabic"}
                                             />
                                             <input
                                                 value={editingPrice}
                                                 onChange={(e) => setEditingPrice(e.target.value)}
-                                                className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                 placeholder={t("service_price") || "Price"}
                                             />
                                         </div>
                                     ) : (
                                         <div className="flex w-full">
                                             <div className="flex w-full items-center justify-between">
-                                                <span className="text-secondary-900 dark:text-secondary-50 text-sm">
+                                                <span className="text-light-900 dark:text-dark-50 text-sm">
                                                     {lang === "ar" ? s.ar || s.en || s : s.en || s}
                                                 </span>
-                                                <span className="text-secondary-700 dark:text-secondary-400 text-sm">
+                                                <span className="text-dark-700 dark:text-dark-400 text-sm">
                                                     {s.price ? `${s.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
                                                 </span>
                                             </div>
@@ -208,7 +208,7 @@ const ServicesPage = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-secondary-600">{t("no_services_defined") || "No services defined yet."}</p>
+                        <p className="text-primary-light-600">{t("no_services_defined") || "No services defined yet."}</p>
                     )}
                 </div>
 
@@ -217,19 +217,19 @@ const ServicesPage = () => {
                         value={inputEn}
                         onChange={(e) => setInputEn(e.target.value)}
                         placeholder={t("add_custom_service_placeholder") || "Service (English)"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <input
                         value={inputAr}
                         onChange={(e) => setInputAr(e.target.value)}
                         placeholder={t("add_custom_service_placeholder_arabic") || "الخدمة (بالعربية)"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <input
                         value={inputPrice}
                         onChange={(e) => setInputPrice(e.target.value)}
                         placeholder={t("service_price") || "Price"}
-                        className="text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <button
                         onClick={handleAdd}

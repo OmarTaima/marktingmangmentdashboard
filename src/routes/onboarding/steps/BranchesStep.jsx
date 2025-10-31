@@ -5,36 +5,45 @@ import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
 
-// Egyptian phone validation
-const validateEgyptianPhone = (phone) => {
-    if (!phone) return true; // Phone is optional for branches
-    const cleaned = phone.replace(/\s+/g, "");
-    const patterns = [/^\+20[0-9]{10}$/, /^20[0-9]{10}$/, /^01[0-9]{9}$/, /^[0-9]{11}$/];
-    return patterns.some((pattern) => pattern.test(cleaned));
-};
-
 export const BranchesStep = ({ data, onNext, onPrevious }) => {
     const { t, lang } = useLang();
-    const [branches, setBranches] = useState(data.branches || []);
-    const [currentBranch, setCurrentBranch] = useState({
-        name: "",
-        address: "",
-        phone: "",
-    });
+    const [branches, setBranches] = useState(data?.branches || []);
+    const [currentBranch, setCurrentBranch] = useState({ name: "", address: "", phone: "" });
     const [errors, setErrors] = useState({});
 
     const handleAddBranch = () => {
-        if (currentBranch.name && currentBranch.address) {
-            // Validate phone if provided
-            if (currentBranch.phone && !validators.isValidEgyptianMobile(currentBranch.phone)) {
-                setErrors({ phone: t("phone_error") });
-                return;
-            }
+        // Allow adding a branch only if the user entered at least one value. Nothing is required.
+        const { name, address, phone } = currentBranch;
+        if (!name && !address && !phone) return; // nothing to add
 
-            setBranches([...branches, currentBranch]);
-            setCurrentBranch({ name: "", address: "", phone: "" });
-            setErrors({});
+        const nextErrors = {};
+
+        // Conditional validation: only validate fields that have values
+        if (name && name.trim().length < 2) {
+            nextErrors.name = t("name_too_short", { min: 2 }) || t("invalid_name");
         }
+
+        if (address && address.trim().length < 3) {
+            nextErrors.address = t("address_too_short", { min: 3 }) || t("invalid_address");
+        }
+
+        if (phone) {
+            if (!validators.isValidEgyptianMobile(phone)) {
+                nextErrors.phone = t("phone_error");
+            }
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setErrors(nextErrors);
+            return;
+        }
+
+        // Normalize phone digits before saving
+        const normalizedPhone = phone ? validators.normalizeDigits(phone.trim()) : "";
+
+        setBranches([...branches, { name: name?.trim() || "", address: address?.trim() || "", phone: normalizedPhone }]);
+        setCurrentBranch({ name: "", address: "", phone: "" });
+        setErrors({});
     };
 
     const handleRemoveBranch = (index) => {
@@ -51,34 +60,42 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
             onSubmit={handleSubmit}
             className="space-y-4"
         >
-            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-xl font-semibold">{t("business_branches")}</h2>
+            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("business_branches")}</h2>
 
-            <p className="text-secondary-600 dark:text-secondary-400 mb-4 text-sm">{t("business_branches_help")}</p>
+            <p className="text-primary-light-600 dark:text-dark-400 mb-4 text-sm">{t("business_branches_help")}</p>
 
-            <div className="bg-secondary-50 dark:bg-secondary-800/50 space-y-3 rounded-lg p-4 transition-colors duration-300">
+            <div className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4 transition-colors duration-300">
                 <div>
-                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("branch_name")}</label>
+                    <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("branch_name")}</label>
                     <input
                         type="text"
                         value={currentBranch.name}
-                        onChange={(e) => setCurrentBranch({ ...currentBranch, name: e.target.value })}
-                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
+                        onChange={(e) => {
+                            setCurrentBranch({ ...currentBranch, name: e.target.value });
+                            if (errors.name) setErrors({ ...errors, name: "" });
+                        }}
+                        className={`border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : ""}`}
                         placeholder={t("branch_name_placeholder")}
                     />
+                    {errors.name && <p className="text-danger-500 mt-1 text-sm">{errors.name}</p>}
                 </div>
 
                 <div>
-                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("branch_address")}</label>
+                    <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("branch_address")}</label>
                     <textarea
                         value={currentBranch.address}
-                        onChange={(e) => setCurrentBranch({ ...currentBranch, address: e.target.value })}
+                        onChange={(e) => {
+                            setCurrentBranch({ ...currentBranch, address: e.target.value });
+                            if (errors.address) setErrors({ ...errors, address: "" });
+                        }}
                         rows={2}
-                        className="border-secondary-300 text-secondary-900 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
+                        className={`border-primary-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.address ? "border-danger-500" : ""}`}
                     />
+                    {errors.address && <p className="text-danger-500 mt-1 text-sm">{errors.address}</p>}
                 </div>
 
                 <div>
-                    <label className="text-secondary-700 dark:text-secondary-300 mb-2 block text-sm font-medium">{t("phone_number")}</label>
+                    <label className="text-dark-700 dark:text-primary-dark-600 mb-2 block text-sm font-medium">{t("phone_number")}</label>
                     <input
                         type="tel"
                         value={currentBranch.phone}
@@ -88,7 +105,7 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
                         }}
                         placeholder={t("phone_placeholder")}
                         dir={dirFor(t("phone_placeholder"))}
-                        className={`w-full rounded-lg border ${errors.phone ? "border-danger-500" : "border-secondary-300"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-50 focus:border-primary-500 transition-colors duration-300 focus:outline-none`}
+                        className={`w-full rounded-lg border ${errors.phone ? "border-danger-500" : "border-primary-light-600"} bg-white px-4 py-2 ${dirFor(t("phone_placeholder")) === "rtl" ? "text-right" : "text-left"} dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 transition-colors duration-300 focus:outline-none`}
                     />
                     {errors.phone && <p className="text-danger-500 mt-1 text-sm">{errors.phone}</p>}
                 </div>
@@ -105,19 +122,19 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
 
             {branches.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-secondary-700 dark:text-secondary-300 text-sm font-medium">
+                    <h3 className="text-dark-700 dark:text-primary-dark-600 text-sm font-medium">
                         {t("added_branches", { count: branches.length })}
                     </h3>
                     <div className="grid grid-cols-1 gap-3">
                         {branches.map((branch, index) => (
                             <div
                                 key={index}
-                                className="border-secondary-300 dark:border-secondary-700 dark:bg-secondary-800/50 flex flex-col items-start justify-between rounded-lg border bg-white p-3 transition-colors duration-300 sm:flex-row sm:items-center"
+                                className="border-primary-light-600 dark:border-dark-700 dark:bg-dark-800/50 flex flex-col items-start justify-between rounded-lg border bg-white p-3 transition-colors duration-300 sm:flex-row sm:items-center"
                             >
                                 <div className="flex-1">
-                                    <h4 className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{branch.name}</h4>
-                                    <p className="text-secondary-600 dark:text-secondary-400 text-sm break-words">{branch.address}</p>
-                                    {branch.phone && <p className="text-secondary-600 dark:text-secondary-400 text-sm break-words">{branch.phone}</p>}
+                                    <h4 className="text-light-900 dark:text-dark-50 font-medium break-words">{branch.name}</h4>
+                                    <p className="text-primary-light-600 dark:text-dark-400 text-sm break-words">{branch.address}</p>
+                                    {branch.phone && <p className="text-primary-light-600 dark:text-dark-400 text-sm break-words">{branch.phone}</p>}
                                 </div>
                                 <button
                                     type="button"
@@ -135,7 +152,7 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
             <div className="flex justify-between gap-4 pt-4">
                 <button
                     type="button"
-                    onClick={onPrevious}
+                    onClick={() => onPrevious({ branches })}
                     className="btn-ghost px-6 py-2"
                 >
                     {t("previous")}
@@ -152,7 +169,7 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
 };
 
 BranchesStep.propTypes = {
-    data: PropTypes.object.isRequidanger,
-    onNext: PropTypes.func.isRequidanger,
-    onPrevious: PropTypes.func.isRequidanger,
+    data: PropTypes.object,
+    onNext: PropTypes.func.isRequired,
+    onPrevious: PropTypes.func.isRequired,
 };

@@ -59,7 +59,7 @@ const PackagesPage = () => {
         <div className="space-y-6 px-4 sm:px-6 lg:px-8">
             <div>
                 <h1 className="title text-xl sm:text-2xl lg:text-3xl">{t("service_packages")}</h1>
-                <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm sm:text-base">{t("service_packages_subtitle")}</p>
+                <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm sm:text-base">{t("service_packages_subtitle")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -67,14 +67,14 @@ const PackagesPage = () => {
                     <div
                         key={pkg.id}
                         className={`card flex min-h-[400px] cursor-pointer flex-col justify-between p-4 transition-all duration-300 hover:shadow-lg sm:p-6 ${
-                            selectedPackage?.id === pkg.id ? "ring-primary-500 ring-2" : ""
+                            selectedPackage?.id === pkg.id ? "ring-light-500 ring-2" : ""
                         }`}
                         onClick={() => setSelectedPackage(pkg)}
                     >
                         <div>
                             <div className="text-center">
                                 <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
-                                <p className="text-primary-500 mb-4 text-2xl font-bold break-words sm:text-3xl">
+                                <p className="text-light-500 dark:text-dark-600 mb-4 text-2xl font-bold break-words sm:text-3xl">
                                     {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
                                 </p>
                             </div>
@@ -88,7 +88,7 @@ const PackagesPage = () => {
                                             size={18}
                                             className="mt-0.5 flex-shrink-0 text-green-500"
                                         />
-                                        <span className="text-secondary-700 dark:text-secondary-300 text-sm break-words sm:text-base">{item}</span>
+                                        <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">{item}</span>
                                     </li>
                                 ))}
                             </ul>

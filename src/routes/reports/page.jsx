@@ -56,7 +56,7 @@ const ReportsPage = () => {
             { key: "shares", label: "Shares", value: "1.2K", change: "+15%", icon: Share2 },
         ],
         platforms: [
-            { name: "Facebook", reach: 18500, engagement: 3200, color: "bg-primary-500" },
+            { name: "Facebook", reach: 18500, engagement: 3200, color: "bg-light-500" },
             { name: "Instagram", reach: 21000, engagement: 4100, color: "bg-pink-500" },
             { name: "TikTok", reach: 15200, engagement: 2800, color: "bg-purple-500" },
             { name: "X (Twitter)", reach: 8900, engagement: 1400, color: "bg-sky-500" },
@@ -115,7 +115,7 @@ const ReportsPage = () => {
                             ? `${clientData.business?.businessName} - ${t("monthly_report") || "Monthly Report"}`
                             : t("campaign_reports") || "Campaign Reports"}
                     </h1>
-                    <p className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                    <p className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
                         {clientData
                             ? t("reports_subtitle_selected") || "Reports for the selected client"
                             : t("reports_subtitle") || "Overview of campaign reports"}
@@ -128,12 +128,12 @@ const ReportsPage = () => {
                     <div className="py-12 text-center">
                         <DollarSign
                             size={48}
-                            className="text-secondary-400 mx-auto mb-4"
+                            className="text-dark-400 mx-auto mb-4"
                         />
-                        <h3 className="text-secondary-900 dark:text-secondary-50 mb-2 text-lg font-medium">
+                        <h3 className="text-light-900 dark:text-dark-50 mb-2 text-lg font-medium">
                             {t("no_client_selected") || "No Client Selected"}
                         </h3>
-                        <p className="text-secondary-600 dark:text-secondary-400 mb-4">{t("please_complete_onboarding")}</p>
+                        <p className="text-primary-light-600 dark:text-dark-400 mb-4">{t("please_complete_onboarding")}</p>
                         <Link
                             to="/campaigns"
                             className="btn-primary inline-flex items-center gap-2"
@@ -145,12 +145,12 @@ const ReportsPage = () => {
             ) : (
                 <>
                     {/* Earnings Card */}
-                    <div className="card from-primary-500 bg-gradient-to-br to-purple-600 text-white transition-colors duration-300">
+                    <div className="card from-light-500 bg-gradient-to-br to-purple-600 text-white transition-colors duration-300">
                         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                             <div>
-                                <p className="text-primary-100 mb-1">{t("total_earnings")}</p>
+                                <p className="text-primary-light-100 mb-1">{t("total_earnings")}</p>
                                 <h2 className="text-4xl font-bold">{reportData.earnings.total}</h2>
-                                <p className="text-primary-100 mt-2 flex items-center gap-2">
+                                <p className="text-primary-light-100 mt-2 flex items-center gap-2">
                                     <TrendingUp size={16} />
                                     {t("earnings_change_text").replace("{change}", reportData.earnings.change)}
                                 </p>
@@ -159,7 +159,7 @@ const ReportsPage = () => {
                             <div className="hidden sm:block">
                                 <DollarSign
                                     size={64}
-                                    className="text-primary-200 opacity-50"
+                                    className="text-light-200 opacity-50"
                                 />
                             </div>
                         </div>
@@ -173,13 +173,13 @@ const ReportsPage = () => {
                                 className="card transition-colors duration-300"
                             >
                                 <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-secondary-600 dark:text-secondary-400">{t(metric.key) || metric.label}</span>
+                                    <span className="text-primary-light-600 dark:text-dark-400">{t(metric.key) || metric.label}</span>
                                     <metric.icon
                                         size={20}
-                                        className="text-primary-500"
+                                        className="text-light-500"
                                     />
                                 </div>
-                                <h3 className="text-secondary-900 dark:text-secondary-50 text-2xl font-bold">{metric.value}</h3>
+                                <h3 className="text-light-900 dark:text-dark-50 text-2xl font-bold">{metric.value}</h3>
                                 <p className="mt-1 text-sm text-green-600">
                                     {metric.change} {t("vs_last_month") || "vs last month"}
                                 </p>
@@ -194,17 +194,17 @@ const ReportsPage = () => {
                             {reportData.platforms.map((platform, index) => (
                                 <div key={index}>
                                     <div className="mb-2 flex items-center justify-between">
-                                        <span className="text-secondary-900 dark:text-secondary-50 font-medium">{platform.name}</span>
+                                        <span className="text-light-900 dark:text-dark-50 font-medium">{platform.name}</span>
                                         <div className="flex gap-6 text-sm">
-                                            <span className="text-secondary-600 dark:text-secondary-400">
+                                            <span className="text-primary-light-600 dark:text-dark-400">
                                                 {t("reach") || "Reach"}: <strong>{platform.reach.toLocaleString()}</strong>
                                             </span>
-                                            <span className="text-secondary-600 dark:text-secondary-400">
+                                            <span className="text-primary-light-600 dark:text-dark-400">
                                                 {t("engagement") || "Engagement"}: <strong>{platform.engagement.toLocaleString()}</strong>
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="bg-secondary-200 dark:bg-secondary-700 h-2 w-full rounded-full">
+                                    <div className="bg-dark-200 dark:bg-dark-700 h-2 w-full rounded-full">
                                         <div
                                             className={`${platform.color} h-2 rounded-full transition-all`}
                                             style={{ width: `${(platform.reach / 25000) * 100}%` }}
@@ -222,23 +222,23 @@ const ReportsPage = () => {
                             {reportData.topPosts.map((post) => (
                                 <div
                                     key={post.id}
-                                    className="bg-secondary-50 dark:bg-secondary-800/50 flex flex-col items-start justify-between rounded-lg p-4 transition-colors duration-300 sm:flex-row sm:items-center"
+                                    className="bg-dark-50 dark:bg-dark-800/50 flex flex-col items-start justify-between rounded-lg p-4 transition-colors duration-300 sm:flex-row sm:items-center"
                                 >
                                     <div className="flex-1">
                                         <div className="mb-1 flex items-center gap-2">
-                                            <span className="text-primary-500 text-xs font-medium">{post.platform}</span>
-                                            <span className="text-secondary-500 dark:text-secondary-400 text-xs">{post.date}</span>
+                                            <span className="text-light-500 text-xs font-medium">{post.platform}</span>
+                                            <span className="text-dark-500 dark:text-dark-400 text-xs">{post.date}</span>
                                         </div>
-                                        <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">{post.content}</p>
+                                        <p className="text-light-900 dark:text-dark-50 font-medium break-words">{post.content}</p>
                                     </div>
                                     <div className="mt-3 flex gap-6 text-right text-sm sm:mt-0 sm:flex-shrink-0">
                                         <div>
-                                            <p className="text-secondary-500 dark:text-secondary-400">{t("reach") || "Reach"}</p>
-                                            <p className="text-secondary-900 dark:text-secondary-50 font-bold">{post.reach.toLocaleString()}</p>
+                                            <p className="text-dark-500 dark:text-dark-400">{t("reach") || "Reach"}</p>
+                                            <p className="text-light-900 dark:text-dark-50 font-bold">{post.reach.toLocaleString()}</p>
                                         </div>
                                         <div>
-                                            <p className="text-secondary-500 dark:text-secondary-400">{t("engagement") || "Engagement"}</p>
-                                            <p className="text-secondary-900 dark:text-secondary-50 font-bold">{post.engagement.toLocaleString()}</p>
+                                            <p className="text-dark-500 dark:text-dark-400">{t("engagement") || "Engagement"}</p>
+                                            <p className="text-light-900 dark:text-dark-50 font-bold">{post.engagement.toLocaleString()}</p>
                                         </div>
                                     </div>
                                 </div>

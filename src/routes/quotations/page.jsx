@@ -211,9 +211,7 @@ const QuotationsPage = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("quotations") || "Quotations"}</h1>
-                    <p className="text-secondary-600 dark:text-secondary-400">
-                        {t("create_and_manage_quotations") || "Create and manage quotations"}
-                    </p>
+                    <p className="text-primary-light-600 dark:text-dark-400">{t("create_and_manage_quotations") || "Create and manage quotations"}</p>
                 </div>
 
                 {/* top-level Custom/Global Quotation button (not a card) */}
@@ -232,7 +230,7 @@ const QuotationsPage = () => {
                 <div>
                     {clients.length > 0 ? (
                         <>
-                            <h2 className="text-secondary-900 dark:text-secondary-50 mb-4 text-lg font-semibold">
+                            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">
                                 {t("select_a_client") || "Select a client"}
                             </h2>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -242,7 +240,7 @@ const QuotationsPage = () => {
                                         className="card flex flex-col"
                                     >
                                         <h3 className="card-title text-lg">{c.business?.businessName || t("unnamed_client")}</h3>
-                                        <p className="text-secondary-600 mt-1 text-sm">{c.business?.category}</p>
+                                        <p className="text-primary-light-600 mt-1 text-sm">{c.business?.category}</p>
                                         <button
                                             onClick={() => handleSelectClient(c.id)}
                                             className="btn-primary mt-4 w-full"
@@ -257,7 +255,7 @@ const QuotationsPage = () => {
                     ) : (
                         <div className="card">
                             <div className="py-8 text-center">
-                                <p className="text-secondary-600">{t("no_clients_found")}</p>
+                                <p className="text-primary-light-600">{t("no_clients_found")}</p>
                             </div>
                         </div>
                     )}
@@ -266,7 +264,7 @@ const QuotationsPage = () => {
 
             {selectedClient && !isLoading && (
                 <>
-                    <div className="card bg-secondary-50 dark:bg-secondary-800/50">
+                    <div className="card bg-dark-50 dark:bg-dark-800/50">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => {
@@ -280,22 +278,22 @@ const QuotationsPage = () => {
                                 <LocalizedArrow size={20} />
                             </button>
                             <div>
-                                <h2 className="text-secondary-900 dark:text-secondary-50 text-xl font-bold">
-                                    {selectedClient.business?.businessName}
-                                </h2>
-                                <p className="text-secondary-600 text-sm">{selectedClient.business?.category}</p>
+                                <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">{selectedClient.business?.businessName}</h2>
+                                <p className="text-primary-light-600 text-sm">{selectedClient.business?.category}</p>
                             </div>
                         </div>
                     </div>
 
                     {selectedClientId === "global" && (
                         <div className="card">
-                            <label className="text-secondary-600 mb-2 block text-sm">{t("global_client_name") || "Quotation Name (optional)"}</label>
+                            <label className="text-primary-light-600 mb-2 block text-sm">
+                                {t("global_client_name") || "Quotation Name (optional)"}
+                            </label>
                             <input
                                 value={globalClientName}
                                 onChange={(e) => setGlobalClientName(e.target.value)}
                                 placeholder={t("quotation_name_placeholder") || "e.g., Quote for Prospect"}
-                                className="border-secondary-300 dark:border-secondary-700 text-secondary-900 dark:text-secondary-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                className="border-primary-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                             />
                         </div>
                     )}
@@ -330,8 +328,8 @@ const QuotationsPage = () => {
                                             }}
                                             className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 pr-10 text-sm transition-all ${
                                                 sel
-                                                    ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-950 dark:text-primary-300"
-                                                    : "dark:hover:bg-secondary-750 border-secondary-300 text-secondary-700 hover:bg-secondary-50 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-300 bg-white"
+                                                    ? "border-light-500 bg-light-50 text-light-300 dark:border-primary-dark-400 dark:bg-dark-950 dark:text-dark-300"
+                                                    : "dark:hover:bg-secondary-750 border-primary-light-600 text-dark-700 hover:bg-dark-50 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-600 bg-white"
                                             } ${!isEditing ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                         >
                                             <div className="flex items-center gap-2">
@@ -345,7 +343,7 @@ const QuotationsPage = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                <div className="text-secondary-600 text-sm">
+                                                <div className="text-primary-light-600 text-sm">
                                                     {`${(servicesPricing && servicesPricing[identifier]) || def || ""} ${lang === "ar" ? "ج.م" : "EGP"}`}
                                                 </div>
                                             </div>
@@ -377,7 +375,7 @@ const QuotationsPage = () => {
                                                         // ignore
                                                     }
                                                 }}
-                                                className="text-secondary-500 hover:text-secondary-700 absolute top-3 right-2 rounded-md p-0.5"
+                                                className="text-dark-500 hover:text-dark-700 absolute top-3 right-2 rounded-md p-0.5"
                                                 aria-label={t("remove") || "Remove"}
                                             >
                                                 <Trash2 size={10} />
@@ -394,14 +392,14 @@ const QuotationsPage = () => {
                                 value={customName}
                                 onChange={(e) => setCustomName(e.target.value)}
                                 placeholder={t("custom_service_name") || "Service name"}
-                                className="border-secondary-300 dark:border-secondary-700 text-secondary-900 dark:text-secondary-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                className="border-primary-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                             />
                             <input
                                 type="number"
                                 value={customPrice}
                                 onChange={(e) => setCustomPrice(e.target.value)}
                                 placeholder={t("service_price") || "Price"}
-                                className="border-secondary-300 dark:border-secondary-700 text-secondary-900 dark:text-secondary-50 w-32 rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                className="border-primary-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-32 rounded-lg border bg-transparent px-3 py-2 text-sm"
                             />
                             <button
                                 onClick={addCustom}
@@ -415,10 +413,10 @@ const QuotationsPage = () => {
 
                         <div className="mt-6 flex items-center justify-between">
                             <div>
-                                <p className="text-secondary-600 text-sm">
+                                <p className="text-primary-light-600 text-sm">
                                     {t("selected_services_count") || "Selected"}: {selectedServices.length}
                                 </p>
-                                <p className="text-secondary-900 text-lg font-bold">
+                                <p className="text-light-900 text-lg font-bold">
                                     {t("total") || "Total"}: {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0)}{" "}
                                     {lang === "ar" ? "ج.م" : "EGP"}
                                 </p>
@@ -452,24 +450,24 @@ const QuotationsPage = () => {
                     <div className="card">
                         <h3 className="card-title mb-4">{t("existing_quotations") || "Existing quotations"}</h3>
                         {quotations.length === 0 ? (
-                            <p className="text-secondary-600">{t("no_quotations_yet") || "No quotations yet"}</p>
+                            <p className="text-primary-light-600">{t("no_quotations_yet") || "No quotations yet"}</p>
                         ) : (
                             <div className="space-y-3">
                                 {quotations.map((q) => (
                                     <div
                                         key={q.id}
-                                        className="border-secondary-300 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-800/50 flex items-start justify-between rounded-lg border p-3"
+                                        className="border-primary-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 flex items-start justify-between rounded-lg border p-3"
                                     >
                                         <div>
-                                            <div className="text-secondary-600 dark:text-secondary-400 font-medium">
+                                            <div className="text-primary-light-600 dark:text-dark-400 font-medium">
                                                 {q.clientName} — {new Date(q.createdAt).toLocaleString()}
                                             </div>
-                                            <div className="text-secondary-600 dark:text-secondary-400 mt-1 text-sm">
+                                            <div className="text-primary-light-600 dark:text-dark-400 mt-1 text-sm">
                                                 {q.services.map((s) => `${s.name} (${s.price})`).join(", ")}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="text-secondary-600 dark:text-secondary-400 text-lg font-bold">
+                                            <div className="text-primary-light-600 dark:text-dark-400 text-lg font-bold">
                                                 {q.total} {lang === "ar" ? "ج.م" : "EGP"}
                                             </div>
                                             <button

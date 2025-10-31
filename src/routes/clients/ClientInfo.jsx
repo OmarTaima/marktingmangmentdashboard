@@ -25,7 +25,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
     };
 
     const inputBaseClass =
-        "w-full rounded-lg border border-secondary-300 bg-secondary-50 px-3 py-2 text-sm text-secondary-900 placeholder-secondary-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-secondary-700 dark:bg-secondary-800 dark:text-secondary-100";
+        "w-full rounded-lg border border-primary-light-600 bg-dark-50 px-3 py-2 text-sm text-light-900 placeholder-dark-400 focus:border-primary-500 focus:ring-2 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-primary-dark-100";
 
     // small helpers to display validation state for a given value
     const makeInvalidClass = (invalid) => (invalid ? " border-red-500 ring-1 ring-red-200 dark:ring-red-900/30" : "");
@@ -34,37 +34,37 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
         return (
             <div className="space-y-4">
                 <div>
-                    <h3 className="text-secondary-900 dark:text-secondary-50 text-xl font-semibold">
+                    <h3 className="text-light-900 dark:text-dark-50 text-xl font-semibold">
                         <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
                         {client.business?.businessName || t("unnamed_business")}
                     </h3>
-                    <p className="text-secondary-600 dark:text-secondary-400 text-sm">
+                    <p className="text-primary-light-600 dark:text-dark-400 text-sm">
                         <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
                         {client.business?.category || t("no_category")}
                     </p>
                 </div>
 
-                <div className="border-secondary-200 dark:border-secondary-700 space-y-2 border-t pt-3 text-sm">
+                <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3 text-sm">
                     {client.personal?.fullName && (
-                        <div className="text-secondary-600 dark:text-secondary-400 flex items-center gap-2">
+                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Users size={14} />
                             <span>{client.personal.fullName}</span>
                         </div>
                     )}
                     {client.contact?.businessEmail && (
-                        <div className="text-secondary-600 dark:text-secondary-400 flex items-center gap-2">
+                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Mail size={14} />
                             <span className="truncate">{client.contact.businessEmail}</span>
                         </div>
                     )}
                     {client.contact?.businessPhone && (
-                        <div className="text-secondary-600 dark:text-secondary-400 flex items-center gap-2">
+                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
                             <Phone size={14} />
                             <span>{client.contact.businessPhone}</span>
                         </div>
                     )}
                     {client.branches && client.branches.length > 0 && (
-                        <div className="text-secondary-600 dark:text-secondary-400 flex items-center gap-2">
+                        <div className="text-primary-light-600 dark:text-dark-400 flex items-center gap-2">
                             <MapPin size={14} />
                             <span>
                                 {client.branches.length} {client.branches.length === 1 ? t("branches_singular") : t("branches_plural")}
@@ -82,7 +82,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                 <h3 className="card-title mb-4">{t("client_overview")}</h3>
                 <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
-                        <span className="text-secondary-500 dark:text-secondary-400">{t("business_name_label")}</span>
+                        <span className="text-dark-500 dark:text-dark-400">{t("business_name_label")}</span>
                         {editing ? (
                             <input
                                 className={`${inputBaseClass} font-medium`}
@@ -90,13 +90,11 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                 onChange={(e) => updateDraft("business.businessName", e.target.value)}
                             />
                         ) : (
-                            <p className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
-                                {data.business?.businessName || "N/A"}
-                            </p>
+                            <p className="text-light-900 dark:text-dark-50 font-medium break-words">{data.business?.businessName || "N/A"}</p>
                         )}
                     </div>
                     <div>
-                        <span className="text-secondary-500 dark:text-secondary-400">{t("business_category_label")}</span>
+                        <span className="text-dark-500 dark:text-dark-400">{t("business_category_label")}</span>
                         {editing ? (
                             <input
                                 className={inputBaseClass}
@@ -104,12 +102,12 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                 onChange={(e) => updateDraft("business.category", e.target.value)}
                             />
                         ) : (
-                            <p className="text-secondary-900 dark:text-secondary-50">{data.business?.category || "N/A"}</p>
+                            <p className="text-light-900 dark:text-dark-50">{data.business?.category || "N/A"}</p>
                         )}
                     </div>
                     {(editing || client.business?.establishedYear) && (
                         <div>
-                            <span className="text-secondary-500 dark:text-secondary-400">{t("established_label")}</span>
+                            <span className="text-dark-500 dark:text-dark-400">{t("established_label")}</span>
                             {editing ? (
                                 <input
                                     className={inputBaseClass}
@@ -117,13 +115,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                     onChange={(e) => updateDraft("business.establishedYear", e.target.value)}
                                 />
                             ) : (
-                                <p className="text-secondary-900 dark:text-secondary-50">{data.business.establishedYear}</p>
+                                <p className="text-light-900 dark:text-dark-50">{data.business.establishedYear}</p>
                             )}
                         </div>
                     )}
                     {(editing || client.business?.description) && (
                         <div className="sm:col-span-2">
-                            <span className="text-secondary-500 dark:text-secondary-400">{t("description")}</span>
+                            <span className="text-dark-500 dark:text-dark-400">{t("description")}</span>
                             {editing ? (
                                 <textarea
                                     className={`${inputBaseClass} min-h-[80px]`}
@@ -131,7 +129,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                     onChange={(e) => updateDraft("business.description", e.target.value)}
                                 />
                             ) : (
-                                <p className="text-secondary-900 dark:text-secondary-50 break-words">{data.business.description}</p>
+                                <p className="text-light-900 dark:text-dark-50 break-words">{data.business.description}</p>
                             )}
                         </div>
                     )}
@@ -143,11 +141,11 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                 <div className="space-y-4">
                     {(editing || client.personal?.fullName || client.personal?.email || client.personal?.phone) && (
                         <div className="space-y-2">
-                            <h4 className="text-secondary-700 dark:text-secondary-300 text-sm font-semibold">{t("contact_person")}</h4>
+                            <h4 className="text-dark-700 dark:text-primary-dark-600 text-sm font-semibold">{t("contact_person")}</h4>
                             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                                 {client.personal?.fullName && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("name_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("name_label")}</span>
                                         {editing ? (
                                             <input
                                                 className={`${inputBaseClass} font-medium`}
@@ -155,15 +153,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 onChange={(e) => updateDraft("personal.fullName", e.target.value)}
                                             />
                                         ) : (
-                                            <span className="text-secondary-900 dark:text-secondary-50 font-medium break-words">
-                                                {data.personal.fullName}
-                                            </span>
+                                            <span className="text-light-900 dark:text-dark-50 font-medium break-words">{data.personal.fullName}</span>
                                         )}
                                     </div>
                                 )}
                                 {client.personal?.position && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("position_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("position_label")}</span>
                                         {editing ? (
                                             <input
                                                 className={inputBaseClass}
@@ -171,13 +167,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 onChange={(e) => updateDraft("personal.position", e.target.value)}
                                             />
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50">{data.personal.position}</p>
+                                            <p className="text-light-900 dark:text-dark-50">{data.personal.position}</p>
                                         )}
                                     </div>
                                 )}
                                 {client.personal?.email && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("email_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("email_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.personal?.email || "";
@@ -196,13 +192,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 );
                                             })()
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{data.personal.email}</p>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">{data.personal.email}</p>
                                         )}
                                     </div>
                                 )}
                                 {client.personal?.phone && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("phone_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("phone_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.personal?.phone || "";
@@ -221,7 +217,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 );
                                             })()
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50">{data.personal.phone}</p>
+                                            <p className="text-light-900 dark:text-dark-50">{data.personal.phone}</p>
                                         )}
                                     </div>
                                 )}
@@ -230,12 +226,12 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                     )}
 
                     {(editing || client.contact?.businessEmail || client.contact?.businessPhone || client.contact?.website) && (
-                        <div className="border-secondary-200 dark:border-secondary-700 space-y-2 border-t pt-3">
-                            <h4 className="text-secondary-700 dark:text-secondary-300 text-sm font-semibold">{t("business_contact")}</h4>
+                        <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3">
+                            <h4 className="text-dark-700 dark:text-primary-dark-600 text-sm font-semibold">{t("business_contact")}</h4>
                             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                                 {client.contact?.businessEmail && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("email_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("email_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.contact?.businessEmail || "";
@@ -254,13 +250,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 );
                                             })()
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{data.contact.businessEmail}</p>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">{data.contact.businessEmail}</p>
                                         )}
                                     </div>
                                 )}
                                 {client.contact?.businessPhone && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("phone_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("phone_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.contact?.businessPhone || "";
@@ -279,13 +275,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 );
                                             })()
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50">{data.contact.businessPhone}</p>
+                                            <p className="text-light-900 dark:text-dark-50">{data.contact.businessPhone}</p>
                                         )}
                                     </div>
                                 )}
                                 {client.contact?.businessWhatsApp && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("whatsapp_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("whatsapp_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.contact?.businessWhatsApp || "";
@@ -304,13 +300,13 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 );
                                             })()
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{data.contact.businessWhatsApp}</p>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">{data.contact.businessWhatsApp}</p>
                                         )}
                                     </div>
                                 )}
                                 {client.contact?.website && (
                                     <div>
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("website_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("website_label")}</span>
                                         {editing ? (
                                             (() => {
                                                 const val = data.contact?.website || "";
@@ -342,7 +338,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                 )}
                                 {client.business?.mainOfficeAddress && (
                                     <div className="sm:col-span-2">
-                                        <span className="text-secondary-500 dark:text-secondary-400">{t("main_office_label")}</span>
+                                        <span className="text-dark-500 dark:text-dark-400">{t("main_office_label")}</span>
                                         {editing ? (
                                             <textarea
                                                 className={`${inputBaseClass} min-h-[80px]`}
@@ -350,7 +346,7 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                                 onChange={(e) => updateDraft("business.mainOfficeAddress", e.target.value)}
                                             />
                                         ) : (
-                                            <p className="text-secondary-900 dark:text-secondary-50 break-words">{data.business.mainOfficeAddress}</p>
+                                            <p className="text-light-900 dark:text-dark-50 break-words">{data.business.mainOfficeAddress}</p>
                                         )}
                                     </div>
                                 )}
