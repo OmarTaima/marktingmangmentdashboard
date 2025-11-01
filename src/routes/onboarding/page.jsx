@@ -93,9 +93,7 @@ const OnboardingPage = () => {
 
     const handleNext = (stepData) => {
         // Build an updated snapshot combining current formData and incoming step data.
-        const updatedFormData = stepData
-            ? { ...formData, [Object.keys(stepData)[0]]: stepData[Object.keys(stepData)[0]] }
-            : { ...formData };
+        const updatedFormData = stepData ? { ...formData, [Object.keys(stepData)[0]]: stepData[Object.keys(stepData)[0]] } : { ...formData };
 
         // persist immediately to state
         setFormData(updatedFormData);

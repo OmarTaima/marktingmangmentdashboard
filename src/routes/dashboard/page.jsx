@@ -1,4 +1,3 @@
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { recentSalesData, topProducts } from "../../constants";
 import { useTheme } from "next-themes";
 import { CreditCard, DollarSign, Package, PencilLine, Star, Trash, TrendingUp, Users } from "lucide-react";
@@ -50,7 +49,7 @@ const DashboardPage = () => {
                             </div>
                             <p className="card-title">{title}</p>
                         </div>
-                        <div className="card-body bg-light-100 dark:bg-dark-950 transition-colors">
+                        <div className="card-body bg-light-500/20 dark:bg-dark-950 transition-colors">
                             <p className="text-light-900 dark:text-dark-50 text-2xl font-bold transition-colors sm:text-3xl">{value}</p>
                             <span className="border-light-500 text-light-500 dark:border-secdark-700 dark:text-secdark-700 flex w-fit items-center gap-x-2 rounded-full border px-2 py-1 text-sm font-medium">
                                 <TrendingUp size={16} />

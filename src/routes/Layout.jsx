@@ -34,7 +34,7 @@ const Layout = () => {
     const baseOffsetClass = isArabic ? "mr-0" : "ml-0";
 
     return (
-        <div className="bg-light-100 dark:bg-dark-950 min-h-screen transition-colors">
+        <div className="dark:bg-dark-950 bg-light-50 min-h-screen transition-colors">
             {/* Background overlay for mobile */}
             <div
                 className={cn(
