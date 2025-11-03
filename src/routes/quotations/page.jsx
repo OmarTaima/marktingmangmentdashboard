@@ -369,6 +369,7 @@ const QuotationsPage = () => {
                                 const def = priceOf(s);
                                 const sel = selectedServices.includes(identifier);
                                 const custom = (pageCustomServices || []).some((cs) => (cs.id || cs.en) === (s.id || s.en));
+                                const qty = typeof s === "string" ? "" : s.quantity || "";
                                 return (
                                     <div
                                         key={identifier}
@@ -401,7 +402,12 @@ const QuotationsPage = () => {
                                                         className="flex-shrink-0"
                                                     />
                                                 )}
-                                                <span className="truncate break-words">{label}</span>
+                                                <div>
+                                                    <span className="truncate break-words">{label}</span>
+                                                    {qty ? (
+                                                        <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${qty}`}</div>
+                                                    ) : null}
+                                                </div>
                                             </div>
 
                                             <div className="flex items-center gap-2">

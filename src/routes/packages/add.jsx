@@ -13,6 +13,8 @@ const AddPackagePage = () => {
     const [featureQuantity, setFeatureQuantity] = useState("");
     // features now stored as array of {en, ar, quantity}
     const [features, setFeatures] = useState([]);
+    const [availableServices, setAvailableServices] = useState([]);
+    const [selectedServiceIds, setSelectedServiceIds] = useState([]);
     const [editingIndex, setEditingIndex] = useState(-1);
     const [nameError, setNameError] = useState("");
     const [featureError, setFeatureError] = useState("");
@@ -42,6 +44,31 @@ const AddPackagePage = () => {
             } else setPackages([]);
         } catch (e) {
             setPackages([]);
+        }
+        // also load available services for quick-adding to packages
+        try {
+            const svcRaw = localStorage.getItem("services_master");
+            if (svcRaw) {
+                const parsed = JSON.parse(svcRaw) || [];
+                const svcnorm = parsed
+                    .map((s, idx) => {
+                        if (!s) return null;
+                        if (typeof s === "string") return { id: `svc_${idx}_${Date.now()}`, en: s, ar: "", price: "", category: "other" };
+                        return s.id
+                            ? { ...s, price: s.price || "", category: s.category || "other" }
+                            : {
+                                  id: `svc_${idx}_${Date.now()}`,
+                                  en: s.en || "",
+                                  ar: s.ar || "",
+                                  price: s.price || "",
+                                  category: s.category || "other",
+                              };
+                    })
+                    .filter(Boolean);
+                setAvailableServices(svcnorm);
+            } else setAvailableServices([]);
+        } catch (e) {
+            setAvailableServices([]);
         }
     }, []);
 
@@ -81,6 +108,29 @@ const AddPackagePage = () => {
         setFeatureInputEn("");
         setFeatureInputAr("");
         setFeatureQuantity("");
+    };
+
+    const isServiceSelected = (id) => selectedServiceIds.includes(id);
+
+    const toggleServiceSelection = (svc) => {
+        const id = svc.id;
+        const already = selectedServiceIds.includes(id);
+        if (already) {
+            // remove selection
+            setSelectedServiceIds((prev) => prev.filter((x) => x !== id));
+            // remove corresponding feature if it was added from this service
+            setFeatures((prev) => prev.filter((f) => f.fromServiceId !== id));
+            return;
+        }
+        // add selection
+        setSelectedServiceIds((prev) => [...prev, id]);
+        // add feature corresponding to service if not already present
+        const en = svc.en || svc.name || "";
+        const ar = svc.ar || svc.en || "";
+        if (!features.some((x) => (x.en || "").toLowerCase() === (en || "").toLowerCase())) {
+            const fobj = { en: en, ar: ar, quantity: svc.quantity || "", fromServiceId: id };
+            setFeatures((prev) => [...prev, fobj]);
+        }
     };
 
     const removeFeature = (idx) => {
@@ -129,7 +179,25 @@ const AddPackagePage = () => {
         setNameEn(s.en || "");
         setNameAr(s.ar || "");
         setPrice(s.price || "");
-        setFeatures(Array.isArray(s.features) ? s.features.slice() : []);
+        const feats = Array.isArray(s.features) ? s.features.slice() : [];
+        setFeatures(feats);
+        // map features back to selectedServiceIds when possible (match by en/ar)
+        try {
+            const matchedIds = [];
+            feats.forEach((f) => {
+                const match = availableServices.find((svc) => {
+                    const svcEn = (svc.en || "").toString().trim();
+                    const svcAr = (svc.ar || "").toString().trim();
+                    const fEn = (f.en || "").toString().trim();
+                    const fAr = (f.ar || "").toString().trim();
+                    return (svcEn && fEn && svcEn.toLowerCase() === fEn.toLowerCase()) || (svcAr && fAr && svcAr === fAr);
+                });
+                if (match) matchedIds.push(match.id);
+            });
+            setSelectedServiceIds(matchedIds);
+        } catch (e) {
+            setSelectedServiceIds([]);
+        }
         setFeatureInputEn("");
         setFeatureInputAr("");
         setFeatureQuantity("");
@@ -232,7 +300,63 @@ const AddPackagePage = () => {
                 {priceError && <p className="text-danger-500 mt-1 text-xs">{priceError}</p>}
 
                 <div className="mt-3">
-                    <label className="text-dark-700 dark:text-dark-400 text-sm">{t("package_features") || "Features (one at a time)"}</label>
+                    {/* Available services quick-add */}
+                    {availableServices && availableServices.length > 0 && (
+                        <div className="mt-3">
+                            <label className="text-dark-700 dark:text-dark-400 text-sm">{t("available_services") || "Available Services"}</label>
+                            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                                {availableServices.map((svc) => {
+                                    const identifier = svc.id || svc.en || svc.name;
+                                    const label = lang === "ar" ? svc.ar || svc.en : svc.en || svc.ar || svc.name || "";
+                                    const def = svc.price || "";
+                                    const svcQty = svc.quantity || "";
+                                    const sel = isServiceSelected(identifier);
+                                    return (
+                                        <div
+                                            key={identifier}
+                                            className="relative flex flex-col items-stretch"
+                                        >
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => toggleServiceSelection(svc)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        toggleServiceSelection(svc);
+                                                    }
+                                                }}
+                                                className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 pr-10 text-sm transition-all ${
+                                                    sel
+                                                        ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
+                                                        : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
+                                                } cursor-pointer`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {sel && (
+                                                        <Check
+                                                            size={16}
+                                                            className="flex-shrink-0"
+                                                        />
+                                                    )}
+                                                    <div>
+                                                        <span className="truncate break-words">{label}</span>
+                                                        {svcQty ? (
+                                                            <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${svcQty}`}</div>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-light-600 dark:text-dark-500 text-sm">
+                                                    {def ? `${def} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
                         <input
                             value={featureInputEn}
@@ -268,7 +392,7 @@ const AddPackagePage = () => {
                                     addFeature();
                                 }
                             }}
-                            placeholder={t("quantity") || "Quantity (e.g., 12)"}
+                            placeholder={t("feature_quantity_placeholder") || t("quantity") || "Quantity (e.g., 12)"}
                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <div className="flex items-center">
@@ -276,7 +400,7 @@ const AddPackagePage = () => {
                                 type="button"
                                 onClick={addFeature}
                                 className="btn-ghost flex items-center gap-2 px-3 py-2"
-                                aria-label="Add feature"
+                                aria-label={t("add_feature") || "Add feature"}
                             >
                                 <Plus size={14} />
                             </button>
@@ -301,7 +425,7 @@ const AddPackagePage = () => {
                                             type="button"
                                             onClick={() => removeFeature(idx)}
                                             className="text-dark-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"
-                                            aria-label="Remove feature"
+                                            aria-label={t("remove_feature") || "Remove feature"}
                                         >
                                             <X size={12} />
                                         </button>

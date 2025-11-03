@@ -14,6 +14,7 @@ const ContractPage = () => {
     const [packageData, setPackageData] = useState(null);
     const [contractTerms, setContractTerms] = useState("");
     const [termsInput, setTermsInput] = useState("");
+    const [termsInputAr, setTermsInputAr] = useState("");
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
@@ -350,20 +351,70 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
                             {selectedClientId && (
                                 <div className="card">
                                     <h3 className="card-title mb-3">{t("add_term") || "Add Term"}</h3>
-                                    <div className="flex gap-2">
-                                        <input
-                                            placeholder={t("terms_placeholder") || "Enter a term to insert into contract"}
-                                            value={termsInput}
-                                            onChange={(e) => setTermsInput(e.target.value)}
-                                            className="border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none"
-                                        />
+                                    <div className="flex flex-wrap gap-2">
+                                        {lang === "ar" ? (
+                                            <>
+                                                <input
+                                                    placeholder={
+                                                        lang === "ar"
+                                                            ? t("terms_placeholder_ar") || "أدخل نص البند لإدراجه في العقد"
+                                                            : `\u202A${t("terms_placeholder_ar") || "أدخل نص البند لإدراجه في العقد"}\u202C`
+                                                    }
+                                                    value={termsInputAr}
+                                                    onChange={(e) => setTermsInputAr(e.target.value)}
+                                                    dir="rtl"
+                                                    className={`border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none ${lang === "ar" ? "text-right" : "text-left"}`}
+                                                />
+                                                <input
+                                                    dir="ltr"
+                                                    placeholder={
+                                                        lang === "ar"
+                                                            ? `\u202B${t("terms_placeholder_en") || "Enter a term to insert into contract"}\u202C`
+                                                            : t("terms_placeholder_en") || "Enter a term to insert into contract"
+                                                    }
+                                                    value={termsInput}
+                                                    onChange={(e) => setTermsInput(e.target.value)}
+                                                    className={`border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none ${lang === "en" ? "text-left" : "text-right"}`}
+                                                />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <input
+                                                    dir="ltr"
+                                                    placeholder={
+                                                        lang === "ar"
+                                                            ? `\u202B${t("terms_placeholder_en") || "Enter a term to insert into contract"}\u202C`
+                                                            : t("terms_placeholder_en") || "Enter a term to insert into contract"
+                                                    }
+                                                    value={termsInput}
+                                                    onChange={(e) => setTermsInput(e.target.value)}
+                                                    className={`border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none ${lang === "en" ? "text-left" : "text-right"}`}
+                                                />
+                                                <input
+                                                    placeholder={
+                                                        lang === "ar"
+                                                            ? t("terms_placeholder_ar") || "أدخل نص البند لإدراجه في العقد"
+                                                            : `\u202A${t("terms_placeholder_ar") || "أدخل نص البند لإدراجه في العقد"}\u202C`
+                                                    }
+                                                    value={termsInputAr}
+                                                    onChange={(e) => setTermsInputAr(e.target.value)}
+                                                    dir="rtl"
+                                                    className={`border-light-600 text-light-900 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 flex-1 rounded-lg border px-3 py-2 text-sm transition-colors duration-300 focus:outline-none ${lang === "ar" ? "text-right" : "text-left"}`}
+                                                />
+                                            </>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                const trimmed = (termsInput || "").trim();
-                                                if (!trimmed) return;
-                                                setContractTerms((prev) => (prev ? `${prev}\n\n${trimmed}` : trimmed));
+                                                const trimmedEn = (termsInput || "").trim();
+                                                const trimmedAr = (termsInputAr || "").trim();
+                                                if (!trimmedEn && !trimmedAr) return;
+                                                let insertion = "";
+                                                if (trimmedEn) insertion += trimmedEn;
+                                                if (trimmedAr) insertion += (insertion ? "\n" : "") + trimmedAr;
+                                                setContractTerms((prev) => (prev ? `${prev}\n\n${insertion}` : insertion));
                                                 setTermsInput("");
+                                                setTermsInputAr("");
                                             }}
                                             className="btn-primary btn-sm"
                                         >

@@ -371,6 +371,12 @@ en.no_client_selected = "No client selected";
 en.select_client = "Select Client";
 en.download_contract = "Download Contract";
 en.create_a_plan_first = "Create a plan first";
+// Contract quick-insert translations
+en.add_term = "Add Term";
+en.terms_placeholder = "Enter a term ";
+en.terms_placeholder_en = "Enter a term to insert";
+ar.terms_placeholder_en = "أدخل بند لإدراجه في العقد";
+en.insert_term = "Insert";
 // Clients page translations
 en.clients_title = "Clients";
 en.manage_your_client_database = "Manage your client database";
@@ -416,6 +422,13 @@ en.gender_label = "Gender:";
 ar.new_plan = "خطة جديدة";
 ar.untitled_plan = "خطة غير مسماة";
 ar.confirm_delete_plan = "هل أنت متأكد أنك تريد حذف هذه الخطة؟";
+
+// Contract quick-insert translations (Arabic)
+ar.add_term = "أضف بند";
+ar.terms_placeholder = "أدخل نص البند باللغه العربيه";
+ar.terms_placeholder_ar = "أدخل نص البند بالعربيه";
+en.terms_placeholder_ar = "Enter term in Arabic";
+ar.insert_term = "إدراج";
 
 en.view_client_details = "View Client Details";
 
@@ -767,6 +780,10 @@ en.existing_packages = "Existing Packages";
 en.no_packages_yet = "No packages yet.";
 en.confirm_delete_package = "Are you sure you want to delete this package?";
 en.save_changes = "Save";
+en.available_services = "Available Services";
+en.add_feature = "Add feature";
+en.remove_feature = "Remove feature";
+en.feature_quantity_placeholder = "Quantity (e.g., 12)";
 
 ar.add_packages = "إضافة باقات";
 ar.add_packages_sub = "أنشئ وأدر الباقات المتاحة للعملاء.";
@@ -782,6 +799,10 @@ ar.existing_packages = "الباقات الحالية";
 ar.no_packages_yet = "لا توجد باقات بعد.";
 ar.confirm_delete_package = "هل أنت متأكد أنك تريد حذف هذه الباقة؟";
 ar.save_changes = "حفظ";
+ar.available_services = "الخدمات المتاحة";
+ar.add_feature = "أضف ميزة";
+ar.remove_feature = "إزالة الميزة";
+ar.feature_quantity_placeholder = "الكمية (مثال: 12)";
 en.feature_placeholder_ar = "Add Feature in Arabic";
 ar.feature_placeholder_ar = "أضف ميزة باللغة العربية";
 

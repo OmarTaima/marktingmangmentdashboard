@@ -196,7 +196,7 @@ const ServicesPage = () => {
                 <h2 className="card-title mb-3">{t("manage_services") || "Manage Services"}</h2>
 
                 {/* Category Tabs */}
-                <div className="mb-4 flex flex-wrap gap-2">
+                <div className="mb-4 flex flex-wrap justify-center gap-2">
                     {categories.map((cat) => (
                         <button
                             key={cat.id}

@@ -22,12 +22,16 @@ const PackagesPage = () => {
                 // normalize parsed packages to shape { id, name, price, items }
                 const normalized = parsed.map((p) => {
                     const rawItems = p.features || p.items || [];
+                    // keep items as objects { text, quantity } so we can render quantities
                     const items = Array.isArray(rawItems)
                         ? rawItems.map((f) => {
-                              if (!f) return "";
-                              if (typeof f === "string") return f;
-                              if (typeof f === "object") return lang === "ar" ? f.ar || f.en || "" : f.en || f.ar || "";
-                              return String(f);
+                              if (!f) return { text: "", quantity: "" };
+                              if (typeof f === "string") return { text: String(f), quantity: "" };
+                              if (typeof f === "object") {
+                                  const text = lang === "ar" ? f.ar || f.en || f.text || "" : f.en || f.ar || f.text || "";
+                                  return { text, quantity: f.quantity || "" };
+                              }
+                              return { text: String(f), quantity: "" };
                           })
                         : [];
 
@@ -88,7 +92,12 @@ const PackagesPage = () => {
                                             size={18}
                                             className="mt-0.5 flex-shrink-0 text-green-500"
                                         />
-                                        <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">{item}</span>
+                                        <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
+                                            {item.text}
+                                            {item.quantity ? (
+                                                <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">({item.quantity})</span>
+                                            ) : null}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>

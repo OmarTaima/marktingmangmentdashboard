@@ -18,16 +18,16 @@
     /* === Slate-Inspired Dark Mode === */
 
     /* Backgrounds & Panels (Neutral Gray) */
-    --color-dark-950: #020617;
-    --color-dark-900: #111827;
-    --color-dark-800: #1f2937;
-    --color-dark-700: #374151;
-    --color-dark-600: #4b5563;
-    --color-dark-500: #6b7280;
-    --color-dark-400: #9ca3af;
-    --color-dark-300: #d1d5db;
-    --color-dark-200: #e5e7eb;
-    --color-dark-50: #f9fafb;
+    --color-dark-950: #0a0a0a;
+    --color-dark-900: #171717;
+    --color-dark-800: #262626;
+    --color-dark-700: #404040;
+    --color-dark-600: #525252;
+    --color-dark-500: #737373;
+    --color-dark-400: #a3a3a3;
+    --color-dark-300: #d4d4d4;
+    --color-dark-200: #e5e5e5;
+    --color-dark-50: #fafafa;
 
     --color-secdark-100: #ffd1c8; /* faint tint / hover highlight */
     --color-secdark-200: #ffb3a8; /* light accent / focus ring */

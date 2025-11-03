@@ -662,7 +662,12 @@ const PlanningPage = () => {
                                                                 className="flex-shrink-0"
                                                             />
                                                         )}
-                                                        <span className="truncate break-words">{label}</span>
+                                                        <div>
+                                                            <span className="truncate break-words">{label}</span>
+                                                            {typeof service !== "string" && service.quantity ? (
+                                                                <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${service.quantity}`}</div>
+                                                            ) : null}
+                                                        </div>
                                                     </div>
                                                     {/* show static price when not selected, otherwise show inline input */}
                                                     <div className="flex items-center gap-2">
