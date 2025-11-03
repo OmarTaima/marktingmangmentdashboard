@@ -148,6 +148,10 @@ const en = {
     swot_add_placeholder: "Add ",
     swot_require_one: "Please add at least one SWOT item",
     swot_require_one: "يرجى إضافة عنصر واحد على الأقل في تحليل سوات",
+    confirm_delete_service: "هل تريد حذف هذه الخدمة المخصصة؟",
+    delete_custom_service: "حذف الخدمة المخصصة",
+    confirm_delete_service: "Delete this custom service?",
+    delete_custom_service: "Delete custom service",
 };
 
 const ar = {
@@ -317,10 +321,17 @@ en.no_category = "No Category";
 en.plan_button = "Plan";
 en.add_your_first_client = "Add Your First Client";
 en.campaign_objective = "Campaign Objective";
+en.objective_en = "Objective (English)";
+en.objective_ar = "Objective (Arabic)";
+en.no_objectives = "No objectives added yet.";
 en.objective_placeholder = "What are the main goals for this campaign? (e.g., Increase brand awareness, drive sales, grow social following)";
 en.strategic_approach = "Strategic Approach";
+en.strategy_en = "Strategy (English)";
+en.strategy_ar = "Strategy (Arabic)";
+en.no_strategies = "No strategies added yet.";
 en.strategy_placeholder = "Describe the overall strategy to achieve the objectives (target channels, content themes, engagement tactics, etc.)";
 en.services_to_provide = "Services to Provide";
+en.custom_service_ar = "Custom service (Arabic)";
 en.budget_usd = "Budget (EGP)";
 en.timeline = "Timeline";
 en.final_strategy_document = "Final Strategy Document";
@@ -471,10 +482,17 @@ ar.no_category = "بدون فئة";
 ar.plan_button = "ابدأ التخطيط";
 ar.add_your_first_client = "أضف عميلك الأول";
 ar.campaign_objective = "هدف الحملة";
+ar.objective_en = "الهدف (بالإنجليزية)";
+ar.objective_ar = "الهدف (بالعربية)";
+ar.no_objectives = "لم يتم إضافة أهداف بعد.";
 ar.objective_placeholder = "ما هي الأهداف الرئيسية لهذه الحملة؟ (مثل: زيادة الوعي بالعلامة التجارية، زيادة المبيعات، نمو المتابعين)";
 ar.strategic_approach = "النهج الاستراتيجي";
+ar.strategy_en = "الاستراتيجية (بالإنجليزية)";
+ar.strategy_ar = "الاستراتيجية (بالعربية)";
+ar.no_strategies = "لم يتم إضافة استراتيجيات بعد.";
 ar.strategy_placeholder = "صف الاستراتيجية العامة لتحقيق الأهداف (قنوات الاستهداف، مواضيع المحتوى، تكتيكات التفاعل، إلخ)";
 ar.services_to_provide = "الخدمات المقدمة";
+ar.custom_service_ar = "خدمة مخصصة (بالعربية)";
 ar.budget_usd = "الميزانية (ج.م)";
 ar.timeline = "الجدول الزمني";
 ar.final_strategy_document = "وثيقة الاستراتيجية النهائية";
@@ -772,6 +790,7 @@ en.create_package = "Create Package";
 en.package_name_en = "Package name (English)";
 en.package_name_ar = "Package name (Arabic)";
 en.package_price = "Price";
+en.package_discount = "Discount Value";
 en.package_features = "Features (one at a time)";
 en.feature_placeholder = "Add Feature in English";
 en.package_features_note = "Features added will be saved with the package.";
@@ -791,6 +810,7 @@ ar.create_package = "إنشاء باقة";
 ar.package_name_en = "اسم الباقة (بالإنجليزية)";
 ar.package_name_ar = "اسم الباقة (بالعربية)";
 ar.package_price = "السعر";
+ar.package_discount = "خصم الباقة (اختياري)";
 ar.package_features = "المميزات (واحدة في كل مرة)";
 ar.feature_placeholder = "اضف ميزة باللغة الإنجليزية";
 ar.package_features_note = "ستُحفظ المميزات مع الباقة.";
@@ -822,6 +842,7 @@ en.create_quotation = "Create Quotation";
 en.select_services = "Select services";
 en.custom = "Custom";
 en.custom_service_name = "Custom service name";
+en.custom_service_name_ar = "Service name (Arabic)";
 en.service_price = "Price";
 en.selected_services_count = "Selected services";
 en.total = "Total";
@@ -842,6 +863,7 @@ ar.create_quotation = "إنشاء عرض";
 ar.select_services = "اختر الخدمات";
 ar.custom = "مخصص";
 ar.custom_service_name = "اسم الخدمة المخصصة";
+ar.custom_service_name_ar = "اسم الخدمة (بالعربية)";
 ar.service_price = "السعر";
 ar.selected_services_count = "المختارة";
 ar.total = "المجموع";
@@ -858,11 +880,13 @@ ar.quotation_name_placeholder = "مثال: عرض لمشتري محتمل";
 // New Features
 en.quantity = "Quantity";
 en.discount = "Discount";
-en.discount_optional = "Discount (optional)";
+en.discount_optional = "Discount Value";
 en.discount_type = "Discount Type";
 en.discount_value = "Discount Value";
 en.percentage = "Percentage (%)";
 en.fixed_amount = "Fixed Amount";
+en.fixed = "Fixed";
+en.amount = "Amount";
 en.subtotal = "Subtotal";
 en.quotation_note = "Note (optional)";
 en.quotation_note_placeholder = "Add any additional notes or comments...";
@@ -878,11 +902,13 @@ en.custom_quotation = "Custom Quotation";
 
 ar.quantity = "الكمية";
 ar.discount = "الخصم";
-ar.discount_optional = "الخصم (اختياري)";
+ar.discount_optional = "قيمه الخصم";
 ar.discount_type = "نوع الخصم";
 ar.discount_value = "قيمة الخصم";
 ar.percentage = "نسبة مئوية (%)";
 ar.fixed_amount = "مبلغ ثابت";
+ar.fixed = "ثابت";
+ar.amount = "المبلغ";
 ar.subtotal = "المجموع الفرعي";
 ar.quotation_note = "ملاحظة (اختياري)";
 ar.quotation_note_placeholder = "أضف أي ملاحظات أو تعليقات إضافية...";

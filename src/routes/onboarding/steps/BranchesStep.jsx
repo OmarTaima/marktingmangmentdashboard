@@ -12,7 +12,6 @@ export const BranchesStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const [errors, setErrors] = useState({});
 
     const handleAddBranch = () => {
-        // Allow adding a branch only if the user entered at least one value. Nothing is required.
         const { name, address, phone } = currentBranch;
         if (!name && !address && !phone) return; // nothing to add
 

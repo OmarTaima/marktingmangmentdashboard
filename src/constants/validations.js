@@ -3,31 +3,31 @@ import validators from "./validators";
 // Map of field keys to validator functions and error message keys (i18n)
 export const fieldValidations = {
     fullName: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     email: {
-        required: true,
+        required: false,
         validator: validators.isValidEmail,
         messageKey: "invalid_email",
     },
     phone: {
-        required: true,
+        required: false,
         validator: validators.isValidEgyptianMobile,
         messageKey: "phone_error",
     },
     businessPhone: {
-        required: true,
+        required: false,
         validator: validators.isValidEgyptianMobile,
         messageKey: "phone_error",
     },
     businessWhatsApp: {
-        required: true,
+        required: false,
         validator: validators.isValidEgyptianMobile,
         messageKey: "phone_error",
     },
     businessEmail: {
-        required: true,
+        required: false,
         validator: validators.isValidEmail,
         messageKey: "invalid_email",
     },
@@ -38,37 +38,37 @@ export const fieldValidations = {
     },
     // Business info
     businessName: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     category: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     description: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     mainOfficeAddress: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     // Competitors
     competitorName: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     competitorDescription: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     // Segments
     segmentName: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
     segmentDescription: {
-        required: true,
+        required: false,
         messageKey: "please_fill_required_fields",
     },
 };

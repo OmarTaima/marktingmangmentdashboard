@@ -35,10 +35,31 @@ const PackagesPage = () => {
                           })
                         : [];
 
+                    // compute discount if present
+                    const priceNum = Number(p.price || 0);
+                    const discountVal = p.discount !== undefined && p.discount !== null ? String(p.discount).trim() : "";
+                    const discountNum = discountVal === "" ? 0 : Number(discountVal || 0);
+                    const discountType = p.discountType || "percentage";
+                    let discountAmount = 0;
+                    if (discountVal !== "" && !isNaN(priceNum) && priceNum > 0) {
+                        if (discountType === "percentage") {
+                            discountAmount = (priceNum * (discountNum || 0)) / 100;
+                        } else {
+                            // fixed amount
+                            discountAmount = discountNum || 0;
+                        }
+                    }
+                    const discountedPrice = Math.max(0, priceNum - discountAmount);
+
                     return {
                         id: p.id || `pkg_${Date.now()}`,
                         name: (lang === "ar" ? p.ar || p.en : p.en || p.ar) || p.name || "",
                         price: p.price || "",
+                        priceNum,
+                        discount: discountVal || "",
+                        discountType: discountType || "percentage",
+                        discountAmount,
+                        discountedPrice,
                         items,
                     };
                 });
@@ -78,9 +99,26 @@ const PackagesPage = () => {
                         <div>
                             <div className="text-center">
                                 <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">{pkg.name}</h3>
-                                <p className="text-light-500 dark:text-secdark-700 mb-4 text-2xl font-bold break-words sm:text-3xl">
-                                    {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
-                                </p>
+                                <div className="mb-4">
+                                    {pkg.discount && Number(pkg.discountAmount) > 0 ? (
+                                        <div>
+                                            <div className="text-light-500 dark:text-secdark-700 mb-1 text-sm line-through">
+                                                {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
+                                            </div>
+                                            <div className="text-light-900 dark:text-dark-50 text-2xl font-bold sm:text-3xl">
+                                                {`${pkg.discountedPrice} ${lang === "ar" ? "ج.م" : "EGP"}`}
+                                            </div>
+                                            <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                {t("discount") || "Discount"}: {pkg.discount}
+                                                {pkg.discountType === "percentage" ? "%" : ` ${lang === "ar" ? "ج.م" : "EGP"}`}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-light-500 dark:text-secdark-700 mb-4 text-2xl font-bold break-words sm:text-3xl">
+                                            {pkg.price ? `${pkg.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                             <ul className="space-y-2 sm:space-y-3">
                                 {pkg.items.map((item, index) => (

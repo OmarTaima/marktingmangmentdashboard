@@ -19,13 +19,17 @@ const QuotationsPage = () => {
     const [servicesPricing, setServicesPricing] = useState({});
 
     const [customName, setCustomName] = useState("");
+    const [customNameAr, setCustomNameAr] = useState("");
     const [customPrice, setCustomPrice] = useState("");
+    const [customDiscount, setCustomDiscount] = useState("");
+    const [customDiscountType, setCustomDiscountType] = useState("percentage");
 
     const [quotations, setQuotations] = useState([]);
     const [isEditing, setIsEditing] = useState(true);
     const [quotationNote, setQuotationNote] = useState("");
-    // discounts are percentage-only now
+    // quotation-level discount (percentage or fixed)
     const [discountValue, setDiscountValue] = useState("");
+    const [discountType, setDiscountType] = useState("percentage");
     const [editingQuotationId, setEditingQuotationId] = useState(null);
 
     const loadClients = () => {
@@ -138,6 +142,23 @@ const QuotationsPage = () => {
     const labelOf = (s) => (typeof s === "string" ? s : lang === "ar" ? s.ar || s.en : s.en || s.ar);
     const priceOf = (s) => (typeof s === "string" ? "" : s.price || "");
 
+    // compute final price for a service identifier after applying any service-level discount
+    const finalPriceFor = (identifier) => {
+        const found = combined.find((s) => idOf(s) === identifier || labelOf(s) === identifier);
+        const base = Number((servicesPricing && servicesPricing[identifier]) || (found ? priceOf(found) : 0)) || 0;
+        let svcDiscountAmount = 0;
+        let svcDiscountType = "";
+        if (found && found.discount) {
+            const d = Number(found.discount || 0);
+            svcDiscountType = found.discountType || "percentage";
+            if (!isNaN(d) && d !== 0) {
+                if (svcDiscountType === "percentage") svcDiscountAmount = (base * d) / 100;
+                else svcDiscountAmount = d;
+            }
+        }
+        return Math.max(0, base - svcDiscountAmount);
+    };
+
     const toggleService = (identifier) => {
         if (selectedServices.includes(identifier)) {
             setSelectedServices(selectedServices.filter((x) => x !== identifier));
@@ -156,9 +177,18 @@ const QuotationsPage = () => {
 
     const addCustom = () => {
         const name = (customName || "").trim();
+        const ar = (customNameAr || "").trim();
         const price = (customPrice || "").toString().trim();
-        if (!name || !price || isNaN(Number(price))) return;
-        const item = { id: `qsvc_${Date.now()}`, en: name, ar: "", price };
+        const disc = (customDiscount || "").toString().trim();
+        const discType = customDiscountType || "percentage";
+        if ((!name && !ar) || !price || isNaN(Number(price))) return;
+        if (disc) {
+            if (isNaN(Number(disc))) return;
+            const dnum = Number(disc);
+            if (discType === "percentage" && (dnum < 0 || dnum > 100)) return;
+            if (discType === "fixed" && dnum < 0) return;
+        }
+        const item = { id: `qsvc_${Date.now()}`, en: name || ar, ar: ar || name, price, discount: disc || "", discountType: discType };
         const updated = [...(pageCustomServices || []), item];
         setPageCustomServices(updated);
         // choose storage key: per-client or global
@@ -170,24 +200,52 @@ const QuotationsPage = () => {
         setSelectedServices((s) => [...s, ident]);
         setServicesPricing((p) => ({ ...(p || {}), [ident]: price }));
         setCustomName("");
+        setCustomNameAr("");
         setCustomPrice("");
+        setCustomDiscount("");
+        setCustomDiscountType("percentage");
     };
 
-    const calculateDiscount = (subtotal) => {
-        const val = Number(discountValue || 0);
-        return (subtotal * val) / 100;
+    const calculateDiscount = (subtotal, type = discountType, valRaw = discountValue) => {
+        const val = Number(valRaw || 0);
+        if (!val || val === 0) return 0;
+        if (type === "percentage") {
+            return (subtotal * val) / 100;
+        }
+        // fixed amount: don't exceed subtotal
+        return Math.min(subtotal, val);
     };
 
     const createQuotation = () => {
-        if (!selectedServices.length) return;
         const services = selectedServices.map((identifier) => {
             const found = combined.find((s) => idOf(s) === identifier || labelOf(s) === identifier);
             const name = found ? labelOf(found) : identifier;
-            const price = Number(servicesPricing[identifier] || (found ? priceOf(found) : 0));
-            return { id: identifier, name, price };
+            // base price is either the user-entered pricing override or the master/custom price
+            const basePrice = Number(servicesPricing[identifier] || (found ? priceOf(found) : 0));
+            // apply service-level discount if present on the service definition
+            let svcDiscountAmount = 0;
+            let svcDiscountType = "";
+            if (found && found.discount) {
+                const d = Number(found.discount || 0);
+                svcDiscountType = found.discountType || "percentage";
+                if (!isNaN(d) && d !== 0) {
+                    if (svcDiscountType === "percentage") svcDiscountAmount = (basePrice * d) / 100;
+                    else svcDiscountAmount = d;
+                }
+            }
+            const finalPrice = Math.max(0, basePrice - svcDiscountAmount);
+            return {
+                id: identifier,
+                name,
+                description: found && found.description ? found.description : "",
+                originalPrice: basePrice,
+                discountAmount: svcDiscountAmount,
+                discountType: svcDiscountType,
+                price: finalPrice,
+            };
         });
         const subtotal = services.reduce((a, b) => a + Number(b.price || 0), 0);
-        const discountAmount = calculateDiscount(subtotal);
+        const discountAmount = calculateDiscount(subtotal, discountType, discountValue);
         const total = subtotal - discountAmount;
         const clientIdKey = selectedClientId === "global" || !selectedClientId ? "global" : selectedClientId;
         const clientName =
@@ -202,6 +260,7 @@ const QuotationsPage = () => {
             services,
             subtotal,
             discountValue: discountValue || "0",
+            discountType: discountType || "percentage",
             discountAmount,
             total,
             note: quotationNote || "",
@@ -227,11 +286,12 @@ const QuotationsPage = () => {
         setSelectedServices(q.services.map((s) => s.id));
         const pricing = {};
         q.services.forEach((s) => {
-            pricing[s.id] = s.price;
+            pricing[s.id] = typeof s.originalPrice !== "undefined" ? s.originalPrice : s.price;
         });
         setServicesPricing(pricing);
         setQuotationNote(q.note || "");
         setDiscountValue(q.discountValue || "");
+        setDiscountType(q.discountType || "percentage");
         setIsEditing(true);
     };
 
@@ -242,6 +302,7 @@ const QuotationsPage = () => {
         setServicesPricing({});
         setQuotationNote("");
         setDiscountValue("");
+        setDiscountType("percentage");
     };
 
     const deleteQuotation = (qId) => {
@@ -404,6 +465,9 @@ const QuotationsPage = () => {
                                                 )}
                                                 <div>
                                                     <span className="truncate break-words">{label}</span>
+                                                    {typeof s !== "string" && s.description ? (
+                                                        <div className="text-light-600 dark:text-dark-400 text-xs">{s.description}</div>
+                                                    ) : null}
                                                     {qty ? (
                                                         <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${qty}`}</div>
                                                     ) : null}
@@ -412,7 +476,7 @@ const QuotationsPage = () => {
 
                                             <div className="flex items-center gap-2">
                                                 <div className="text-light-600 dark:text-dark-500 text-sm">
-                                                    {`${(servicesPricing && servicesPricing[identifier]) || def || ""} ${lang === "ar" ? "ج.م" : "EGP"}`}
+                                                    {`${finalPriceFor(identifier) || ""} ${lang === "ar" ? "ج.م" : "EGP"}`}
                                                 </div>
                                             </div>
                                         </div>
@@ -463,15 +527,50 @@ const QuotationsPage = () => {
                                 className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                             />
                             <input
+                                type="text"
+                                value={customNameAr}
+                                onChange={(e) => setCustomNameAr(e.target.value)}
+                                placeholder={t("custom_service_name_ar") || "اسم الخدمة (بالعربية)"}
+                                className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                            />
+                            <input
                                 type="number"
                                 value={customPrice}
                                 onChange={(e) => setCustomPrice(e.target.value)}
                                 placeholder={t("service_price") || "Price"}
                                 className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-32 rounded-lg border bg-transparent px-3 py-2 text-sm"
                             />
+                            <select
+                                value={customDiscountType}
+                                onChange={(e) => setCustomDiscountType(e.target.value)}
+                                className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-28 appearance-none rounded-lg border bg-transparent px-2 py-2 text-sm"
+                                style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                            >
+                                <option
+                                    value="percentage"
+                                    className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                >
+                                    {t("percentage") || "%"}
+                                </option>
+                                <option
+                                    value="fixed"
+                                    className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                >
+                                    {t("fixed") || "Fixed"}
+                                </option>
+                            </select>
+                            <input
+                                type="number"
+                                value={customDiscount}
+                                onChange={(e) => setCustomDiscount(e.target.value)}
+                                placeholder={t("discount_optional") || "Discount"}
+                                className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-24 rounded-lg border bg-transparent px-2 py-2 text-sm"
+                            />
                             <button
                                 onClick={addCustom}
-                                disabled={!customName.trim() || !customPrice.toString().trim() || isNaN(Number(customPrice))}
+                                disabled={
+                                    (!customName.trim() && !customNameAr.trim()) || !customPrice.toString().trim() || isNaN(Number(customPrice))
+                                }
                                 className="btn-ghost flex items-center gap-2 px-3 py-2"
                             >
                                 <Plus size={14} />
@@ -485,20 +584,29 @@ const QuotationsPage = () => {
                                     {t("selected_services_count") || "Selected"}: {selectedServices.length}
                                 </p>
                                 <p className="text-light-900 dark:text-dark-50 text-base">
-                                    {t("subtotal") || "Subtotal"}: {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0)}{" "}
+                                    {t("subtotal") || "Subtotal"}: {selectedServices.reduce((sum, id) => sum + Number(finalPriceFor(id) || 0), 0)}{" "}
                                     {lang === "ar" ? "ج.م" : "EGP"}
                                 </p>
                                 {discountValue && Number(discountValue) > 0 && (
                                     <p className="text-light-600 dark:text-dark-400 text-sm">
-                                        {t("discount") || "Discount"}: {`${discountValue}%`} (-
-                                        {calculateDiscount(selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0))}{" "}
+                                        {t("discount") || "Discount"}:{" "}
+                                        {discountType === "percentage" ? `${discountValue}%` : `${discountValue} ${lang === "ar" ? "ج.م" : "EGP"}`} (-
+                                        {calculateDiscount(
+                                            selectedServices.reduce((sum, id) => sum + Number(finalPriceFor(id) || 0), 0),
+                                            discountType,
+                                            discountValue,
+                                        )}{" "}
                                         {lang === "ar" ? "ج.م" : "EGP"})
                                     </p>
                                 )}
                                 <p className="text-light-900 dark:text-dark-50 text-lg font-bold">
                                     {t("total") || "Total"}:{" "}
-                                    {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0) -
-                                        calculateDiscount(selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0))}{" "}
+                                    {selectedServices.reduce((sum, id) => sum + Number(finalPriceFor(id) || 0), 0) -
+                                        calculateDiscount(
+                                            selectedServices.reduce((sum, id) => sum + Number(finalPriceFor(id) || 0), 0),
+                                            discountType,
+                                            discountValue,
+                                        )}{" "}
                                     {lang === "ar" ? "ج.م" : "EGP"}
                                 </p>
                             </div>
@@ -533,6 +641,7 @@ const QuotationsPage = () => {
                                             setServicesPricing({});
                                             setQuotationNote("");
                                             setDiscountValue("");
+                                            setDiscountType("percentage");
                                         }}
                                         className="btn-ghost"
                                     >
@@ -559,15 +668,37 @@ const QuotationsPage = () => {
                             <div className="space-y-3">
                                 <div>
                                     <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                                        {t("discount_value") || "Discount Value (%)"}
+                                        {t("discount_type") || "Discount Type"}
+                                    </label>
+                                    <select
+                                        value={discountType}
+                                        onChange={(e) => setDiscountType(e.target.value)}
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full appearance-none rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                        style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                                    >
+                                        <option
+                                            value="percentage"
+                                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                        >
+                                            {t("percentage") || "%"}
+                                        </option>
+                                        <option
+                                            value="fixed"
+                                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                        >
+                                            {t("fixed") || "Fixed"}
+                                        </option>
+                                    </select>
+
+                                    <label className="text-dark-700 dark:text-dark-400 mt-2 mb-2 block text-sm">
+                                        {t("discount_value") || "Discount Value"}
                                     </label>
                                     <input
                                         type="number"
                                         value={discountValue}
                                         onChange={(e) => setDiscountValue(e.target.value)}
-                                        placeholder="0-100"
+                                        placeholder={discountType === "percentage" ? "0-100" : t("amount") || "Amount"}
                                         min="0"
-                                        max="100"
                                         className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-transparent px-3 py-2 text-sm focus:ring-0 focus:outline-none"
                                     />
                                 </div>
@@ -601,8 +732,11 @@ const QuotationsPage = () => {
                                             <div className="mt-2 text-sm">
                                                 {q.discountValue && Number(q.discountValue) > 0 && (
                                                     <div className="text-light-600 dark:text-dark-400">
-                                                        {t("discount") || "Discount"}: {`${q.discountValue}%`} (-{q.discountAmount || 0}{" "}
-                                                        {lang === "ar" ? "ج.م" : "EGP"})
+                                                        {t("discount") || "Discount"}:{" "}
+                                                        {q.discountType === "percentage"
+                                                            ? `${q.discountValue}%`
+                                                            : `${q.discountValue} ${lang === "ar" ? "ج.م" : "EGP"}`}{" "}
+                                                        (-{q.discountAmount || 0} {lang === "ar" ? "ج.م" : "EGP"})
                                                     </div>
                                                 )}
                                             </div>

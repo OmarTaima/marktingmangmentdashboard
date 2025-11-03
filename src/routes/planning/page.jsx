@@ -28,28 +28,27 @@ const PlanningPage = () => {
     const [overlayFadeIn, setOverlayFadeIn] = useState(false);
     const [planErrors, setPlanErrors] = useState({});
 
-    // Services master list (persisted). Initialize with defaults if missing.
-    const INITIAL_SERVICES = [
-        "Social Media Management",
-        "Content Creation",
-        "Paid Advertising",
-        "SEO Optimization",
-        "Email Marketing",
-        "Influencer Marketing",
-        "Video Production",
-        "Photography",
-        "Graphic Design",
-        "Analytics & Reporting",
-        "Community Management",
-        "Brand Strategy",
-    ];
-
-    const [availableServices, setAvailableServices] = useState(INITIAL_SERVICES);
+    const [availableServices, setAvailableServices] = useState([]);
     const [customServiceInput, setCustomServiceInput] = useState("");
+    const [customServiceInputAr, setCustomServiceInputAr] = useState("");
     const [customServicePrice, setCustomServicePrice] = useState("");
+    const [customServiceDiscount, setCustomServiceDiscount] = useState("");
+    const [customServiceDiscountType, setCustomServiceDiscountType] = useState("percentage");
+    const [customServiceQuantity, setCustomServiceQuantity] = useState("");
     const [clientCustomServices, setClientCustomServices] = useState([]); // per-client custom services
 
-    // Load master services list from localStorage (services_master). If missing, seed with INITIAL_SERVICES
+    // Campaign Objectives and Strategic Approaches as bilingual lists
+    const [objectives, setObjectives] = useState([]);
+    const [objectiveInputEn, setObjectiveInputEn] = useState("");
+    const [objectiveInputAr, setObjectiveInputAr] = useState("");
+    const [editingObjectiveIndex, setEditingObjectiveIndex] = useState(-1);
+
+    const [strategies, setStrategies] = useState([]);
+    const [strategyInputEn, setStrategyInputEn] = useState("");
+    const [strategyInputAr, setStrategyInputAr] = useState("");
+    const [editingStrategyIndex, setEditingStrategyIndex] = useState(-1);
+
+    // Load master services list from localStorage (services_master).
     useEffect(() => {
         try {
             const stored = localStorage.getItem("services_master");
@@ -57,27 +56,29 @@ const PlanningPage = () => {
                 const parsed = JSON.parse(stored) || [];
                 setAvailableServices(parsed);
             } else {
-                localStorage.setItem("services_master", JSON.stringify(INITIAL_SERVICES));
-                setAvailableServices(INITIAL_SERVICES);
+                // no master list saved yet — start with empty list
+                setAvailableServices([]);
             }
         } catch (e) {
             // ignore and keep defaults
-            setAvailableServices(INITIAL_SERVICES);
+            setAvailableServices([]);
         }
     }, []);
 
     const handleAddCustomService = () => {
-        const val = (customServiceInput || "").trim();
-        if (!val) return;
+        const en = (customServiceInput || "").trim();
+        const ar = (customServiceInputAr || "").trim();
+        if (!en && !ar) return;
         // Avoid duplicates by English label (case-insensitive) across global and client-local services
         const combinedForDup = (availableServices || []).concat(clientCustomServices || []);
         if (
             combinedForDup.some((s) => {
-                const en = typeof s === "string" ? s : s.en || "";
-                return en.toLowerCase() === val.toLowerCase();
+                const svcEn = typeof s === "string" ? s : s.en || "";
+                return svcEn.toLowerCase() === en.toLowerCase();
             })
         ) {
             setCustomServiceInput("");
+            setCustomServiceInputAr("");
             return;
         }
         // Use the inline price input value instead of prompt/alert
@@ -90,9 +91,40 @@ const PlanningPage = () => {
             return;
         }
 
+        // validate discount if provided
+        const disc = (customServiceDiscount || "").toString().trim();
+        if (disc) {
+            if (isNaN(Number(disc))) return;
+            const dnum = Number(disc);
+            if (customServiceDiscountType === "percentage" && (dnum < 0 || dnum > 100)) return;
+            if (customServiceDiscountType === "fixed" && dnum < 0) return;
+        }
+
+        // Get quantity - allow empty quantity (user may leave it unspecified)
+        const qtyRaw = (customServiceQuantity || "").toString().trim();
+        let quantity = "";
+        if (qtyRaw !== "") {
+            const qnum = Number(qtyRaw);
+            if (!isNaN(qnum)) {
+                // enforce minimum of 1 when a number is provided
+                quantity = String(Math.max(1, Math.floor(qnum)));
+            } else {
+                // non-numeric -> leave empty
+                quantity = "";
+            }
+        }
+
         if (!selectedClientId) return; // ensure we have a client to attach to
 
-        const newItem = { id: `svc_${Date.now()}`, en: val, ar: "", price };
+        const newItem = {
+            id: `svc_${Date.now()}`,
+            en: en || ar,
+            ar: ar || en,
+            price,
+            quantity: String(quantity),
+            discount: disc || "",
+            discountType: customServiceDiscountType || "percentage",
+        };
         // Save this custom service only for the current client
         const updated = [...(clientCustomServices || []), newItem];
         setClientCustomServices(updated);
@@ -109,7 +141,103 @@ const PlanningPage = () => {
         }));
 
         setCustomServiceInput("");
+        setCustomServiceInputAr("");
         setCustomServicePrice("");
+        setCustomServiceDiscount("");
+        setCustomServiceDiscountType("percentage");
+        setCustomServiceQuantity("");
+    };
+
+    const removeClientCustomService = (serviceId) => {
+        if (!selectedClientId) return;
+        if (!confirm(t("confirm_delete_service") || "Delete this custom service?")) return;
+        try {
+            const remaining = (clientCustomServices || []).filter((s) => s.id !== serviceId);
+            setClientCustomServices(remaining);
+            localStorage.setItem(`services_custom_${selectedClientId}`, JSON.stringify(remaining));
+            // remove from current plan if selected
+            setPlanData((prev) => {
+                const services = (prev.services || []).filter(
+                    (x) => x !== serviceId && x !== (prev.servicesPricing && prev.servicesPricing[serviceId] ? serviceId : null),
+                );
+                const pricing = { ...(prev.servicesPricing || {}) };
+                if (Object.prototype.hasOwnProperty.call(pricing, serviceId)) delete pricing[serviceId];
+                return { ...prev, services, servicesPricing: pricing };
+            });
+        } catch (e) {
+            // ignore
+        }
+    };
+
+    // Objectives handlers
+    const handleAddObjective = () => {
+        const en = (objectiveInputEn || "").trim();
+        const ar = (objectiveInputAr || "").trim();
+
+        const newObjective = { id: `obj_${Date.now()}`, en: en || ar, ar: ar || en };
+        setObjectives([...objectives, newObjective]);
+        setObjectiveInputEn("");
+        setObjectiveInputAr("");
+    };
+
+    const startEditObjective = (idx) => {
+        setEditingObjectiveIndex(idx);
+        const obj = objectives[idx];
+        setObjectiveInputEn(obj.en || "");
+        setObjectiveInputAr(obj.ar || "");
+    };
+
+    const saveEditObjective = (idx) => {
+        const en = (objectiveInputEn || "").trim();
+        const ar = (objectiveInputAr || "").trim();
+        // allow saving even when fields are empty (no required inputs)
+
+        const updated = objectives.slice();
+        updated[idx] = { ...updated[idx], en: en || ar, ar: ar || en };
+        setObjectives(updated);
+        setEditingObjectiveIndex(-1);
+        setObjectiveInputEn("");
+        setObjectiveInputAr("");
+    };
+
+    const removeObjective = (idx) => {
+        setObjectives(objectives.filter((_, i) => i !== idx));
+    };
+
+    // Strategies handlers
+    const handleAddStrategy = () => {
+        const en = (strategyInputEn || "").trim();
+        const ar = (strategyInputAr || "").trim();
+        // allow adding even when fields are empty (no required inputs)
+
+        const newStrategy = { id: `strat_${Date.now()}`, en: en || ar, ar: ar || en };
+        setStrategies([...strategies, newStrategy]);
+        setStrategyInputEn("");
+        setStrategyInputAr("");
+    };
+
+    const startEditStrategy = (idx) => {
+        setEditingStrategyIndex(idx);
+        const strat = strategies[idx];
+        setStrategyInputEn(strat.en || "");
+        setStrategyInputAr(strat.ar || "");
+    };
+
+    const saveEditStrategy = (idx) => {
+        const en = (strategyInputEn || "").trim();
+        const ar = (strategyInputAr || "").trim();
+        // allow saving even when fields are empty (no required inputs)
+
+        const updated = strategies.slice();
+        updated[idx] = { ...updated[idx], en: en || ar, ar: ar || en };
+        setStrategies(updated);
+        setEditingStrategyIndex(-1);
+        setStrategyInputEn("");
+        setStrategyInputAr("");
+    };
+
+    const removeStrategy = (idx) => {
+        setStrategies(strategies.filter((_, i) => i !== idx));
     };
 
     useEffect(() => {
@@ -146,6 +274,28 @@ const PlanningPage = () => {
             setClientCustomServices([]);
         }
     }, [selectedClientId]);
+
+    // helper to compute final price for a service in the plan after applying any service-level discount
+    const finalPriceFor = (identifier) => {
+        const combined = (availableServices || []).concat(clientCustomServices || []);
+        const found = combined.find((s) => {
+            if (!s) return false;
+            if (typeof s === "string") return s === identifier;
+            return s.id === identifier || s.en === identifier || s.ar === identifier;
+        });
+        const base = Number((planData.servicesPricing && planData.servicesPricing[identifier]) || (found ? found.price || 0 : 0)) || 0;
+        let svcDiscountAmount = 0;
+        let svcDiscountType = "";
+        if (found && found.discount) {
+            const d = Number(found.discount || 0);
+            svcDiscountType = found.discountType || "percentage";
+            if (!isNaN(d) && d !== 0) {
+                if (svcDiscountType === "percentage") svcDiscountAmount = (base * d) / 100;
+                else svcDiscountAmount = d;
+            }
+        }
+        return Math.max(0, base - svcDiscountAmount);
+    };
 
     useEffect(() => {
         if (selectedClientId) {
@@ -217,24 +367,33 @@ const PlanningPage = () => {
                             // pick first plan by default
                             setSelectedPlanId(parsed[0].id);
                             setPlanData(parsed[0]);
+                            // Load objectives and strategies from the plan
+                            setObjectives(parsed[0].objectives || []);
+                            setStrategies(parsed[0].strategies || []);
                             setIsEditing(false);
                         } else {
                             // no plans, reset to empty
                             setPlans([]);
                             setSelectedPlanId("");
                             setPlanData({ objective: "", strategy: "", services: [], budget: "", timeline: "" });
+                            setObjectives([]);
+                            setStrategies([]);
                             setIsEditing(true);
                         }
                     } catch (e) {
                         setPlans([]);
                         setSelectedPlanId("");
                         setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                        setObjectives([]);
+                        setStrategies([]);
                         setIsEditing(true);
                     }
                 } else {
                     setPlans([]);
                     setSelectedPlanId("");
                     setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                    setObjectives([]);
+                    setStrategies([]);
                     setIsEditing(true);
                 }
             }
@@ -242,22 +401,37 @@ const PlanningPage = () => {
     };
 
     const handleSavePlan = () => {
+        console.log("handleSavePlan called", { selectedClientId, planData, objectives, strategies });
+
         if (!selectedClientId) {
             alert(t("please_select_client_first"));
+            console.warn("handleSavePlan: no selectedClientId");
             return;
         }
 
-        // Validate required fields
-        const errors = {};
-        if (!planData.objective?.trim()) errors.objective = t("please_fill_required_fields");
-        if (!planData.strategy?.trim()) errors.strategy = t("please_fill_required_fields");
-        if (planData.budget && Number(planData.budget) <= 0) errors.budget = t("invalid_budget");
-
-        if (Object.keys(errors).length > 0) {
-            setPlanErrors(errors);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            return;
+        // Prepare a local copy of planData that merges list-based objectives/strategies
+        const toSave = { ...planData };
+        if (!toSave.objective || !toSave.objective.trim()) {
+            if (objectives && objectives.length > 0) {
+                // join English values (fallback to Arabic) into a single summary string for legacy fields
+                toSave.objective = objectives
+                    .map((o) => o.en || o.ar || "")
+                    .filter(Boolean)
+                    .join(" | ");
+            }
         }
+        if (!toSave.strategy || !toSave.strategy.trim()) {
+            if (strategies && strategies.length > 0) {
+                toSave.strategy = strategies
+                    .map((s) => s.en || s.ar || "")
+                    .filter(Boolean)
+                    .join(" | ");
+            }
+        }
+
+        // No required fields: allow saving even if objective/strategy/budget are empty
+        // Clear any previous errors
+        setPlanErrors({});
 
         // Save plan to plans_{clientId}
         const savedPlans = localStorage.getItem(`plans_${selectedClientId}`);
@@ -272,26 +446,45 @@ const PlanningPage = () => {
             // update existing plan
             const idx = parsed.findIndex((p) => p.id === selectedPlanId);
             if (idx !== -1) {
-                parsed[idx] = { ...parsed[idx], ...planData, id: selectedPlanId };
+                parsed[idx] = { ...parsed[idx], ...toSave, objectives, strategies, id: selectedPlanId };
             } else {
-                parsed.push({ ...planData, id: selectedPlanId });
+                parsed.push({ ...toSave, objectives, strategies, id: selectedPlanId });
             }
         } else {
             // create new plan
             const newId = `plan_${Date.now()}`;
-            parsed.push({ ...planData, id: newId });
+            parsed.push({ ...toSave, objectives, strategies, id: newId });
             setSelectedPlanId(newId);
         }
 
-        localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(parsed));
+        try {
+            localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(parsed));
+        } catch (e) {
+            console.error("Failed to save plan:", e);
+            alert(t("save_failed") || "Failed to save plan.");
+            return;
+        }
+
         setPlans(parsed);
+        // update in-memory planData to the merged version we saved
+        setPlanData(toSave);
         setIsEditing(false);
         setPlanErrors({});
         alert(t("plan_saved_success"));
     };
 
     const handleCreateNewPlan = () => {
-        const newPlan = { id: `plan_${Date.now()}`, objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" };
+        const newPlan = {
+            id: `plan_${Date.now()}`,
+            objective: "",
+            strategy: "",
+            services: [],
+            servicesPricing: {},
+            budget: "",
+            timeline: "",
+            objectives: [],
+            strategies: [],
+        };
         const updated = [...plans, newPlan];
         try {
             localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(updated));
@@ -299,6 +492,8 @@ const PlanningPage = () => {
         setPlans(updated);
         setSelectedPlanId(newPlan.id);
         setPlanData(newPlan);
+        setObjectives([]);
+        setStrategies([]);
         setIsEditing(true);
     };
 
@@ -308,6 +503,8 @@ const PlanningPage = () => {
             setSelectedPlanId(planId);
             // ensure servicesPricing exists on loaded plan
             setPlanData({ ...plan, servicesPricing: plan.servicesPricing || {} });
+            setObjectives(plan.objectives || []);
+            setStrategies(plan.strategies || []);
             setIsEditing(false);
         }
     };
@@ -335,6 +532,8 @@ const PlanningPage = () => {
             } else {
                 setSelectedPlanId("");
                 setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                setObjectives([]);
+                setStrategies([]);
                 setIsEditing(true);
             }
         }
@@ -598,32 +797,148 @@ const PlanningPage = () => {
 
                         {/* Planning Form */}
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            {/* Objective */}
+                            {/* Campaign Objectives */}
                             <div className="card transition-colors duration-300 lg:col-span-2">
                                 <h3 className="card-title mb-4">{t("campaign_objective")}</h3>
-                                <textarea
-                                    value={planData.objective}
-                                    onChange={(e) => setPlanData({ ...planData, objective: e.target.value })}
-                                    placeholder={t("objective_placeholder")}
-                                    rows={4}
-                                    disabled={!isEditing}
-                                    className={`text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.objective ? "border-danger-500" : "border-light-600"}`}
-                                />
-                                {planErrors.objective && <p className="text-danger-500 mt-1 text-sm">{planErrors.objective}</p>}
+
+                                {isEditing && (
+                                    <div className="mb-4">
+                                        <div className="grid gap-3 lg:grid-cols-2">
+                                            <input
+                                                value={objectiveInputEn}
+                                                onChange={(e) => setObjectiveInputEn(e.target.value)}
+                                                placeholder={t("objective_en") || "Objective (English)"}
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                            />
+                                            <input
+                                                value={objectiveInputAr}
+                                                onChange={(e) => setObjectiveInputAr(e.target.value)}
+                                                placeholder={t("objective_ar") || "الهدف (بالعربية)"}
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={
+                                                editingObjectiveIndex === -1 ? handleAddObjective : () => saveEditObjective(editingObjectiveIndex)
+                                            }
+                                            className="btn-ghost mt-2 flex items-center gap-2 px-3 py-2"
+                                            disabled={!objectiveInputEn.trim() && !objectiveInputAr.trim()}
+                                        >
+                                            <Plus size={14} />
+                                            {editingObjectiveIndex === -1 ? t("add") || "Add" : t("save") || "Save"}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    {objectives.map((obj, idx) => (
+                                        <div
+                                            key={obj.id}
+                                            className="border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="text-light-900 dark:text-dark-50 text-sm">
+                                                    {lang === "ar" ? obj.ar || obj.en : obj.en || obj.ar}
+                                                </div>
+                                            </div>
+                                            {isEditing && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEditObjective(idx)}
+                                                        className="text-light-600 hover:text-light-900 dark:text-dark-400 dark:hover:text-dark-50"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeObjective(idx)}
+                                                        className="text-danger-500 hover:text-danger-700"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {objectives.length === 0 && !isEditing && (
+                                        <p className="text-light-600 dark:text-dark-400 text-sm">
+                                            {t("no_objectives") || "No objectives added yet."}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Strategy */}
+                            {/* Strategic Approaches */}
                             <div className="card transition-colors duration-300 lg:col-span-2">
                                 <h3 className="card-title mb-4">{t("strategic_approach")}</h3>
-                                <textarea
-                                    value={planData.strategy}
-                                    onChange={(e) => setPlanData({ ...planData, strategy: e.target.value })}
-                                    placeholder={t("strategy_placeholder")}
-                                    rows={6}
-                                    disabled={!isEditing}
-                                    className={`text-light-900 disabled:bg-light-100 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:disabled:bg-dark-800 placeholder:text-light-600 dark:placeholder:text-dark-400 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-3 transition-colors focus:outline-none ${planErrors.strategy ? "border-danger-500" : "border-light-600"}`}
-                                />
-                                {planErrors.strategy && <p className="text-danger-500 mt-1 text-sm">{planErrors.strategy}</p>}
+
+                                {isEditing && (
+                                    <div className="mb-4">
+                                        <div className="grid gap-3 lg:grid-cols-2">
+                                            <input
+                                                value={strategyInputEn}
+                                                onChange={(e) => setStrategyInputEn(e.target.value)}
+                                                placeholder={t("strategy_en") || "Strategy (English)"}
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                            />
+                                            <input
+                                                value={strategyInputAr}
+                                                onChange={(e) => setStrategyInputAr(e.target.value)}
+                                                placeholder={t("strategy_ar") || "الاستراتيجية (بالعربية)"}
+                                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={editingStrategyIndex === -1 ? handleAddStrategy : () => saveEditStrategy(editingStrategyIndex)}
+                                            className="btn-ghost mt-2 flex items-center gap-2 px-3 py-2"
+                                            disabled={!strategyInputEn.trim() && !strategyInputAr.trim()}
+                                        >
+                                            <Plus size={14} />
+                                            {editingStrategyIndex === -1 ? t("add") || "Add" : t("save") || "Save"}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    {strategies.map((strat, idx) => (
+                                        <div
+                                            key={strat.id}
+                                            className="border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="text-light-900 dark:text-dark-50 text-sm">
+                                                    {lang === "ar" ? strat.ar || strat.en : strat.en || strat.ar}
+                                                </div>
+                                            </div>
+                                            {isEditing && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEditStrategy(idx)}
+                                                        className="text-light-600 hover:text-light-900 dark:text-dark-400 dark:hover:text-dark-50"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStrategy(idx)}
+                                                        className="text-danger-500 hover:text-danger-700"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {strategies.length === 0 && !isEditing && (
+                                        <p className="text-light-600 dark:text-dark-400 text-sm">
+                                            {t("no_strategies") || "No strategies added yet."}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Services */}
@@ -640,15 +955,27 @@ const PlanningPage = () => {
                                                   : service.en || service.ar;
                                         const price = typeof service === "string" ? "" : service.price || "";
                                         const isSelected = planData.services.includes(identifier);
+                                        const isCustom =
+                                            typeof service !== "string" &&
+                                            service.id &&
+                                            (clientCustomServices || []).some((cs) => cs.id === service.id);
                                         return (
                                             <div
                                                 key={identifier}
                                                 className="flex flex-col items-stretch"
                                             >
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleService(identifier)}
-                                                    disabled={!isEditing}
+                                                <div
+                                                    role="button"
+                                                    tabIndex={isEditing ? 0 : -1}
+                                                    onClick={() => isEditing && toggleService(identifier)}
+                                                    onKeyDown={(e) => {
+                                                        if (!isEditing) return;
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            toggleService(identifier);
+                                                        }
+                                                    }}
+                                                    aria-disabled={!isEditing}
                                                     className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
                                                         isSelected
                                                             ? "border-light-500 bg-light-500 dark:border-secdark-600 dark:bg-secdark-600 dark:text-dark-50 text-white"
@@ -662,67 +989,142 @@ const PlanningPage = () => {
                                                                 className="flex-shrink-0"
                                                             />
                                                         )}
-                                                        <div>
+                                                        <div className="flex-1">
                                                             <span className="truncate break-words">{label}</span>
                                                             {typeof service !== "string" && service.quantity ? (
                                                                 <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${service.quantity}`}</div>
                                                             ) : null}
                                                         </div>
                                                     </div>
-                                                    {/* show static price when not selected, otherwise show inline input */}
+
                                                     <div className="flex items-center gap-2">
                                                         {!isSelected && price ? (
-                                                            <div className="text-light-600 dark:text-dark-600 text-sm">{`${price} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
+                                                            <div className="text-light-600 dark:text-dark-600 text-sm">{`${finalPriceFor(identifier)} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
                                                         ) : null}
 
                                                         {isSelected ? (
                                                             <div className="text-light-600 dark:text-dark-600 text-sm">
-                                                                {(planData.servicesPricing && planData.servicesPricing[identifier]) || price
-                                                                    ? `${(planData.servicesPricing && planData.servicesPricing[identifier]) || price} ${lang === "ar" ? "ج.م" : "EGP"}`
+                                                                {finalPriceFor(identifier)
+                                                                    ? `${finalPriceFor(identifier)} ${lang === "ar" ? "ج.م" : "EGP"}`
                                                                     : null}
                                                             </div>
                                                         ) : null}
+
+                                                        {/* render delete button inside the card for client-custom services */}
+                                                        {isCustom && isEditing ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeClientCustomService(service.id);
+                                                                }}
+                                                                aria-label={t("delete_custom_service") || "Delete custom service"}
+                                                                title={t("delete_custom_service") || "Delete custom service"}
+                                                                className="text-danger-500 ml-2 flex-shrink-0 rounded-none border-0 bg-transparent p-0 hover:bg-transparent"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        ) : null}
                                                     </div>
-                                                </button>
+                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                                {/* Add custom service input */}
-                                <div className="mt-3 flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={customServiceInput}
-                                        onChange={(e) => setCustomServiceInput(e.target.value)}
-                                        placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
-                                        disabled={!isEditing}
-                                        className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            value={customServicePrice}
-                                            onChange={(e) => setCustomServicePrice(e.target.value)}
-                                            placeholder={t("service_price") || "Price"}
-                                            disabled={!isEditing}
-                                            className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-24 rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                        />
-                                        <div className="text-light-600 dark:text-dark-600 text-sm">{lang === "ar" ? "ج.م" : "EGP"}</div>
+                                {/* Add custom service input — two-row layout: names on top, qty/price/discount/add on bottom */}
+                                <div className="mt-3">
+                                    <div className="grid gap-2">
+                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                                            <input
+                                                type="text"
+                                                value={customServiceInput}
+                                                onChange={(e) => setCustomServiceInput(e.target.value)}
+                                                placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
+                                                disabled={!isEditing}
+                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={customServiceInputAr}
+                                                onChange={(e) => setCustomServiceInputAr(e.target.value)}
+                                                placeholder={t("custom_service_ar") || "خدمة مخصصة..."}
+                                                disabled={!isEditing}
+                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={customServiceQuantity}
+                                                onChange={(e) => setCustomServiceQuantity(e.target.value)}
+                                                placeholder={t("quantity") || "Quantity"}
+                                                disabled={!isEditing}
+                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={customServicePrice}
+                                                    onChange={(e) => setCustomServicePrice(e.target.value)}
+                                                    placeholder={t("service_price") || "Price"}
+                                                    disabled={!isEditing}
+                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
+                                                />
+                                                <div className="text-light-600 dark:text-dark-600 text-sm whitespace-nowrap">
+                                                    {lang === "ar" ? "ج.م" : "EGP"}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={customServiceDiscountType}
+                                                    onChange={(e) => setCustomServiceDiscountType(e.target.value)}
+                                                    disabled={!isEditing}
+                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full appearance-none rounded-lg border bg-transparent px-2 py-2 text-sm focus:outline-none md:w-32"
+                                                    style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                                                >
+                                                    <option
+                                                        value="percentage"
+                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                                    >
+                                                        {t("percentage") || "%"}
+                                                    </option>
+                                                    <option
+                                                        value="fixed"
+                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                                    >
+                                                        {t("fixed") || "Fixed"}
+                                                    </option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    value={customServiceDiscount}
+                                                    onChange={(e) => setCustomServiceDiscount(e.target.value)}
+                                                    placeholder={t("discount_optional") || "Discount"}
+                                                    disabled={!isEditing}
+                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-2 py-2 text-sm focus:outline-none md:w-24"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddCustomService}
+                                                    disabled={
+                                                        !isEditing ||
+                                                        (!customServiceInput.trim() && !customServiceInputAr.trim()) ||
+                                                        !customServicePrice.toString().trim() ||
+                                                        isNaN(Number(customServicePrice))
+                                                    }
+                                                    className="btn-ghost flex items-center justify-center gap-2 px-3 py-2"
+                                                >
+                                                    <Plus size={14} />
+                                                    {t("add")}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleAddCustomService}
-                                        disabled={
-                                            !isEditing ||
-                                            !customServiceInput.trim() ||
-                                            !customServicePrice.toString().trim() ||
-                                            isNaN(Number(customServicePrice))
-                                        }
-                                        className="btn-ghost flex items-center gap-2 px-3 py-2"
-                                    >
-                                        <Plus size={14} />
-                                        {t("add")}
-                                    </button>
                                 </div>
                             </div>
 

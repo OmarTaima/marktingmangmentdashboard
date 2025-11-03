@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
+import { Plus, Minus, Edit2, Trash2, Check, X } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 
 const AddPackagePage = () => {
@@ -8,6 +8,8 @@ const AddPackagePage = () => {
     const [nameEn, setNameEn] = useState("");
     const [nameAr, setNameAr] = useState("");
     const [price, setPrice] = useState("");
+    const [discount, setDiscount] = useState("");
+    const [discountType, setDiscountType] = useState("percentage");
     const [featureInputEn, setFeatureInputEn] = useState("");
     const [featureInputAr, setFeatureInputAr] = useState("");
     const [featureQuantity, setFeatureQuantity] = useState("");
@@ -19,6 +21,7 @@ const AddPackagePage = () => {
     const [nameError, setNameError] = useState("");
     const [featureError, setFeatureError] = useState("");
     const [priceError, setPriceError] = useState("");
+    const [discountError, setDiscountError] = useState("");
 
     useEffect(() => {
         try {
@@ -53,15 +56,37 @@ const AddPackagePage = () => {
                 const svcnorm = parsed
                     .map((s, idx) => {
                         if (!s) return null;
-                        if (typeof s === "string") return { id: `svc_${idx}_${Date.now()}`, en: s, ar: "", price: "", category: "other" };
+                        if (typeof s === "string")
+                            return {
+                                id: `svc_${idx}_${Date.now()}`,
+                                en: s,
+                                ar: "",
+                                category: "other",
+                                discount: "",
+                                discountType: "percentage",
+                                description: "",
+                            };
                         return s.id
-                            ? { ...s, price: s.price || "", category: s.category || "other" }
+                            ? {
+                                  ...s,
+                                  category: s.category || "other",
+                                  // When adding services into a package, do not carry over service-level pricing or discounts.
+                                  // Package totals should be controlled by the package price, not individual service prices.
+                                  price: "",
+                                  discount: "",
+                                  discountType: "percentage",
+                                  description: s.description || "",
+                              }
                             : {
                                   id: `svc_${idx}_${Date.now()}`,
                                   en: s.en || "",
                                   ar: s.ar || "",
-                                  price: s.price || "",
+                                  // don't include service price/discount in package add view
+                                  price: "",
                                   category: s.category || "other",
+                                  discount: "",
+                                  discountType: "percentage",
+                                  description: s.description || "",
                               };
                     })
                     .filter(Boolean);
@@ -83,7 +108,7 @@ const AddPackagePage = () => {
         const en = (featureInputEn || "").trim();
         const ar = (featureInputAr || "").trim();
         const qty = (featureQuantity || "").trim();
-        if (!en && !ar) return;
+        // allow adding features even when english/arabic fields are empty (no required inputs)
         // language checks: english input must not contain Arabic chars; arabic input must not contain Latin letters
         const containsArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(en);
         const containsLatinInAr = /[A-Za-z]/.test(ar);
@@ -128,9 +153,31 @@ const AddPackagePage = () => {
         const en = svc.en || svc.name || "";
         const ar = svc.ar || svc.en || "";
         if (!features.some((x) => (x.en || "").toLowerCase() === (en || "").toLowerCase())) {
-            const fobj = { en: en, ar: ar, quantity: svc.quantity || "", fromServiceId: id };
+            // default quantity when adding from services: 1 (adjustable below)
+            const fobj = { en: en, ar: ar, quantity: "1", fromServiceId: id };
             setFeatures((prev) => [...prev, fobj]);
         }
+    };
+
+    const updateFeatureQuantity = (idx, val) => {
+        // normalize value to a positive integer (min 1)
+        const raw = String(val || "").replace(/[^0-9]/g, "");
+        const n = Math.max(1, Number(raw || 1));
+        setFeatures((prev) => {
+            const next = prev.slice();
+            next[idx] = { ...(next[idx] || {}), quantity: String(n) };
+            return next;
+        });
+    };
+
+    const changeFeatureQuantity = (idx, delta) => {
+        setFeatures((prev) => {
+            const next = prev.slice();
+            const cur = Number(next[idx]?.quantity) || 0;
+            const nv = Math.max(1, cur + delta);
+            next[idx] = { ...(next[idx] || {}), quantity: String(nv) };
+            return next;
+        });
     };
 
     const removeFeature = (idx) => {
@@ -141,7 +188,8 @@ const AddPackagePage = () => {
         const en = (nameEn || "").trim();
         const ar = (nameAr || "").trim();
         const p = (price || "").trim();
-        if (!en && !ar) return;
+        const disc = (discount || "").trim();
+        // allow creating package even when name fields are empty (no required inputs)
         // validate language of names
         const nameHasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(en);
         const nameHasLatinInAr = /[A-Za-z]/.test(ar);
@@ -160,13 +208,36 @@ const AddPackagePage = () => {
             return;
         }
         setPriceError("");
+        // validate discount
+        if (disc) {
+            const discNum = Number(disc);
+            if (isNaN(discNum) || discNum < 0) {
+                setDiscountError(t("invalid_discount") || "Please enter a valid discount.");
+                return;
+            }
+            if (discountType === "percentage" && (discNum < 0 || discNum > 100)) {
+                setDiscountError(t("invalid_discount_percentage") || "Percentage must be between 0 and 100.");
+                return;
+            }
+        }
+        setDiscountError("");
 
-        const item = { id: `pkg_${Date.now()}`, en: en || ar, ar: ar || en, price: p || "", features: features.slice() };
+        const item = {
+            id: `pkg_${Date.now()}`,
+            en: en || ar,
+            ar: ar || en,
+            price: p || "",
+            discount: disc || "",
+            discountType: discountType || "percentage",
+            features: features.slice(),
+        };
         const next = [...packages, item];
         persist(next);
         setNameEn("");
         setNameAr("");
         setPrice("");
+        setDiscount("");
+        setDiscountType("percentage");
         setFeatureInputEn("");
         setFeatureInputAr("");
         setFeatureQuantity("");
@@ -175,10 +246,12 @@ const AddPackagePage = () => {
 
     const startEdit = (idx) => {
         setEditingIndex(idx);
-        const s = packages[idx] || { en: "", ar: "", price: "", features: [] };
+        const s = packages[idx] || { en: "", ar: "", price: "", discount: "", discountType: "percentage", features: [] };
         setNameEn(s.en || "");
         setNameAr(s.ar || "");
         setPrice(s.price || "");
+        setDiscount(s.discount || "");
+        setDiscountType(s.discountType || "percentage");
         const feats = Array.isArray(s.features) ? s.features.slice() : [];
         setFeatures(feats);
         // map features back to selectedServiceIds when possible (match by en/ar)
@@ -207,7 +280,8 @@ const AddPackagePage = () => {
         const en = (nameEn || "").trim();
         const ar = (nameAr || "").trim();
         const p = (price || "").trim();
-        if (!en && !ar) return;
+        const disc = (discount || "").trim();
+        // allow saving package edits even when name fields are empty (no required inputs)
         // validate language of names
         const nameHasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(en);
         const nameHasLatinInAr = /[A-Za-z]/.test(ar);
@@ -225,6 +299,19 @@ const AddPackagePage = () => {
             return;
         }
         setPriceError("");
+        // validate discount
+        if (disc) {
+            const discNum = Number(disc);
+            if (isNaN(discNum) || discNum < 0) {
+                setDiscountError(t("invalid_discount") || "Please enter a valid discount.");
+                return;
+            }
+            if (discountType === "percentage" && (discNum < 0 || discNum > 100)) {
+                setDiscountError(t("invalid_discount_percentage") || "Percentage must be between 0 and 100.");
+                return;
+            }
+        }
+        setDiscountError("");
 
         const next = packages.slice();
         next[idx] = {
@@ -233,6 +320,8 @@ const AddPackagePage = () => {
             en: en || ar,
             ar: ar || en,
             price: p || "",
+            discount: disc || "",
+            discountType: discountType || "percentage",
             features: features.slice(),
         };
         persist(next);
@@ -240,6 +329,8 @@ const AddPackagePage = () => {
         setNameEn("");
         setNameAr("");
         setPrice("");
+        setDiscount("");
+        setDiscountType("percentage");
         setFeatureInputEn("");
         setFeatureInputAr("");
         setFeatureQuantity("");
@@ -299,6 +390,37 @@ const AddPackagePage = () => {
                 </div>
                 {priceError && <p className="text-danger-500 mt-1 text-xs">{priceError}</p>}
 
+                {/* Package Discount Section */}
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <select
+                        value={discountType}
+                        onChange={(e) => setDiscountType(e.target.value)}
+                        className="text-light-900 dark:border-dark-700 dark:text-dark-50 focus:border-light-500 w-full appearance-none rounded-lg border bg-transparent px-3 py-2 text-sm transition-colors focus:outline-none"
+                        style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                    >
+                        <option
+                            value="percentage"
+                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                        >
+                            {t("percentage") || "Percentage"}
+                        </option>
+                        <option
+                            value="fixed"
+                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                        >
+                            {t("fixed") || "Fixed Amount"}
+                        </option>
+                    </select>
+                    <input
+                        type="number"
+                        value={discount}
+                        onChange={(e) => setDiscount(e.target.value)}
+                        placeholder={t("package_discount") || "Package Discount (optional)"}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                    />
+                </div>
+                {discountError && <p className="text-danger-500 mt-1 text-xs">{discountError}</p>}
+
                 <div className="mt-3">
                     {/* Available services quick-add */}
                     {availableServices && availableServices.length > 0 && (
@@ -308,8 +430,6 @@ const AddPackagePage = () => {
                                 {availableServices.map((svc) => {
                                     const identifier = svc.id || svc.en || svc.name;
                                     const label = lang === "ar" ? svc.ar || svc.en : svc.en || svc.ar || svc.name || "";
-                                    const def = svc.price || "";
-                                    const svcQty = svc.quantity || "";
                                     const sel = isServiceSelected(identifier);
                                     return (
                                         <div
@@ -326,7 +446,7 @@ const AddPackagePage = () => {
                                                         toggleServiceSelection(svc);
                                                     }
                                                 }}
-                                                className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 pr-10 text-sm transition-all ${
+                                                className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
                                                     sel
                                                         ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
                                                         : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
@@ -339,16 +459,7 @@ const AddPackagePage = () => {
                                                             className="flex-shrink-0"
                                                         />
                                                     )}
-                                                    <div>
-                                                        <span className="truncate break-words">{label}</span>
-                                                        {svcQty ? (
-                                                            <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${svcQty}`}</div>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-
-                                                <div className="text-light-600 dark:text-dark-500 text-sm">
-                                                    {def ? `${def} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
+                                                    <span className="truncate break-words">{label}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -411,16 +522,42 @@ const AddPackagePage = () => {
                         <div className="mt-3 flex flex-wrap gap-2 md:col-span-4">
                             {features.map((f, idx) => {
                                 const label = lang === "ar" ? f.ar || f.en : f.en || f.ar;
-                                const qtyText = f.quantity ? ` (${f.quantity})` : "";
                                 return (
-                                    <span
+                                    <div
                                         key={`feat-${idx}`}
-                                        className="bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
+                                        className="bg-light-100 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-1 py-0.5 text-xs"
                                     >
-                                        <span>
-                                            {label}
-                                            {qtyText}
-                                        </span>
+                                        <span className="mr-1 text-xs">{label}</span>
+
+                                        <div className="dark:bg-dark-800 inline-flex items-center overflow-hidden rounded border bg-white text-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => changeFeatureQuantity(idx, -1)}
+                                                className="px-1 py-0.5"
+                                                aria-label={t("decrease_quantity") || "Decrease quantity"}
+                                            >
+                                                <Minus size={12} />
+                                            </button>
+
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={f.quantity || "1"}
+                                                onChange={(e) => updateFeatureQuantity(idx, e.target.value)}
+                                                className="dark:bg-dark-800 w-10 border-r border-l bg-white px-1 py-0.5 text-center text-xs"
+                                                aria-label={t("feature_quantity_placeholder") || t("quantity") || "Qty"}
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={() => changeFeatureQuantity(idx, 1)}
+                                                className="px-1 py-0.5"
+                                                aria-label={t("increase_quantity") || "Increase quantity"}
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        </div>
+
                                         <button
                                             type="button"
                                             onClick={() => removeFeature(idx)}
@@ -429,7 +566,7 @@ const AddPackagePage = () => {
                                         >
                                             <X size={12} />
                                         </button>
-                                    </span>
+                                    </div>
                                 );
                             })}
                         </div>

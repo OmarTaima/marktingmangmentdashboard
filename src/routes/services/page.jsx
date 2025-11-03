@@ -7,14 +7,16 @@ const ServicesPage = () => {
     const [services, setServices] = useState([]);
     const [inputEn, setInputEn] = useState("");
     const [inputAr, setInputAr] = useState("");
-    const [inputPrice, setInputPrice] = useState("");
-    const [inputQuantity, setInputQuantity] = useState("");
     const [inputDiscount, setInputDiscount] = useState("");
+    const [inputDiscountType, setInputDiscountType] = useState("percentage");
+    const [inputPrice, setInputPrice] = useState(""); // Added inputPrice state
+    const [inputDescription, setInputDescription] = useState("");
     const [editingIndex, setEditingIndex] = useState(-1);
     const [editingValue, setEditingValue] = useState("");
-    const [editingPrice, setEditingPrice] = useState("");
     const [editingDiscount, setEditingDiscount] = useState("");
-    const [editingQuantity, setEditingQuantity] = useState("");
+    const [editingDiscountType, setEditingDiscountType] = useState("percentage");
+    const [editingDescription, setEditingDescription] = useState("");
+    const [editingPrice, setEditingPrice] = useState(""); // Added editingPrice state
     const [activeCategory, setActiveCategory] = useState("all");
 
     const categories = [
@@ -35,10 +37,25 @@ const ServicesPage = () => {
                     .map((s, idx) => {
                         if (!s) return null;
                         if (typeof s === "string")
-                            return { id: `svc_${idx}_${Date.now()}`, en: s, ar: "", category: "other", discount: "", quantity: "" };
+                            return {
+                                id: `svc_${idx}_${Date.now()}`,
+                                en: s,
+                                ar: "",
+                                category: "other",
+                                discount: "",
+                                discountType: "percentage",
+                                description: "",
+                            };
                         // already object - ensure price, category, and discount exist
                         return s.id
-                            ? { ...s, price: s.price || "", category: s.category || "other", discount: s.discount || "", quantity: s.quantity || "" }
+                            ? {
+                                  ...s,
+                                  category: s.category || "other",
+                                  price: s.price || "",
+                                  discount: s.discount || "",
+                                  discountType: s.discountType || "percentage",
+                                  description: s.description || "",
+                              }
                             : {
                                   id: `svc_${idx}_${Date.now()}`,
                                   en: s.en || "",
@@ -46,7 +63,8 @@ const ServicesPage = () => {
                                   price: s.price || "",
                                   category: s.category || "other",
                                   discount: s.discount || "",
-                                  quantity: s.quantity || "",
+                                  discountType: s.discountType || "percentage",
+                                  description: s.description || "",
                               };
                     })
                     .filter(Boolean);
@@ -70,28 +88,36 @@ const ServicesPage = () => {
     const handleAdd = () => {
         const en = (inputEn || "").trim();
         const ar = (inputAr || "").trim();
-        const p = (inputPrice || "").trim();
-        const qty = (inputQuantity || "").toString().trim();
         const disc = (inputDiscount || "").trim();
-        if (!en && !ar) return;
-        // require price and validate
-        if (!p) {
-            alert(t("invalid_price") || "Please enter a valid price.");
-            return;
+        const discType = inputDiscountType || "percentage";
+        const desc = (inputDescription || "").trim();
+        const price = (inputPrice || "").toString().trim();
+        // allow adding services even when english/arabic fields are empty (no required inputs)
+        // validate discount if provided (type-aware)
+        if (disc) {
+            if (isNaN(Number(disc))) {
+                alert(t("invalid_discount") || "Please enter a valid discount.");
+                return;
+            }
+            const num = Number(disc);
+            if (discType === "percentage") {
+                if (num < 0 || num > 100) {
+                    alert(t("invalid_discount_percentage") || "Please enter a percentage between 0 and 100.");
+                    return;
+                }
+            } else {
+                if (num < 0) {
+                    alert(t("invalid_discount") || "Please enter a valid discount.");
+                    return;
+                }
+            }
         }
-        if (isNaN(Number(p))) {
-            alert(t("invalid_price") || "Please enter a valid price.");
-            return;
-        }
-        // validate quantity if provided
-        if (qty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
-            alert(t("invalid_quantity") || "Please enter a valid quantity.");
-            return;
-        }
-        // validate discount if provided
-        if (disc && isNaN(Number(disc))) {
-            alert(t("invalid_discount") || "Please enter a valid discount.");
-            return;
+        // validate price if provided
+        if (price) {
+            if (isNaN(Number(price)) || Number(price) < 0) {
+                alert(t("invalid_price") || "Please enter a valid price.");
+                return;
+            }
         }
         // avoid duplicates by English or Arabic label
         if (
@@ -99,19 +125,28 @@ const ServicesPage = () => {
         ) {
             setInputEn("");
             setInputAr("");
-            setInputPrice("");
             setInputDiscount("");
             return;
         }
         const category = activeCategory === "all" ? "other" : activeCategory;
-        const item = { id: `svc_${Date.now()}`, en: en || ar, ar: ar || en, price: p || "", discount: disc || "", category, quantity: qty || "" };
+        const item = {
+            id: `svc_${Date.now()}`,
+            en: en || ar,
+            ar: ar || en,
+            price: price || "",
+            discount: disc || "",
+            discountType: discType,
+            description: desc || "",
+            category,
+        };
         const next = [...services, item];
         persist(next);
         setInputEn("");
         setInputAr("");
-        setInputPrice("");
         setInputDiscount("");
-        setInputQuantity("");
+        setInputPrice("");
+        setInputDiscountType("percentage");
+        setInputDescription("");
     };
 
     const startEdit = (idx) => {
@@ -119,33 +154,44 @@ const ServicesPage = () => {
         const s = services[idx] || { en: "", ar: "", discount: "" };
         setEditingValue(s.en || "");
         setInputAr(s.ar || "");
-        setEditingPrice(s.price || "");
         setEditingDiscount(s.discount || "");
-        setEditingQuantity(s.quantity || "");
+        setEditingDiscountType(s.discountType || "percentage");
+        setEditingDescription(s.description || "");
+        setEditingPrice(s.price || "");
     };
 
     const saveEdit = (idx) => {
         const en = (editingValue || "").trim();
         const ar = (inputAr || "").trim();
-        const p = (editingPrice || "").trim();
-        const qty = (editingQuantity || "").toString().trim();
         const disc = (editingDiscount || "").trim();
-        if (!en && !ar) return;
-        if (!p) {
-            alert(t("invalid_price") || "Please enter a valid price.");
-            return;
+        const discType = editingDiscountType || "percentage";
+        const desc = (editingDescription || "").trim();
+        const price = (editingPrice || "").toString().trim();
+        // allow saving edits even when english/arabic fields are empty (no required inputs)
+        if (disc) {
+            if (isNaN(Number(disc))) {
+                alert(t("invalid_discount") || "Please enter a valid discount.");
+                return;
+            }
+            const num = Number(disc);
+            if (discType === "percentage") {
+                if (num < 0 || num > 100) {
+                    alert(t("invalid_discount_percentage") || "Please enter a percentage between 0 and 100.");
+                    return;
+                }
+            } else {
+                if (num < 0) {
+                    alert(t("invalid_discount") || "Please enter a valid discount.");
+                    return;
+                }
+            }
         }
-        if (isNaN(Number(p))) {
-            alert(t("invalid_price") || "Please enter a valid price.");
-            return;
-        }
-        if (qty && (!Number.isFinite(Number(qty)) || Number(qty) < 0)) {
-            alert(t("invalid_quantity") || "Please enter a valid quantity.");
-            return;
-        }
-        if (disc && isNaN(Number(disc))) {
-            alert(t("invalid_discount") || "Please enter a valid discount.");
-            return;
+        // validate price on edit
+        if (price) {
+            if (isNaN(Number(price)) || Number(price) < 0) {
+                alert(t("invalid_price") || "Please enter a valid price.");
+                return;
+            }
         }
         const next = services.slice();
         next[idx] = {
@@ -153,23 +199,25 @@ const ServicesPage = () => {
             id: next[idx]?.id || `svc_${Date.now()}`,
             en: en || ar,
             ar: ar || en,
-            price: p || "",
+            price: price || "",
             discount: disc || "",
-            quantity: qty || "",
+            discountType: discType,
+            description: desc || "",
             category: next[idx]?.category || "other",
         };
         persist(next);
         setEditingIndex(-1);
         setEditingValue("");
         setInputAr("");
-        setEditingPrice("");
         setEditingDiscount("");
-        setEditingQuantity("");
+        setEditingDiscountType("percentage");
+        setEditingDescription("");
+        setEditingPrice("");
     };
 
     const removeDiscount = (idx) => {
         const next = services.slice();
-        next[idx] = { ...(next[idx] || {}), discount: "" };
+        next[idx] = { ...(next[idx] || {}), discount: "", discountType: "percentage" };
         persist(next);
     };
 
@@ -227,32 +275,51 @@ const ServicesPage = () => {
                                                 <input
                                                     value={editingValue}
                                                     onChange={(e) => setEditingValue(e.target.value)}
-                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                     placeholder={t("english_label") || "English"}
                                                 />
                                                 <input
                                                     value={inputAr}
                                                     onChange={(e) => setInputAr(e.target.value)}
-                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                     placeholder={t("arabic_label") || "Arabic"}
-                                                />
-                                                <input
-                                                    value={editingPrice}
-                                                    onChange={(e) => setEditingPrice(e.target.value)}
-                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                    placeholder={t("service_price") || "Price"}
-                                                />
-                                                <input
-                                                    value={editingQuantity}
-                                                    onChange={(e) => setEditingQuantity(e.target.value)}
-                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                    placeholder={t("quantity") || "Quantity"}
                                                 />
                                                 <input
                                                     value={editingDiscount}
                                                     onChange={(e) => setEditingDiscount(e.target.value)}
-                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                                     placeholder={t("discount") || "Discount"}
+                                                />
+                                                <select
+                                                    value={editingDiscountType}
+                                                    onChange={(e) => setEditingDiscountType(e.target.value)}
+                                                    className="text-light-900 dark:border-dark-700 dark:text-dark-50 focus:border-light-500 w-1/6 appearance-none rounded-lg border bg-transparent px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                    style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                                                >
+                                                    <option
+                                                        value="percentage"
+                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                                    >
+                                                        {t("percentage") || "%"}
+                                                    </option>
+                                                    <option
+                                                        value="fixed"
+                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                                                    >
+                                                        {t("fixed") || "Fixed"}
+                                                    </option>
+                                                </select>
+                                                <input
+                                                    value={editingPrice}
+                                                    onChange={(e) => setEditingPrice(e.target.value)}
+                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                    placeholder={t("service_price") || "Price (optional)"}
+                                                />
+                                                <input
+                                                    value={editingDescription}
+                                                    onChange={(e) => setEditingDescription(e.target.value)}
+                                                    className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                    placeholder={t("service_description") || "Description (optional)"}
                                                 />
                                             </div>
                                         ) : (
@@ -268,22 +335,18 @@ const ServicesPage = () => {
                                                                 ? categories.find((c) => c.id === s.category)?.ar || ""
                                                                 : categories.find((c) => c.id === s.category)?.en || ""}
                                                         </span>
-                                                        {/* quantity (small) */}
-                                                        {s.quantity !== undefined && s.quantity !== "" && (
-                                                            <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                {t("quantity") || "Qty"}: {s.quantity}
-                                                            </span>
-                                                        )}
+                                                        {/* quantity removed from services list (adjust in packages) */}
                                                         {s.discount && (
                                                             <span className="mt-1 text-xs text-green-600 dark:text-green-400">
-                                                                {t("discount") || "Discount"}: {s.discount} {lang === "ar" ? "ج.م" : "EGP"}
+                                                                {t("discount") || "Discount"}: {s.discount}
+                                                                {s.discountType === "percentage" ? "%" : ` ${lang === "ar" ? "ج.م" : "EGP"}`}
                                                             </span>
+                                                        )}
+                                                        {s.description && (
+                                                            <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">{s.description}</span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-dark-700 dark:text-dark-400 text-sm">
-                                                            {s.price ? `${s.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
-                                                        </span>
                                                         {s.discount && (
                                                             <button
                                                                 onClick={() => removeDiscount(actualIndex)}
@@ -349,31 +412,50 @@ const ServicesPage = () => {
                         value={inputEn}
                         onChange={(e) => setInputEn(e.target.value)}
                         placeholder={t("add_custom_service_placeholder") || "Service (English)"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <input
                         value={inputAr}
                         onChange={(e) => setInputAr(e.target.value)}
                         placeholder={t("add_custom_service_placeholder_arabic") || "الخدمة (بالعربية)"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                     />
-                    <input
-                        value={inputPrice}
-                        onChange={(e) => setInputPrice(e.target.value)}
-                        placeholder={t("service_price") || "Price"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                    />
-                    <input
-                        value={inputQuantity}
-                        onChange={(e) => setInputQuantity(e.target.value)}
-                        placeholder={t("quantity") || "Qty"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                    />
+                    <select
+                        value={inputDiscountType}
+                        onChange={(e) => setInputDiscountType(e.target.value)}
+                        className="text-light-900 dark:border-dark-700 dark:text-dark-50 focus:border-light-500 w-1/6 appearance-none rounded-lg border bg-transparent px-2 py-2 text-sm transition-colors focus:outline-none"
+                        style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+                    >
+                        <option
+                            value="percentage"
+                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                        >
+                            {t("percentage") || "%"}
+                        </option>
+                        <option
+                            value="fixed"
+                            className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
+                        >
+                            {t("fixed") || "Fixed"}
+                        </option>
+                    </select>
                     <input
                         value={inputDiscount}
                         onChange={(e) => setInputDiscount(e.target.value)}
                         placeholder={t("discount_optional") || "Discount"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                    />
+                    <input
+                        value={inputPrice}
+                        onChange={(e) => setInputPrice(e.target.value)}
+                        placeholder={t("service_price") || "Price (optional)"}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/6 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                    />
+                    <input
+                        value={inputDescription}
+                        onChange={(e) => setInputDescription(e.target.value)}
+                        placeholder={t("service_description") || "Description (optional)"}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/3 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                     />
                     <button
                         onClick={handleAdd}
