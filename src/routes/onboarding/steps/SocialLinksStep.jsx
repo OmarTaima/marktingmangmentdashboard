@@ -46,7 +46,7 @@ const validatePlatformUrl = (url, platform) => {
     }
 };
 
-export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
+export const SocialLinksStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t, lang } = useLang();
     const [businessLinks, setBusinessLinks] = useState(() => {
         if (data.socialLinks?.business) {
@@ -55,7 +55,7 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
         return mainPlatforms.map((p) => ({ platform: p.name, url: "" }));
     });
     const [customLinks, setCustomLinks] = useState(data.socialLinks?.custom || []);
-    const [newCustom, setNewCustom] = useState({ platform: "", url: "" });
+    const [newCustom, setNewCustom] = useState(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
     const [urlErrors, setUrlErrors] = useState({});
 
     const handleBusinessLinkChange = (index, value) => {
@@ -108,8 +108,24 @@ export const SocialLinksStep = ({ data, onNext, onPrevious }) => {
                 business: businessLinks,
                 custom: customLinks,
             },
+            socialLinksDraft: { newCustom },
         });
     };
+
+    // Keep local lists in sync with parent data so entered values persist when navigating
+    useEffect(() => {
+        setBusinessLinks(data.socialLinks?.business || mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
+        setCustomLinks(data.socialLinks?.custom || []);
+    }, [data?.socialLinks]);
+
+    useEffect(() => {
+        setNewCustom(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
+    }, [data?.socialLinksDraft]);
+
+    useEffect(() => {
+        if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: customLinks } });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [businessLinks, customLinks]);
 
     return (
         <form

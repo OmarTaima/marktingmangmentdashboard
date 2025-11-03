@@ -10,7 +10,8 @@ const AddPackagePage = () => {
     const [price, setPrice] = useState("");
     const [featureInputEn, setFeatureInputEn] = useState("");
     const [featureInputAr, setFeatureInputAr] = useState("");
-    // features now stored as array of {en, ar}
+    const [featureQuantity, setFeatureQuantity] = useState("");
+    // features now stored as array of {en, ar, quantity}
     const [features, setFeatures] = useState([]);
     const [editingIndex, setEditingIndex] = useState(-1);
     const [nameError, setNameError] = useState("");
@@ -22,15 +23,15 @@ const AddPackagePage = () => {
             const stored = localStorage.getItem("packages_master");
             if (stored) {
                 const parsed = JSON.parse(stored) || [];
-                // normalize features to {en,ar} objects for backward compatibility
+                // normalize features to {en, ar, quantity} objects for backward compatibility
                 const normalized = parsed.map((pkg) => {
                     const next = { ...pkg };
                     if (Array.isArray(next.features)) {
                         next.features = next.features.map((f) => {
-                            if (!f) return { en: "", ar: "" };
-                            if (typeof f === "string") return { en: f, ar: f };
-                            if (typeof f === "object") return { en: f.en || f.text || "", ar: f.ar || f.en || "" };
-                            return { en: String(f), ar: String(f) };
+                            if (!f) return { en: "", ar: "", quantity: "" };
+                            if (typeof f === "string") return { en: f, ar: f, quantity: "" };
+                            if (typeof f === "object") return { en: f.en || f.text || "", ar: f.ar || f.en || "", quantity: f.quantity || "" };
+                            return { en: String(f), ar: String(f), quantity: "" };
                         });
                     } else {
                         next.features = [];
@@ -54,6 +55,7 @@ const AddPackagePage = () => {
     const addFeature = () => {
         const en = (featureInputEn || "").trim();
         const ar = (featureInputAr || "").trim();
+        const qty = (featureQuantity || "").trim();
         if (!en && !ar) return;
         // language checks: english input must not contain Arabic chars; arabic input must not contain Latin letters
         const containsArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(en);
@@ -67,16 +69,18 @@ const AddPackagePage = () => {
             return;
         }
         setFeatureError("");
-        const fobj = { en: en || ar, ar: ar || en };
+        const fobj = { en: en || ar, ar: ar || en, quantity: qty };
         // avoid duplicate features by english text
         if (features.some((x) => (x.en || "").toLowerCase() === (fobj.en || "").toLowerCase())) {
             setFeatureInputEn("");
             setFeatureInputAr("");
+            setFeatureQuantity("");
             return;
         }
         setFeatures((prev) => [...prev, fobj]);
         setFeatureInputEn("");
         setFeatureInputAr("");
+        setFeatureQuantity("");
     };
 
     const removeFeature = (idx) => {
@@ -115,6 +119,7 @@ const AddPackagePage = () => {
         setPrice("");
         setFeatureInputEn("");
         setFeatureInputAr("");
+        setFeatureQuantity("");
         setFeatures([]);
     };
 
@@ -127,6 +132,7 @@ const AddPackagePage = () => {
         setFeatures(Array.isArray(s.features) ? s.features.slice() : []);
         setFeatureInputEn("");
         setFeatureInputAr("");
+        setFeatureQuantity("");
     };
 
     const saveEdit = (idx) => {
@@ -168,6 +174,7 @@ const AddPackagePage = () => {
         setPrice("");
         setFeatureInputEn("");
         setFeatureInputAr("");
+        setFeatureQuantity("");
         setFeatures([]);
     };
 
@@ -226,7 +233,7 @@ const AddPackagePage = () => {
 
                 <div className="mt-3">
                     <label className="text-dark-700 dark:text-dark-400 text-sm">{t("package_features") || "Features (one at a time)"}</label>
-                    <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+                    <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
                         <input
                             value={featureInputEn}
                             onChange={(e) => setFeatureInputEn(e.target.value)}
@@ -236,7 +243,7 @@ const AddPackagePage = () => {
                                     addFeature();
                                 }
                             }}
-                            placeholder={t("feature_placeholder") || "e.g., 10 posts / month"}
+                            placeholder={t("feature_placeholder") || "e.g., Reels"}
                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <input
@@ -248,7 +255,20 @@ const AddPackagePage = () => {
                                     addFeature();
                                 }
                             }}
-                            placeholder={t("feature_placeholder_ar") || "مثال: 10 منشورات / شهر"}
+                            placeholder={t("feature_placeholder_ar") || "مثال: ریلز"}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        />
+                        <input
+                            type="number"
+                            value={featureQuantity}
+                            onChange={(e) => setFeatureQuantity(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addFeature();
+                                }
+                            }}
+                            placeholder={t("quantity") || "Quantity (e.g., 12)"}
                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <div className="flex items-center">
@@ -264,15 +284,19 @@ const AddPackagePage = () => {
                     </div>
 
                     {features && features.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2 md:col-span-3">
+                        <div className="mt-3 flex flex-wrap gap-2 md:col-span-4">
                             {features.map((f, idx) => {
                                 const label = lang === "ar" ? f.ar || f.en : f.en || f.ar;
+                                const qtyText = f.quantity ? ` (${f.quantity})` : "";
                                 return (
                                     <span
                                         key={`feat-${idx}`}
                                         className="bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                     >
-                                        <span>{label}</span>
+                                        <span>
+                                            {label}
+                                            {qtyText}
+                                        </span>
                                         <button
                                             type="button"
                                             onClick={() => removeFeature(idx)}
@@ -320,6 +344,7 @@ const AddPackagePage = () => {
                                     setFeatures([]);
                                     setFeatureInputEn("");
                                     setFeatureInputAr("");
+                                    setFeatureQuantity("");
                                 }}
                                 className="btn-ghost flex items-center gap-2"
                             >
@@ -353,12 +378,16 @@ const AddPackagePage = () => {
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {p.features.map((f, fi) => {
                                                 const label = lang === "ar" ? f.ar || f.en : f.en || f.ar;
+                                                const qtyText = f.quantity ? ` (${f.quantity})` : "";
                                                 return (
                                                     <span
                                                         key={`${p.id}-feat-${fi}`}
                                                         className="bg-light-100 text-dark-800 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs"
                                                     >
-                                                        <span>{label}</span>
+                                                        <span>
+                                                            {label}
+                                                            {qtyText}
+                                                        </span>
                                                         <button
                                                             onClick={() => removeFeatureFromPackage(idx, fi)}
                                                             className="text-dark-500 hover:text-danger-500 inline-flex items-center justify-center rounded-full p-1"

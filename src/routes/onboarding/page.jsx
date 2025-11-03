@@ -93,7 +93,65 @@ const OnboardingPage = () => {
 
     const handleNext = (stepData) => {
         // Build an updated snapshot combining current formData and incoming step data.
-        const updatedFormData = stepData ? { ...formData, [Object.keys(stepData)[0]]: stepData[Object.keys(stepData)[0]] } : { ...formData };
+        let updatedFormData = stepData ? { ...formData, ...stepData } : { ...formData };
+
+        // If this is the last step (Complete button), commit any remaining drafts
+        if (currentStep === steps.length - 1) {
+            // Commit branchesDraft if it has any non-empty value
+            if (updatedFormData.branchesDraft) {
+                const d = updatedFormData.branchesDraft;
+                if ((d.name && d.name.trim()) || (d.address && d.address.trim()) || (d.phone && d.phone.trim())) {
+                    updatedFormData.branches = [...(updatedFormData.branches || []), d];
+                }
+                delete updatedFormData.branchesDraft;
+            }
+
+            // Commit segmentsDraft if it has any non-empty value
+            if (updatedFormData.segmentsDraft) {
+                const sd = updatedFormData.segmentsDraft;
+                const has = Object.values(sd).some((v) => !!(v && String(v).trim()));
+                if (has) updatedFormData.segments = [...(updatedFormData.segments || []), sd];
+                delete updatedFormData.segmentsDraft;
+            }
+
+            // Commit socialLinksDraft.newCustom if it exists
+            if (updatedFormData.socialLinksDraft && updatedFormData.socialLinksDraft.newCustom) {
+                const nc = updatedFormData.socialLinksDraft.newCustom;
+                if ((nc.platform && nc.platform.trim()) || (nc.url && nc.url.trim())) {
+                    updatedFormData.socialLinks = updatedFormData.socialLinks || { business: [], custom: [] };
+                    updatedFormData.socialLinks.custom = [...(updatedFormData.socialLinks.custom || []), nc];
+                }
+                delete updatedFormData.socialLinksDraft;
+            }
+
+            // Commit swotDraftInputs if any
+            if (updatedFormData.swotDraftInputs) {
+                updatedFormData.swot = updatedFormData.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+                const inputs = updatedFormData.swotDraftInputs;
+                if (inputs.strength && inputs.strength.trim())
+                    updatedFormData.swot.strengths = [...updatedFormData.swot.strengths, inputs.strength.trim()];
+                if (inputs.weakness && inputs.weakness.trim())
+                    updatedFormData.swot.weaknesses = [...updatedFormData.swot.weaknesses, inputs.weakness.trim()];
+                if (inputs.opportunity && inputs.opportunity.trim())
+                    updatedFormData.swot.opportunities = [...updatedFormData.swot.opportunities, inputs.opportunity.trim()];
+                if (inputs.threat && inputs.threat.trim()) updatedFormData.swot.threats = [...updatedFormData.swot.threats, inputs.threat.trim()];
+                delete updatedFormData.swotDraftInputs;
+            }
+
+            // Commit currentCompetitorDraft if it exists
+            if (updatedFormData.competitorsDraft || updatedFormData.currentCompetitorDraft) {
+                const cd = updatedFormData.competitorsDraft || updatedFormData.currentCompetitorDraft;
+                const has = Object.values(cd).some((v) => {
+                    if (Array.isArray(v)) return v.length > 0;
+                    if (typeof v === "object" && v !== null)
+                        return Object.values(v).some((val) => (Array.isArray(val) ? val.length > 0 : !!(val && String(val).trim())));
+                    return !!(v && String(v).trim());
+                });
+                if (has) updatedFormData.competitors = [...(updatedFormData.competitors || []), cd];
+                delete updatedFormData.competitorsDraft;
+                delete updatedFormData.currentCompetitorDraft;
+            }
+        }
 
         // persist immediately to state
         setFormData(updatedFormData);
@@ -158,8 +216,7 @@ const OnboardingPage = () => {
     const handlePrevious = (stepData) => {
         // optionally merge step data before going back
         if (stepData) {
-            const stepKey = Object.keys(stepData)[0];
-            setFormData((prev) => ({ ...prev, [stepKey]: stepData[stepKey] }));
+            setFormData((prev) => ({ ...prev, ...stepData }));
         }
 
         if (currentStep > 0) {

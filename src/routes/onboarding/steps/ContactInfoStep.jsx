@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
 import fieldValidations from "@/constants/validations";
 
-export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
+export const ContactInfoStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t, lang } = useLang();
     const [formData, setFormData] = useState(
         data.contact || {
@@ -54,6 +54,18 @@ export const ContactInfoStep = ({ data, onNext, onPrevious }) => {
         }
         if (typeof onUpdate === "function") onUpdate({ contact: next });
     };
+
+    // Keep formData synced with parent data so values persist when navigating
+    useEffect(() => {
+        setFormData(
+            data.contact || {
+                businessPhone: "",
+                businessWhatsApp: "",
+                businessEmail: "",
+                website: "",
+            },
+        );
+    }, [data?.contact]);
 
     return (
         <form

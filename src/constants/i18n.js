@@ -834,4 +834,45 @@ ar.global_quotation = "عرض عام";
 ar.global_client_name = "اسم العرض";
 ar.quotation_name_placeholder = "مثال: عرض لمشتري محتمل";
 
+// New Features
+en.quantity = "Quantity";
+en.discount = "Discount";
+en.discount_optional = "Discount (optional)";
+en.discount_type = "Discount Type";
+en.discount_value = "Discount Value";
+en.percentage = "Percentage (%)";
+en.fixed_amount = "Fixed Amount";
+en.subtotal = "Subtotal";
+en.quotation_note = "Note (optional)";
+en.quotation_note_placeholder = "Add any additional notes or comments...";
+en.note = "Note";
+en.edit = "Edit";
+en.delete = "Delete";
+en.download = "Download";
+en.update_quotation = "Update Quotation";
+en.confirm_delete_quotation = "Are you sure you want to delete this quotation?";
+en.remove_discount = "Remove Discount";
+en.invalid_discount = "Please enter a valid discount";
+en.custom_quotation = "Custom Quotation";
+
+ar.quantity = "الكمية";
+ar.discount = "الخصم";
+ar.discount_optional = "الخصم (اختياري)";
+ar.discount_type = "نوع الخصم";
+ar.discount_value = "قيمة الخصم";
+ar.percentage = "نسبة مئوية (%)";
+ar.fixed_amount = "مبلغ ثابت";
+ar.subtotal = "المجموع الفرعي";
+ar.quotation_note = "ملاحظة (اختياري)";
+ar.quotation_note_placeholder = "أضف أي ملاحظات أو تعليقات إضافية...";
+ar.note = "ملاحظة";
+ar.edit = "تعديل";
+ar.delete = "حذف";
+ar.download = "تحميل";
+ar.update_quotation = "تحديث العرض";
+ar.confirm_delete_quotation = "هل أنت متأكد من حذف هذا العرض؟";
+ar.remove_discount = "إزالة الخصم";
+ar.invalid_discount = "الرجاء إدخال خصم صالح";
+ar.custom_quotation = "عرض مخصص";
+
 export default { en, ar };

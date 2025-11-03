@@ -5,10 +5,10 @@ import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
 
-export const BranchesStep = ({ data, onNext, onPrevious }) => {
+export const BranchesStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t, lang } = useLang();
     const [branches, setBranches] = useState(data?.branches || []);
-    const [currentBranch, setCurrentBranch] = useState({ name: "", address: "", phone: "" });
+    const [currentBranch, setCurrentBranch] = useState(data?.branchesDraft || { name: "", address: "", phone: "" });
     const [errors, setErrors] = useState({});
 
     const handleAddBranch = () => {
@@ -43,8 +43,9 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
 
         const next = [...branches, { name: name?.trim() || "", address: address?.trim() || "", phone: normalizedPhone }];
         setBranches(next);
-        if (typeof onUpdate === "function") onUpdate({ branches: next });
-        setCurrentBranch({ name: "", address: "", phone: "" });
+        const emptyBranch = { name: "", address: "", phone: "" };
+        if (typeof onUpdate === "function") onUpdate({ branches: next, branchesDraft: emptyBranch });
+        setCurrentBranch(emptyBranch);
         setErrors({});
     };
 
@@ -56,14 +57,23 @@ export const BranchesStep = ({ data, onNext, onPrevious }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onNext({ branches });
+        onNext({ branches, branchesDraft: currentBranch });
     };
 
     useEffect(() => {
-        // keep parent in sync if initial data changed externally
+        // sync local state to parent whenever branches change
         if (typeof onUpdate === "function") onUpdate({ branches });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [branches]);
+
+    // Keep local state in sync when parent `data` changes (for example when navigating between steps)
+    useEffect(() => {
+        setBranches(data?.branches || []);
+    }, [data?.branches]);
+
+    useEffect(() => {
+        setCurrentBranch(data?.branchesDraft || { name: "", address: "", phone: "" });
+    }, [data?.branchesDraft]);
 
     return (
         <form

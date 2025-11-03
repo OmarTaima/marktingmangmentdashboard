@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
 import fieldValidations from "@/constants/validations";
 
-export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
+export const BusinessInfoStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
     const [formData, setFormData] = useState(
         data.business || {
@@ -44,6 +44,19 @@ export const BusinessInfoStep = ({ data, onNext, onPrevious }) => {
         setFormData(next);
         if (typeof onUpdate === "function") onUpdate({ business: next });
     };
+
+    // Keep formData synced with parent data so values persist when navigating
+    useEffect(() => {
+        setFormData(
+            data.business || {
+                businessName: "",
+                category: "",
+                description: "",
+                mainOfficeAddress: "",
+                establishedYear: "",
+            },
+        );
+    }, [data?.business]);
 
     return (
         <form

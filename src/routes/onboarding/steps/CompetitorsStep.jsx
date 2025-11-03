@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
@@ -6,20 +6,23 @@ import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
 import fieldValidations from "@/constants/validations";
 
-export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
+export const CompetitorsStep = ({ data, onNext, onPrevious, isLast, onUpdate }) => {
     const { t } = useLang();
     const [competitors, setCompetitors] = useState(data.competitors || []);
     const [expandedIndex, setExpandedIndex] = useState(null);
-    const [currentCompetitor, setCurrentCompetitor] = useState({
-        name: "",
-        description: "",
-        website: "",
-        facebook: "",
-        instagram: "",
-        tiktok: "",
-        twitter: "",
-        swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
-    });
+    const [currentCompetitor, setCurrentCompetitor] = useState(
+        data.competitorsDraft ||
+            data.currentCompetitorDraft || {
+                name: "",
+                description: "",
+                website: "",
+                facebook: "",
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+            },
+    );
 
     const [swotInput, setSwotInput] = useState({
         strength: "",
@@ -87,8 +90,34 @@ export const CompetitorsStep = ({ data, onNext, onPrevious, isLast }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onNext({ competitors });
+        onNext({ competitors, competitorsDraft: currentCompetitor });
     };
+
+    // Keep competitors and current competitor draft synced with parent data
+    useEffect(() => {
+        setCompetitors(data.competitors || []);
+    }, [data?.competitors]);
+
+    useEffect(() => {
+        setCurrentCompetitor(
+            data.competitorsDraft ||
+                data.currentCompetitorDraft || {
+                    name: "",
+                    description: "",
+                    website: "",
+                    facebook: "",
+                    instagram: "",
+                    tiktok: "",
+                    twitter: "",
+                    swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+                },
+        );
+    }, [data?.competitorsDraft, data?.currentCompetitorDraft]);
+
+    useEffect(() => {
+        if (typeof onUpdate === "function") onUpdate({ competitors });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [competitors]);
 
     return (
         <form

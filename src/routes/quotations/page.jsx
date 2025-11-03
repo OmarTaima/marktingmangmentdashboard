@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, FileText, Loader2, Check, Trash2 } from "lucide-react";
+import { Plus, FileText, Loader2, Check, Trash2, Edit2, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 
@@ -23,6 +23,10 @@ const QuotationsPage = () => {
 
     const [quotations, setQuotations] = useState([]);
     const [isEditing, setIsEditing] = useState(true);
+    const [quotationNote, setQuotationNote] = useState("");
+    // discounts are percentage-only now
+    const [discountValue, setDiscountValue] = useState("");
+    const [editingQuotationId, setEditingQuotationId] = useState(null);
 
     const loadClients = () => {
         try {
@@ -169,6 +173,11 @@ const QuotationsPage = () => {
         setCustomPrice("");
     };
 
+    const calculateDiscount = (subtotal) => {
+        const val = Number(discountValue || 0);
+        return (subtotal * val) / 100;
+    };
+
     const createQuotation = () => {
         if (!selectedServices.length) return;
         const services = selectedServices.map((identifier) => {
@@ -177,20 +186,73 @@ const QuotationsPage = () => {
             const price = Number(servicesPricing[identifier] || (found ? priceOf(found) : 0));
             return { id: identifier, name, price };
         });
-        const total = services.reduce((a, b) => a + Number(b.price || 0), 0);
+        const subtotal = services.reduce((a, b) => a + Number(b.price || 0), 0);
+        const discountAmount = calculateDiscount(subtotal);
+        const total = subtotal - discountAmount;
         const clientIdKey = selectedClientId === "global" || !selectedClientId ? "global" : selectedClientId;
         const clientName =
             selectedClientId === "global"
                 ? globalClientName || t("global_quotation") || "Global Quotation"
                 : selectedClient?.business?.businessName || "";
-        const q = { id: `quotation_${Date.now()}`, createdAt: new Date().toISOString(), clientId: clientIdKey, clientName, services, total };
-        const updated = [...(quotations || []), q];
+        const q = {
+            id: editingQuotationId || `quotation_${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            clientId: clientIdKey,
+            clientName,
+            services,
+            subtotal,
+            discountValue: discountValue || "0",
+            discountAmount,
+            total,
+            note: quotationNote || "",
+        };
+
+        let updated;
+        if (editingQuotationId) {
+            updated = quotations.map((qt) => (qt.id === editingQuotationId ? q : qt));
+        } else {
+            updated = [...(quotations || []), q];
+        }
         setQuotations(updated);
         try {
             const storageKey = clientIdKey === "global" ? `quotations_global` : `quotations_${clientIdKey}`;
             localStorage.setItem(storageKey, JSON.stringify(updated));
         } catch (e) {}
         setIsEditing(false);
+        setEditingQuotationId(null);
+    };
+
+    const editQuotation = (q) => {
+        setEditingQuotationId(q.id);
+        setSelectedServices(q.services.map((s) => s.id));
+        const pricing = {};
+        q.services.forEach((s) => {
+            pricing[s.id] = s.price;
+        });
+        setServicesPricing(pricing);
+        setQuotationNote(q.note || "");
+        setDiscountValue(q.discountValue || "");
+        setIsEditing(true);
+    };
+
+    const cancelEdit = () => {
+        setEditingQuotationId(null);
+        setIsEditing(false);
+        setSelectedServices([]);
+        setServicesPricing({});
+        setQuotationNote("");
+        setDiscountValue("");
+    };
+
+    const deleteQuotation = (qId) => {
+        if (!confirm(t("confirm_delete_quotation") || "Delete this quotation?")) return;
+        const updated = quotations.filter((q) => q.id !== qId);
+        setQuotations(updated);
+        const clientIdKey = selectedClientId === "global" || !selectedClientId ? "global" : selectedClientId;
+        try {
+            const storageKey = clientIdKey === "global" ? `quotations_global` : `quotations_${clientIdKey}`;
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+        } catch (e) {}
     };
 
     const download = (q) => {
@@ -328,7 +390,7 @@ const QuotationsPage = () => {
                                             }}
                                             className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 pr-10 text-sm transition-all ${
                                                 sel
-                                                    ? "border-light-500 bg-light-500 dark:border-secdark-200 dark:bg-secdark-200 dark:text-dark-50 text-white"
+                                                    ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
                                                     : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
                                             } ${!isEditing ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                         >
@@ -416,33 +478,93 @@ const QuotationsPage = () => {
                                 <p className="text-light-600 dark:text-dark-50 text-sm">
                                     {t("selected_services_count") || "Selected"}: {selectedServices.length}
                                 </p>
+                                <p className="text-light-900 dark:text-dark-50 text-base">
+                                    {t("subtotal") || "Subtotal"}: {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0)}{" "}
+                                    {lang === "ar" ? "ج.م" : "EGP"}
+                                </p>
+                                {discountValue && Number(discountValue) > 0 && (
+                                    <p className="text-light-600 dark:text-dark-400 text-sm">
+                                        {t("discount") || "Discount"}: {`${discountValue}%`} (-
+                                        {calculateDiscount(selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0))}{" "}
+                                        {lang === "ar" ? "ج.م" : "EGP"})
+                                    </p>
+                                )}
                                 <p className="text-light-900 dark:text-dark-50 text-lg font-bold">
-                                    {t("total") || "Total"}: {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0)}{" "}
+                                    {t("total") || "Total"}:{" "}
+                                    {selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0) -
+                                        calculateDiscount(selectedServices.reduce((sum, id) => sum + Number(servicesPricing[id] || 0), 0))}{" "}
                                     {lang === "ar" ? "ج.م" : "EGP"}
                                 </p>
                             </div>
                             <div>
                                 {isEditing ? (
-                                    <button
-                                        onClick={createQuotation}
-                                        disabled={selectedServices.length === 0}
-                                        className="btn-primary flex items-center gap-2"
-                                    >
-                                        <FileText size={16} />
-                                        {t("create_quotation") || "Create Quotation"}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={createQuotation}
+                                            disabled={selectedServices.length === 0}
+                                            className="btn-primary flex items-center gap-2"
+                                        >
+                                            <FileText size={16} />
+                                            {editingQuotationId
+                                                ? t("update_quotation") || "Update Quotation"
+                                                : t("create_quotation") || "Create Quotation"}
+                                        </button>
+                                        {editingQuotationId && (
+                                            <button
+                                                onClick={cancelEdit}
+                                                className="btn-ghost"
+                                                type="button"
+                                            >
+                                                {t("cancel") || "Cancel"}
+                                            </button>
+                                        )}
+                                    </div>
                                 ) : (
                                     <button
                                         onClick={() => {
                                             setIsEditing(true);
                                             setSelectedServices([]);
                                             setServicesPricing({});
+                                            setQuotationNote("");
+                                            setDiscountValue("");
                                         }}
                                         className="btn-ghost"
                                     >
                                         {t("create_another") || "Create another"}
                                     </button>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
+                                    {t("quotation_note") || "Note (optional)"}
+                                </label>
+                                <textarea
+                                    value={quotationNote}
+                                    onChange={(e) => setQuotationNote(e.target.value)}
+                                    placeholder={t("quotation_note_placeholder") || "Add any additional notes or comments..."}
+                                    rows={3}
+                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-transparent px-3 py-2 text-sm focus:ring-0 focus:outline-none"
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
+                                        {t("discount_value") || "Discount Value (%)"}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={discountValue}
+                                        onChange={(e) => setDiscountValue(e.target.value)}
+                                        placeholder="0-100"
+                                        min="0"
+                                        max="100"
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-transparent px-3 py-2 text-sm focus:ring-0 focus:outline-none"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -458,12 +580,25 @@ const QuotationsPage = () => {
                                         key={q.id}
                                         className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 flex items-start justify-between rounded-lg border p-3"
                                     >
-                                        <div>
+                                        <div className="flex-1">
                                             <div className="text-light-600 dark:text-dark-400 font-medium">
                                                 {q.clientName} — {new Date(q.createdAt).toLocaleString()}
                                             </div>
                                             <div className="text-light-600 dark:text-dark-400 mt-1 text-sm">
                                                 {q.services.map((s) => `${s.name} (${s.price})`).join(", ")}
+                                            </div>
+                                            {q.note && (
+                                                <div className="text-light-500 dark:text-dark-500 mt-2 text-xs italic">
+                                                    {t("note") || "Note"}: {q.note}
+                                                </div>
+                                            )}
+                                            <div className="mt-2 text-sm">
+                                                {q.discountValue && Number(q.discountValue) > 0 && (
+                                                    <div className="text-light-600 dark:text-dark-400">
+                                                        {t("discount") || "Discount"}: {`${q.discountValue}%`} (-{q.discountAmount || 0}{" "}
+                                                        {lang === "ar" ? "ج.م" : "EGP"})
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -471,10 +606,25 @@ const QuotationsPage = () => {
                                                 {q.total} {lang === "ar" ? "ج.م" : "EGP"}
                                             </div>
                                             <button
+                                                onClick={() => editQuotation(q)}
+                                                className="btn-ghost"
+                                                title={t("edit") || "Edit"}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
                                                 onClick={() => download(q)}
                                                 className="btn-ghost"
+                                                title={t("download") || "Download"}
                                             >
                                                 <FileText size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteQuotation(q.id)}
+                                                className="btn-ghost text-danger-500"
+                                                title={t("delete") || "Delete"}
+                                            >
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>

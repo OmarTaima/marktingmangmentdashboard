@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
 import fieldValidations from "@/constants/validations";
 
-export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
+export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst, onUpdate }) => {
     const { t, lang } = useLang();
     const [formData, setFormData] = useState(
         data.personal || {
@@ -50,6 +50,18 @@ export const PersonalInfoStep = ({ data, onNext, onPrevious, isFirst }) => {
         }
         if (typeof onUpdate === "function") onUpdate({ personal: next });
     };
+
+    // Keep formData synced with parent data so values persist when navigating
+    useEffect(() => {
+        setFormData(
+            data.personal || {
+                fullName: "",
+                email: "",
+                phone: "",
+                position: "",
+            },
+        );
+    }, [data?.personal]);
 
     return (
         <form

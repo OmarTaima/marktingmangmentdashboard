@@ -66,7 +66,7 @@ SwotSection.propTypes = {
     placeholder: PropTypes.string.isRequired,
 };
 
-export const SwotStep = ({ data, onNext, onPrevious }) => {
+export const SwotStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
     const [swot, setSwot] = useState(
         data.swot || {
@@ -77,12 +77,14 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
         },
     );
 
-    const [inputs, setInputs] = useState({
-        strength: "",
-        weakness: "",
-        opportunity: "",
-        threat: "",
-    });
+    const [inputs, setInputs] = useState(
+        data.swotDraftInputs || {
+            strength: "",
+            weakness: "",
+            opportunity: "",
+            threat: "",
+        },
+    );
 
     const handleAdd = (category, inputKey) => {
         const value = inputs[inputKey];
@@ -107,9 +109,31 @@ export const SwotStep = ({ data, onNext, onPrevious }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [swot]);
 
+    // sync with parent data when it changes (preserve values when navigating)
+    useEffect(() => {
+        setSwot(data.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] });
+    }, [data?.swot]);
+
+    useEffect(() => {
+        setInputs(
+            data.swotDraftInputs || {
+                strength: "",
+                weakness: "",
+                opportunity: "",
+                threat: "",
+            },
+        );
+    }, [data?.swotDraftInputs]);
+
+    // Persist partially-typed SWOT inputs so they are not lost when navigating away
+    useEffect(() => {
+        if (typeof onUpdate === "function") onUpdate({ swotDraftInputs: inputs });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [inputs]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        onNext({ swot });
+        onNext({ swot, swotDraftInputs: inputs });
     };
 
     return (

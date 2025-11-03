@@ -1,20 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import fieldValidations from "@/constants/validations";
 
-export const SegmentsStep = ({ data, onNext, onPrevious }) => {
+export const SegmentsStep = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
     const [segments, setSegments] = useState(data.segments || []);
-    const [currentSegment, setCurrentSegment] = useState({
-        name: "",
-        description: "",
-        targetAge: "",
-        targetGender: "",
-        interests: "",
-        income: "",
-    });
+    const [currentSegment, setCurrentSegment] = useState(
+        data.segmentsDraft || {
+            name: "",
+            description: "",
+            targetAge: "",
+            targetGender: "",
+            interests: "",
+            income: "",
+        },
+    );
 
     const [errors, setErrors] = useState({});
 
@@ -32,15 +34,16 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
         setErrors(newErrors);
         const next = [...segments, currentSegment];
         setSegments(next);
-        if (typeof onUpdate === "function") onUpdate({ segments: next });
-        setCurrentSegment({
+        const emptySegment = {
             name: "",
             description: "",
             targetAge: "",
             targetGender: "",
             interests: "",
             income: "",
-        });
+        };
+        if (typeof onUpdate === "function") onUpdate({ segments: next, segmentsDraft: emptySegment });
+        setCurrentSegment(emptySegment);
         setErrors({});
     };
 
@@ -52,8 +55,31 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onNext({ segments });
+        onNext({ segments, segmentsDraft: currentSegment });
     };
+
+    // Keep segments synced with parent data so values persist when navigating
+    useEffect(() => {
+        setSegments(data.segments || []);
+    }, [data?.segments]);
+
+    useEffect(() => {
+        setCurrentSegment(
+            data.segmentsDraft || {
+                name: "",
+                description: "",
+                targetAge: "",
+                targetGender: "",
+                interests: "",
+                income: "",
+            },
+        );
+    }, [data?.segmentsDraft]);
+
+    useEffect(() => {
+        if (typeof onUpdate === "function") onUpdate({ segments });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [segments]);
 
     return (
         <form
@@ -71,8 +97,10 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                         type="text"
                         value={currentSegment.name}
                         onChange={(e) => {
-                            setCurrentSegment({ ...currentSegment, name: e.target.value });
+                            const next = { ...currentSegment, name: e.target.value };
+                            setCurrentSegment(next);
                             if (errors.name) setErrors({ ...errors, name: "" });
+                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
                         placeholder={t("segment_name_placeholder")}
                         className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.name ? "border-danger-500" : "border-light-600"}`}
@@ -85,8 +113,10 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                     <textarea
                         value={currentSegment.description}
                         onChange={(e) => {
-                            setCurrentSegment({ ...currentSegment, description: e.target.value });
+                            const next = { ...currentSegment, description: e.target.value };
+                            setCurrentSegment(next);
                             if (errors.description) setErrors({ ...errors, description: "" });
+                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
                         rows={2}
                         placeholder={t("describe_segment_placeholder")}
@@ -104,7 +134,9 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                             onChange={(e) => {
                                 // Only allow numbers and dashes
                                 const value = e.target.value.replace(/[^0-9-]/g, "");
-                                setCurrentSegment({ ...currentSegment, targetAge: value });
+                                const next = { ...currentSegment, targetAge: value };
+                                setCurrentSegment(next);
+                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
                             placeholder={t("age_range_placeholder")}
                             className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
@@ -114,7 +146,11 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                         <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("gender")}</label>
                         <select
                             value={currentSegment.targetGender}
-                            onChange={(e) => setCurrentSegment({ ...currentSegment, targetGender: e.target.value })}
+                            onChange={(e) => {
+                                const next = { ...currentSegment, targetGender: e.target.value };
+                                setCurrentSegment(next);
+                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                            }}
                             className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                         >
                             <option value="">{t("all")}</option>
@@ -130,7 +166,11 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                     <input
                         type="text"
                         value={currentSegment.interests}
-                        onChange={(e) => setCurrentSegment({ ...currentSegment, interests: e.target.value })}
+                        onChange={(e) => {
+                            const next = { ...currentSegment, interests: e.target.value };
+                            setCurrentSegment(next);
+                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                        }}
                         placeholder={t("interests_placeholder")}
                         className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     />
@@ -140,7 +180,11 @@ export const SegmentsStep = ({ data, onNext, onPrevious }) => {
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("income_level")}</label>
                     <select
                         value={currentSegment.income}
-                        onChange={(e) => setCurrentSegment({ ...currentSegment, income: e.target.value })}
+                        onChange={(e) => {
+                            const next = { ...currentSegment, income: e.target.value };
+                            setCurrentSegment(next);
+                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                        }}
                         className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     >
                         <option value="">{t("select")}</option>
