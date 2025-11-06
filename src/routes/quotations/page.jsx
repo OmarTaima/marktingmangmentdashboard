@@ -409,7 +409,7 @@ const QuotationsPage = () => {
 
                     {selectedClientId === "global" && (
                         <div className="card">
-                            <label className="text-light-600 dark:bg-dark-50 mb-2 block text-sm">
+                            <label className="text-light-600 dark:bg-dark-900 dark:text-dark-50 text-md mb-2 font-medium">
                                 {t("global_client_name") || "Quotation Name (optional)"}
                             </label>
                             <input
