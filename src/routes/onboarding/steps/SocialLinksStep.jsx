@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Plus, Trash2, Facebook, Instagram } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
