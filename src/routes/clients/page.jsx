@@ -31,7 +31,7 @@ const ClientsPage = () => {
 
     const handleToPlanning = (clientId) => {
         localStorage.setItem("selectedClientId", clientId);
-        navigate(`/planning`);
+        navigate(`/strategies`);
     };
 
     return (

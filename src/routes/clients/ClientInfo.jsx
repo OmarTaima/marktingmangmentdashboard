@@ -1,11 +1,61 @@
-import React from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Users, Mail, Phone, MapPin } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import validators from "@/constants/validators";
-import { useMemo } from "react";
 
 const ClientInfo = ({ client, compact = false, editing = false, draft = null, setDraft = null }) => {
-    const { t } = useLang();
+    const { t, lang } = useLang();
+    const [clientPlans, setClientPlans] = useState([]);
+    const [clientObjectives, setClientObjectives] = useState([]);
+    const [draftDate, setDraftDate] = useState(null);
+
+    useEffect(() => {
+        if (!client || !client.id) {
+            setClientPlans([]);
+            setClientObjectives([]);
+            return;
+        }
+        try {
+            // Prefer transient draft saved by the planning/strategy page so ClientInfo shows live edits
+            const draftKey = `plan_draft_${client.id}`;
+            const draftRaw = localStorage.getItem(draftKey);
+            if (draftRaw) {
+                try {
+                    const parsedDraft = JSON.parse(draftRaw) || {};
+                    setClientPlans(parsedDraft ? [parsedDraft] : []);
+                    setClientObjectives(parsedDraft.objectives || []);
+                    // compute draft date if id uses plan_{ts}
+                    if (parsedDraft && parsedDraft.id && parsedDraft.id.includes("plan_")) {
+                        const parts = (parsedDraft.id || "").split("_");
+                        const ts = Number(parts[1]) || 0;
+                        if (ts) setDraftDate(new Date(ts));
+                    }
+                    return;
+                } catch (e) {
+                    // fall back to saved plans
+                }
+            }
+
+            const saved = localStorage.getItem(`plans_${client.id}`);
+            if (saved) {
+                const parsed = JSON.parse(saved) || [];
+                setClientPlans(parsed);
+                const first = parsed[0];
+                setClientObjectives((first && first.objectives) || []);
+                if (first && first.id && first.id.includes("plan_")) {
+                    const parts = (first.id || "").split("_");
+                    const ts = Number(parts[1]) || 0;
+                    if (ts) setDraftDate(new Date(ts));
+                }
+            } else {
+                setClientPlans([]);
+                setClientObjectives([]);
+            }
+        } catch (e) {
+            setClientPlans([]);
+            setClientObjectives([]);
+        }
+    }, [client && client.id]);
     if (!client && !draft) return null;
     const data = editing && draft ? draft : client;
 
@@ -351,6 +401,41 @@ const ClientInfo = ({ client, compact = false, editing = false, draft = null, se
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Objectives overview (per-client) */}
+            <div className="card transition-colors duration-300">
+                <div className="flex items-start justify-between">
+                    <h3 className="card-title mb-4">{t("objectives_overview") || t("campaign_objective") || "Objectives"}</h3>
+                    {draftDate ? (
+                        <div className="text-light-600 dark:text-dark-400 ml-4 text-right text-sm">
+                            {t("created_on") || "Created:"} {draftDate.toLocaleString()}
+                        </div>
+                    ) : null}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    {clientObjectives && clientObjectives.length > 0 ? (
+                        clientObjectives.map((obj) => (
+                            <div
+                                key={obj.id}
+                                className="border-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3"
+                            >
+                                <div className="text-light-900 dark:text-dark-50 mb-2 text-sm">
+                                    <strong className="text-light-600 dark:text-dark-400 mr-1 text-xs">EN:</strong>
+                                    {obj.en || obj.ar}
+                                </div>
+                                <div className="text-light-900 dark:text-dark-50 text-sm">
+                                    <strong className="text-light-600 dark:text-dark-400 mr-1 text-xs">AR:</strong>
+                                    {obj.ar || obj.en}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-light-600 dark:text-dark-400 col-span-full text-sm">
+                            {t("no_objectives") || "No objectives added yet."}
                         </div>
                     )}
                 </div>

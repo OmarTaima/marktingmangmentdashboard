@@ -45,9 +45,9 @@ export const navbarLinks = [
                 path: "/onboarding",
             },
             {
-                label: "Stratigies",
+                label: "Strategies",
                 icon: NotepadText,
-                path: "/planning",
+                path: "/strategies",
             },
             {
                 label: "Quotations",

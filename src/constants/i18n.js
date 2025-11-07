@@ -33,7 +33,7 @@ const en = {
     Reports: "Reports",
     "Client Management": "Client Management",
     "New Client": "New Client",
-    Planning: "Planning",
+    Planning: "Strategies",
     Campaigns: "Campaigns",
     Packages: "Packages",
     Contracts: "Contracts",
@@ -92,6 +92,11 @@ const en = {
     add_competitor: "Add Competitor",
     added_competitors: "Added Competitors ({count})",
     description: "Description",
+
+    // Packages / Package description
+    package_description: "Package description",
+    package_description_en: "Package description (English)",
+    package_description_ar: "Package description (Arabic)",
 
     // Segments
     target_segments: "Target Segments",
@@ -189,7 +194,7 @@ const ar = {
     Reports: "التقارير",
     "Client Management": "إدارة العملاء",
     "New Client": "عميل جديد",
-    Planning: "التخطيط",
+    Planning: "الاستراتيجيات",
     Campaigns: "الحملات",
     Packages: "الباقات",
     Contracts: "العقود",
@@ -248,6 +253,11 @@ const ar = {
     add_competitor: "إضافة منافس",
     added_competitors: "المنافسون المضافون ({count})",
     description: "الوصف",
+
+    // Packages / Package description
+    package_description: "وصف الباقة",
+    package_description_en: "وصف الباقة (بالإنجليزية)",
+    package_description_ar: "وصف الباقة (بالعربية)",
 
     // Segments
     target_segments: "الشرائح المستهدفة",
@@ -312,18 +322,20 @@ en.custom_quotation = "Custom Quotation";
 ar.custom_quotation = "عرض سعر مخصص";
 
 // Planning / Campaign page translations
-en.campaign_planning = "Campaign Planning";
-en.campaign_planning_subtitle = "Create strategic plans for your clients";
-en.select_a_client_to_plan = "Select a Client to Plan";
+en.campaign_planning = "Campaign Strategy";
+en.campaign_planning_subtitle = "Create campaign strategies for your clients";
+en.select_a_client_to_plan = "Select a Client to Create Strategy";
 en.select_a_client_to_preview = "Select a Client to Preview";
 en.unnamed_client = "Unnamed Client";
 en.no_category = "No Category";
-en.plan_button = "Plan";
+en.plan_button = "Create Strategy";
 en.add_your_first_client = "Add Your First Client";
 en.campaign_objective = "Campaign Objective";
 en.objective_en = "Objective (English)";
 en.objective_ar = "Objective (Arabic)";
 en.no_objectives = "No objectives added yet.";
+en.objectives_overview = "Plan Overview";
+en.created_on = "Created:";
 en.objective_placeholder = "What are the main goals for this campaign? (e.g., Increase brand awareness, drive sales, grow social following)";
 en.strategic_approach = "Strategic Approach";
 en.strategy_en = "Strategy (English)";
@@ -336,11 +348,11 @@ en.budget_usd = "Budget (EGP)";
 en.timeline = "Timeline";
 en.final_strategy_document = "Final Strategy Document";
 en.download_strategy = "Download Strategy";
-en.save_plan = "Save Plan";
-en.edit_plan = "Edit Plan";
-en.new_plan = "New Plan";
-en.untitled_plan = "Untitled Plan";
-en.confirm_delete_plan = "Are you sure you want to delete this plan?";
+en.save_plan = "Save Strategy";
+en.edit_plan = "Edit Strategy";
+en.new_plan = "New Strategy";
+en.untitled_plan = "Untitled Strategy";
+en.confirm_delete_plan = "Are you sure you want to delete this strategy?";
 en.add_custom_service_placeholder = "Add custom service in English";
 en.add_custom_service_placeholder_arabic = "Add Custom Service in Arabic";
 en.manage_services = "Manage Services";
@@ -348,13 +360,13 @@ en.manage_services_sub = "Create, edit and remove services that will be availabl
 en.confirm_delete_service = "Are you sure you want to delete this service?";
 en.no_services_defined = "No services defined yet.";
 en.no_clients_found = "No clients found";
-en.plan_saved_success = "✅ Plan saved successfully!";
+en.plan_saved_success = "✅ Strategy saved successfully!";
 en.please_select_client_first = "Please select a client first";
 en.contact_label = "Contact:";
 en.email_label = "Email:";
 en.business_name_label = "Business:";
 en.business_category_label = "Category:";
-en.no_clients_found_for_plan = "No plan found for this client.";
+en.no_clients_found_for_plan = "No strategy found for this client.";
 en.please_complete_onboarding = "Please complete the onboarding process first.";
 en.hide = "Hide";
 en.show = "Show";
@@ -381,7 +393,7 @@ en.services_selected = "{count} selected";
 en.no_client_selected = "No client selected";
 en.select_client = "Select Client";
 en.download_contract = "Download Contract";
-en.create_a_plan_first = "Create a plan first";
+en.create_a_plan_first = "Create a strategy first";
 // Contract quick-insert translations
 en.add_term = "Add Term";
 en.terms_placeholder = "Enter a term ";
@@ -402,7 +414,7 @@ en.segments_label = "Segments";
 en.competitors_label = "Competitors";
 en.swot_items = "SWOT Items";
 en.view_details = "View Details";
-en.plan_campaign = "Plan Campaign";
+en.plan_campaign = "Campaign Strategy";
 en.client_not_found = "Client not found";
 en.client_details = "Client Details";
 en.edit_client = "Edit Client";
@@ -430,8 +442,8 @@ en.age_label = "Age:";
 en.gender_label = "Gender:";
 
 // Arabic translations for new keys
-ar.new_plan = "خطة جديدة";
-ar.untitled_plan = "خطة غير مسماة";
+ar.new_plan = "استراتيجية جديدة";
+ar.untitled_plan = "استراتيجية غير مسماة";
 ar.confirm_delete_plan = "هل أنت متأكد أنك تريد حذف هذه الخطة؟";
 
 // Contract quick-insert translations (Arabic)
@@ -474,17 +486,19 @@ ar["Analytics & Reporting"] = "التحليلات والتقارير";
 ar["Community Management"] = "إدارة المجتمعات";
 ar["Brand Strategy"] = "استراتيجية العلامة التجارية";
 
-ar.campaign_planning = "تخطيط الحملة";
-ar.campaign_planning_subtitle = "إنشاء خطط استراتيجية لعملائك";
-ar.select_a_client_to_plan = "اختر عميلاً للتخطيط";
+ar.campaign_planning = "استراتيجية الحملة";
+ar.campaign_planning_subtitle = "إنشاء استراتيجيات الحملة لعملائك";
+ar.select_a_client_to_plan = "اختر عميلاً لوضع استراتيجية";
 ar.unnamed_client = "عميل بدون اسم";
 ar.no_category = "بدون فئة";
-ar.plan_button = "ابدأ التخطيط";
+ar.plan_button = "ابدأ الاستراتيجية";
 ar.add_your_first_client = "أضف عميلك الأول";
 ar.campaign_objective = "هدف الحملة";
 ar.objective_en = "الهدف (بالإنجليزية)";
 ar.objective_ar = "الهدف (بالعربية)";
 ar.no_objectives = "لم يتم إضافة أهداف بعد.";
+ar.objectives_overview = "نظرة عامة على الخطه";
+ar.created_on = "تاريخ الإنشاء:";
 ar.objective_placeholder = "ما هي الأهداف الرئيسية لهذه الحملة؟ (مثل: زيادة الوعي بالعلامة التجارية، زيادة المبيعات، نمو المتابعين)";
 ar.strategic_approach = "النهج الاستراتيجي";
 ar.strategy_en = "الاستراتيجية (بالإنجليزية)";
@@ -497,10 +511,10 @@ ar.budget_usd = "الميزانية (ج.م)";
 ar.timeline = "الجدول الزمني";
 ar.final_strategy_document = "وثيقة الاستراتيجية النهائية";
 ar.download_strategy = "تحميل الاستراتيجية";
-ar.save_plan = "حفظ الخطة";
-ar.edit_plan = "تعديل الخطة";
+ar.save_plan = "حفظ الاستراتيجية";
+ar.edit_plan = "تعديل الاستراتيجية";
 ar.no_clients_found = "لم يتم العثور على عملاء";
-ar.plan_saved_success = "✅ تم حفظ الخطة بنجاح!";
+ar.plan_saved_success = "✅ تم حفظ الاستراتيجية بنجاح!";
 ar.please_select_client_first = "الرجاء اختيار عميل أولاً";
 ar.add_custom_service_placeholder = "اضف خدمات مخصصه باللغه الانجليزيه";
 ar.add_custom_service_placeholder_arabic = "اضف خدمات مخصصه باللغه العربيه";

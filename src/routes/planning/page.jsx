@@ -211,9 +211,18 @@ const PlanningPage = () => {
         // allow adding even when fields are empty (no required inputs)
 
         const newStrategy = { id: `strat_${Date.now()}`, en: en || ar, ar: ar || en };
-        setStrategies([...strategies, newStrategy]);
+        const next = [...strategies, newStrategy];
+        setStrategies(next);
         setStrategyInputEn("");
         setStrategyInputAr("");
+
+        // Immediately persist transient draft so other components see the change right away
+        try {
+            if (selectedClientId) {
+                const draft = { ...planData, objectives: objectives || [], strategies: next || [], id: selectedPlanId || null };
+                localStorage.setItem(`plan_draft_${selectedClientId}`, JSON.stringify(draft));
+            }
+        } catch (e) {}
     };
 
     const startEditStrategy = (idx) => {
@@ -234,10 +243,23 @@ const PlanningPage = () => {
         setEditingStrategyIndex(-1);
         setStrategyInputEn("");
         setStrategyInputAr("");
+        try {
+            if (selectedClientId) {
+                const draft = { ...planData, objectives: objectives || [], strategies: updated || [], id: selectedPlanId || null };
+                localStorage.setItem(`plan_draft_${selectedClientId}`, JSON.stringify(draft));
+            }
+        } catch (e) {}
     };
 
     const removeStrategy = (idx) => {
-        setStrategies(strategies.filter((_, i) => i !== idx));
+        const updated = strategies.filter((_, i) => i !== idx);
+        setStrategies(updated);
+        try {
+            if (selectedClientId) {
+                const draft = { ...planData, objectives: objectives || [], strategies: updated || [], id: selectedPlanId || null };
+                localStorage.setItem(`plan_draft_${selectedClientId}`, JSON.stringify(draft));
+            }
+        } catch (e) {}
     };
 
     useEffect(() => {
@@ -470,6 +492,10 @@ const PlanningPage = () => {
         setPlanData(toSave);
         setIsEditing(false);
         setPlanErrors({});
+        // clear any transient draft saved while editing
+        try {
+            localStorage.removeItem(`plan_draft_${selectedClientId}`);
+        } catch (e) {}
         alert(t("plan_saved_success"));
     };
 
@@ -495,7 +521,24 @@ const PlanningPage = () => {
         setObjectives([]);
         setStrategies([]);
         setIsEditing(true);
+        // create an empty draft for the new plan so other components can show live state
+        try {
+            localStorage.setItem(`plan_draft_${selectedClientId}`, JSON.stringify({ ...newPlan, objectives: [], strategies: [], id: newPlan.id }));
+        } catch (e) {}
     };
+
+    // Persist transient draft so ClientInfo (and other components) can read live edits
+    useEffect(() => {
+        if (!selectedClientId) return;
+        // only persist when editing (live changes)
+        if (!isEditing) return;
+        try {
+            const draft = { ...planData, objectives: objectives || [], strategies: strategies || [], id: selectedPlanId || null };
+            localStorage.setItem(`plan_draft_${selectedClientId}`, JSON.stringify(draft));
+        } catch (e) {
+            // ignore storage errors
+        }
+    }, [objectives, strategies, planData, selectedClientId, isEditing]);
 
     const handleSelectPlan = (planId) => {
         const plan = plans.find((p) => p.id === planId);
@@ -940,6 +983,8 @@ const PlanningPage = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* objectives grid moved to ClientInfo for per-client overview */}
 
                             {/* Services */}
                             <div className="card transition-colors duration-300 lg:col-span-2">

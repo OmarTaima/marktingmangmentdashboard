@@ -51,9 +51,21 @@ const PackagesPage = () => {
                     }
                     const discountedPrice = Math.max(0, priceNum - discountAmount);
 
+                    // resolve description (support string or {en,ar})
+                    let descText = "";
+                    try {
+                        if (p.description) {
+                            if (typeof p.description === "string") descText = p.description;
+                            else if (typeof p.description === "object") descText = lang === "ar" ? (p.description.ar || p.description.en || "") : (p.description.en || p.description.ar || "");
+                        }
+                    } catch (e) {
+                        descText = "";
+                    }
+
                     return {
                         id: p.id || `pkg_${Date.now()}`,
                         name: (lang === "ar" ? p.ar || p.en : p.en || p.ar) || p.name || "",
+                        description: descText,
                         price: p.price || "",
                         priceNum,
                         discount: discountVal || "",
@@ -120,6 +132,8 @@ const PackagesPage = () => {
                                     )}
                                 </div>
                             </div>
+                            {pkg.description ? <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{pkg.description}</p> : null}
+
                             <ul className="space-y-2 sm:space-y-3">
                                 {pkg.items.map((item, index) => (
                                     <li

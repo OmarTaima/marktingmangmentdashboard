@@ -7,6 +7,8 @@ const AddPackagePage = () => {
     const [packages, setPackages] = useState([]);
     const [nameEn, setNameEn] = useState("");
     const [nameAr, setNameAr] = useState("");
+    const [descriptionEn, setDescriptionEn] = useState("");
+    const [descriptionAr, setDescriptionAr] = useState("");
     const [price, setPrice] = useState("");
     const [discount, setDiscount] = useState("");
     const [discountType, setDiscountType] = useState("percentage");
@@ -40,6 +42,21 @@ const AddPackagePage = () => {
                         });
                     } else {
                         next.features = [];
+                    }
+                    // normalize description to {en, ar} when loading from storage (support string or object)
+                    try {
+                        if (typeof next.description === "string") {
+                            next.description = { en: next.description || "", ar: next.description || "" };
+                        } else if (next.description && typeof next.description === "object") {
+                            next.description = {
+                                en: next.description.en || next.description?.en || "",
+                                ar: next.description.ar || next.description?.ar || next.description.en || "",
+                            };
+                        } else {
+                            next.description = { en: "", ar: "" };
+                        }
+                    } catch (e) {
+                        next.description = { en: "", ar: "" };
                     }
                     return next;
                 });
@@ -222,10 +239,14 @@ const AddPackagePage = () => {
         }
         setDiscountError("");
 
+        const descEn = (descriptionEn || "").trim();
+        const descAr = (descriptionAr || "").trim();
+
         const item = {
             id: `pkg_${Date.now()}`,
             en: en || ar,
             ar: ar || en,
+            description: { en: descEn || descAr, ar: descAr || descEn },
             price: p || "",
             discount: disc || "",
             discountType: discountType || "percentage",
@@ -235,6 +256,8 @@ const AddPackagePage = () => {
         persist(next);
         setNameEn("");
         setNameAr("");
+    setDescriptionEn("");
+    setDescriptionAr("");
         setPrice("");
         setDiscount("");
         setDiscountType("percentage");
@@ -249,6 +272,9 @@ const AddPackagePage = () => {
         const s = packages[idx] || { en: "", ar: "", price: "", discount: "", discountType: "percentage", features: [] };
         setNameEn(s.en || "");
         setNameAr(s.ar || "");
+        // support string or object descriptions
+        setDescriptionEn(s.description && typeof s.description === "object" ? (s.description.en || "") : (s.description || ""));
+        setDescriptionAr(s.description && typeof s.description === "object" ? (s.description.ar || "") : (s.description || ""));
         setPrice(s.price || "");
         setDiscount(s.discount || "");
         setDiscountType(s.discountType || "percentage");
@@ -279,6 +305,8 @@ const AddPackagePage = () => {
     const saveEdit = (idx) => {
         const en = (nameEn || "").trim();
         const ar = (nameAr || "").trim();
+        const descEn = (descriptionEn || "").trim();
+        const descAr = (descriptionAr || "").trim();
         const p = (price || "").trim();
         const disc = (discount || "").trim();
         // allow saving package edits even when name fields are empty (no required inputs)
@@ -319,6 +347,7 @@ const AddPackagePage = () => {
             id: next[idx]?.id || `pkg_${Date.now()}`,
             en: en || ar,
             ar: ar || en,
+            description: { en: descEn || descAr, ar: descAr || descEn },
             price: p || "",
             discount: disc || "",
             discountType: discountType || "percentage",
@@ -328,6 +357,8 @@ const AddPackagePage = () => {
         setEditingIndex(-1);
         setNameEn("");
         setNameAr("");
+        setDescriptionEn("");
+        setDescriptionAr("");
         setPrice("");
         setDiscount("");
         setDiscountType("percentage");
@@ -420,6 +451,27 @@ const AddPackagePage = () => {
                     />
                 </div>
                 {discountError && <p className="text-danger-500 mt-1 text-xs">{discountError}</p>}
+
+                {/* Package description inputs (English / Arabic) */}
+                <div className="mt-4">
+                    <label className="text-dark-700 dark:text-dark-400 text-sm">{t("package_description") || "Package description"}</label>
+                    <div className="mt-2 grid gap-4 lg:grid-cols-2">
+                    <textarea
+                        value={descriptionEn}
+                        onChange={(e) => setDescriptionEn(e.target.value)}
+                        placeholder={t("package_description_en") || "Package description (English)"}
+                        rows={3}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                    />
+                    <textarea
+                        value={descriptionAr}
+                        onChange={(e) => setDescriptionAr(e.target.value)}
+                        placeholder={t("package_description_ar") || "وصف الباقة (بالعربية)"}
+                        rows={3}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                    />
+                    </div>
+                </div>
 
                 <div className="mt-3">
                     {/* Available services quick-add */}
@@ -601,6 +653,8 @@ const AddPackagePage = () => {
                                     setEditingIndex(-1);
                                     setNameEn("");
                                     setNameAr("");
+                                    setDescriptionEn("");
+                                    setDescriptionAr("");
                                     setPrice("");
                                     setFeatures([]);
                                     setFeatureInputEn("");
@@ -634,6 +688,17 @@ const AddPackagePage = () => {
                                             {p.price ? `${p.price} ${lang === "ar" ? "ج.م" : "EGP"}` : ""}
                                         </div>
                                     </div>
+
+                                    {(() => {
+                                        // Safely resolve description (support string or {en,ar})
+                                        const raw = p.description;
+                                        let desc = "";
+                                        if (raw) {
+                                            if (typeof raw === "string") desc = raw;
+                                            else if (typeof raw === "object") desc = lang === "ar" ? (raw.ar || raw.en || "") : (raw.en || raw.ar || "");
+                                        }
+                                        return desc ? <p className="text-light-600 mt-1 text-sm">{desc}</p> : null;
+                                    })()}
 
                                     {Array.isArray(p.features) && p.features.length > 0 && (
                                         <div className="mt-2 flex flex-wrap gap-2">

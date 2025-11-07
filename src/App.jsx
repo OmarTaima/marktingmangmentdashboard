@@ -27,7 +27,7 @@ function App() {
                     { path: "onboarding", element: <OnboardingPage /> },
                     { path: "clients", element: <ClientsPage /> },
                     { path: "clients/:id", element: <ClientDetailPage /> },
-                    { path: "planning", element: <PlanningPage /> },
+                    { path: "strategies", element: <PlanningPage /> },
                     { path: "services", element: <ServicesPage /> },
                     { path: "quotations", element: <QuotationsPage /> },
                     { path: "packages", element: <PackagesPage /> },

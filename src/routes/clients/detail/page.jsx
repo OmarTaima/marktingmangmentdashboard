@@ -163,7 +163,7 @@ const ClientDetailPage = () => {
                     <button
                         onClick={() => {
                             localStorage.setItem("selectedClientId", id);
-                            navigate("/planning");
+                            navigate("/strategies");
                         }}
                         className="btn-primary btn-sm flex items-center gap-2"
                     >
