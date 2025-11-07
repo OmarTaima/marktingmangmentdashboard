@@ -56,7 +56,8 @@ const PackagesPage = () => {
                     try {
                         if (p.description) {
                             if (typeof p.description === "string") descText = p.description;
-                            else if (typeof p.description === "object") descText = lang === "ar" ? (p.description.ar || p.description.en || "") : (p.description.en || p.description.ar || "");
+                            else if (typeof p.description === "object")
+                                descText = lang === "ar" ? p.description.ar || p.description.en || "" : p.description.en || p.description.ar || "";
                         }
                     } catch (e) {
                         descText = "";

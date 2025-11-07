@@ -256,8 +256,8 @@ const AddPackagePage = () => {
         persist(next);
         setNameEn("");
         setNameAr("");
-    setDescriptionEn("");
-    setDescriptionAr("");
+        setDescriptionEn("");
+        setDescriptionAr("");
         setPrice("");
         setDiscount("");
         setDiscountType("percentage");
@@ -273,8 +273,8 @@ const AddPackagePage = () => {
         setNameEn(s.en || "");
         setNameAr(s.ar || "");
         // support string or object descriptions
-        setDescriptionEn(s.description && typeof s.description === "object" ? (s.description.en || "") : (s.description || ""));
-        setDescriptionAr(s.description && typeof s.description === "object" ? (s.description.ar || "") : (s.description || ""));
+        setDescriptionEn(s.description && typeof s.description === "object" ? s.description.en || "" : s.description || "");
+        setDescriptionAr(s.description && typeof s.description === "object" ? s.description.ar || "" : s.description || "");
         setPrice(s.price || "");
         setDiscount(s.discount || "");
         setDiscountType(s.discountType || "percentage");
@@ -456,20 +456,20 @@ const AddPackagePage = () => {
                 <div className="mt-4">
                     <label className="text-dark-700 dark:text-dark-400 text-sm">{t("package_description") || "Package description"}</label>
                     <div className="mt-2 grid gap-4 lg:grid-cols-2">
-                    <textarea
-                        value={descriptionEn}
-                        onChange={(e) => setDescriptionEn(e.target.value)}
-                        placeholder={t("package_description_en") || "Package description (English)"}
-                        rows={3}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                    />
-                    <textarea
-                        value={descriptionAr}
-                        onChange={(e) => setDescriptionAr(e.target.value)}
-                        placeholder={t("package_description_ar") || "وصف الباقة (بالعربية)"}
-                        rows={3}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                    />
+                        <textarea
+                            value={descriptionEn}
+                            onChange={(e) => setDescriptionEn(e.target.value)}
+                            placeholder={t("package_description_en") || "Package description (English)"}
+                            rows={3}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        />
+                        <textarea
+                            value={descriptionAr}
+                            onChange={(e) => setDescriptionAr(e.target.value)}
+                            placeholder={t("package_description_ar") || "وصف الباقة (بالعربية)"}
+                            rows={3}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        />
                     </div>
                 </div>
 
@@ -695,7 +695,7 @@ const AddPackagePage = () => {
                                         let desc = "";
                                         if (raw) {
                                             if (typeof raw === "string") desc = raw;
-                                            else if (typeof raw === "object") desc = lang === "ar" ? (raw.ar || raw.en || "") : (raw.en || raw.ar || "");
+                                            else if (typeof raw === "object") desc = lang === "ar" ? raw.ar || raw.en || "" : raw.en || raw.ar || "";
                                         }
                                         return desc ? <p className="text-light-600 mt-1 text-sm">{desc}</p> : null;
                                     })()}
