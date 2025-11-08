@@ -461,14 +461,14 @@ const AddPackagePage = () => {
                             onChange={(e) => setDescriptionEn(e.target.value)}
                             placeholder={t("package_description_en") || "Package description (English)"}
                             rows={3}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                         <textarea
                             value={descriptionAr}
                             onChange={(e) => setDescriptionAr(e.target.value)}
                             placeholder={t("package_description_ar") || "وصف الباقة (بالعربية)"}
                             rows={3}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                         />
                     </div>
                 </div>
