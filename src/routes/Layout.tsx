@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "../Layouts/Sidebar";
@@ -28,6 +29,10 @@ const Layout = () => {
     const { lang } = useLang();
     const isArabic = lang === "ar";
 
+    const { pathname } = useLocation();
+    // Hide header/sidebar on auth routes (login/register) and root login
+    const hideNav = pathname === "/" || pathname.startsWith("/auth");
+
     // Adjust layout margin depending on language and collapse state
     const mdOffsetClass = collapsed ? (isArabic ? "md:mr-20" : "md:ml-20") : isArabic ? "md:mr-[240px]" : "md:ml-[240px]";
 
@@ -43,25 +48,28 @@ const Layout = () => {
                 )}
             />
 
-            {/* Sidebar */}
-            <Sidebar
-                ref={sidebarRef}
-                {...({ collapsed, setCollapsed } as any)}
-            />
-
-            {/* Main content area */}
-            <div className={cn("flex flex-col transition-[margin] duration-300", mdOffsetClass, baseOffsetClass)}>
-                {/* Header */}
-                <Header
-                    collapsed={collapsed}
-                    setCollapsed={setCollapsed}
-                />
-
-                {/* Routed content */}
-                <main className="h-[calc(100vh-60px)] overflow-x-hidden overflow-y-auto p-6">
+            {/* Sidebar + Main content area (hidden on auth/login) */}
+            {!hideNav ? (
+                <>
+                    <Sidebar
+                        ref={sidebarRef}
+                        {...({ collapsed, setCollapsed } as any)}
+                    />
+                    <div className={cn("flex flex-col transition-[margin] duration-300", mdOffsetClass, baseOffsetClass)}>
+                        <Header
+                            collapsed={collapsed}
+                            setCollapsed={setCollapsed}
+                        />
+                        <main className="h-[calc(100vh-60px)] overflow-x-hidden overflow-y-auto p-6">
+                            <Outlet />
+                        </main>
+                    </div>
+                </>
+            ) : (
+                <div className="flex min-h-screen items-center justify-center">
                     <Outlet />
-                </main>
-            </div>
+                </div>
+            )}
         </div>
     );
 };

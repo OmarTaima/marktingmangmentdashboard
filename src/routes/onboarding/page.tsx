@@ -7,7 +7,6 @@ import { ContactInfoStep } from "./steps/ContactInfoStep";
 import { BranchesStep } from "./steps/BranchesStep";
 import { SocialLinksStep } from "./steps/SocialLinksStep";
 import { SwotStep } from "./steps/SwotStep";
-import { SegmentsStep } from "./steps/SegmentsStep";
 import { CompetitorsStep } from "./steps/CompetitorsStep";
 
 import { useLang } from "@/hooks/useLang";
@@ -26,8 +25,6 @@ type OnboardingData = {
     socialLinksDraft?: any;
     swot?: Swot;
     swotDraftInputs?: Record<string, string> | null;
-    segments?: any[];
-    segmentsDraft?: any;
     competitors?: any[];
     competitorsDraft?: any;
     currentCompetitorDraft?: any;
@@ -42,8 +39,7 @@ const steps: StepDef[] = [
     { id: 4, name: "Branches", component: BranchesStep },
     { id: 5, name: "Social Links", component: SocialLinksStep },
     { id: 6, name: "SWOT Analysis", component: SwotStep },
-    { id: 7, name: "Target Segments", component: SegmentsStep },
-    { id: 8, name: "Competitors", component: CompetitorsStep },
+    { id: 7, name: "Competitors", component: CompetitorsStep },
 ];
 
 const OnboardingPage: FC = () => {
@@ -57,7 +53,6 @@ const OnboardingPage: FC = () => {
         branches: [],
         socialLinks: { business: [], personal: [] },
         swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
-        segments: [],
         competitors: [],
     });
     const [searchParams] = useSearchParams();
@@ -82,7 +77,6 @@ const OnboardingPage: FC = () => {
                         branches: client.branches || [],
                         socialLinks: client.socialLinks || { business: [], personal: [] },
                         swot: client.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
-                        segments: client.segments || [],
                         competitors: client.competitors || [],
                     });
                 }
@@ -145,14 +139,6 @@ const OnboardingPage: FC = () => {
                     updatedFormData.branches = [...(updatedFormData.branches || []), d];
                 }
                 delete updatedFormData.branchesDraft;
-            }
-
-            // Commit segmentsDraft if it has any non-empty value
-            if (updatedFormData.segmentsDraft) {
-                const sd = updatedFormData.segmentsDraft;
-                const has = Object.values(sd).some((v) => !!(v && String(v).trim()));
-                if (has) updatedFormData.segments = [...(updatedFormData.segments || []), sd];
-                delete updatedFormData.segmentsDraft;
             }
 
             // Commit socialLinksDraft.newCustom if it exists

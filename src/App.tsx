@@ -2,6 +2,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "./contexts/themeContext";
 import { LangProvider } from "./contexts/langContext";
 import Layout from "./routes/Layout";
+import LoginPage from "./routes/auth/login/page";
+import RegisterPage from "./routes/auth/register/page";
 import DashboardPage from "./routes/dashboard/page";
 import OnboardingPage from "./routes/onboarding/page";
 import ClientsPage from "./routes/clients/page";
@@ -23,7 +25,10 @@ function App() {
                 path: "/",
                 element: <Layout />,
                 children: [
-                    { index: true, element: <DashboardPage /> },
+                    { index: true, element: <LoginPage /> },
+                    { path: "auth/login", element: <LoginPage /> },
+                    { path: "auth/register", element: <RegisterPage /> },
+                    { path: "dashboard", element: <DashboardPage /> },
                     { path: "onboarding", element: <OnboardingPage /> },
                     { path: "clients", element: <ClientsPage /> },
                     { path: "clients/:id", element: <ClientDetailPage /> },

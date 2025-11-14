@@ -46,15 +46,6 @@ export interface SWOT {
     threats: string[];
 }
 
-export interface Segment {
-    _id: string;
-    name: string;
-    description: string;
-    ageFrom: number;
-    ageTo: number;
-    gender: string;
-}
-
 export interface Competitor {
     _id: string;
     name: string;
@@ -74,7 +65,6 @@ export interface Client {
     branches: Branch[];
     socialLinks: SocialLinks;
     swot: SWOT;
-    segments: Segment[];
     competitors: Competitor[];
     createdAt: string;
     updatedAt: string;
