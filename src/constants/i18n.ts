@@ -26,6 +26,17 @@ const en: Record<string, string> = {
     terms_of_service: "Terms of Service",
     copyright: "© 2024 XD Code All Rights Reserved",
     app_name: "Saber Group",
+    // Auth
+    login: "Login",
+    logging_in: "Logging in...",
+    register: "Register",
+    registering: "Registering...",
+    email: "Email",
+    password: "Password",
+    remember_me: "Remember me",
+    forgot_password: "Forgot password?",
+    no_account: "Don't have an account?",
+    have_account: "Already have an account?",
     // Navbar groups and links (keys match constants/index.jsx strings)
     Overview: "Overview",
     Dashboard: "Dashboard",
@@ -184,6 +195,17 @@ const ar: Record<string, string> = {
     terms_of_service: "شروط الخدمة",
     copyright: "© 2024 جميع الحقوق محفوظة",
     app_name: "صابر جروب",
+    // Auth
+    login: "تسجيل الدخول",
+    logging_in: "جارٍ تسجيل الدخول...",
+    register: "تسجيل",
+    registering: "جارٍ التسجيل...",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    remember_me: "تذكرني",
+    forgot_password: "نسيت كلمة المرور؟",
+    no_account: "لا تملك حسابًا؟",
+    have_account: "هل لديك حساب؟",
     // Navbar groups and links
     Overview: "نظرة عامة",
     Dashboard: "لوحة القيادة",
@@ -415,6 +437,17 @@ en.plan_campaign = "Campaign Strategy";
 en.client_not_found = "Client not found";
 en.client_details = "Client Details";
 en.edit_client = "Edit Client";
+en.search_clients = "Search clients...";
+en.all_statuses = "All Statuses";
+en.active = "Active";
+en.inactive = "Inactive";
+en.pending = "Pending";
+en.apply_filters = "Apply Filters";
+en.export = "Export";
+en.export_csv = "Export to CSV";
+en.exporting = "Exporting...";
+en.refresh = "Refresh";
+en.loading_clients = "Loading clients...";
 en.client_overview = "Client Overview";
 en.contact_information = "Contact Information";
 en.main_office = "Main Office";
@@ -437,6 +470,10 @@ en.no_competitors_tracked = "No competitors tracked";
 en.social_media = "Social Media";
 en.age_label = "Age:";
 en.gender_label = "Gender:";
+// Misc client/detail translations
+en.save = "Save";
+en.remove_segment = "Remove Segment";
+en.segment_description_placeholder = "Describe this market segment...";
 
 // Arabic translations for new keys
 ar.new_plan = "استراتيجية جديدة";
@@ -691,6 +728,17 @@ ar.plan_campaign = "تخطيط الحملة";
 ar.client_not_found = "العميل غير موجود";
 ar.client_details = "تفاصيل العميل";
 ar.edit_client = "تعديل العميل";
+ar.search_clients = "بحث عن العملاء...";
+ar.all_statuses = "جميع الحالات";
+ar.active = "نشط";
+ar.inactive = "غير نشط";
+ar.pending = "قيد الانتظار";
+ar.apply_filters = "تطبيق الفلاتر";
+ar.export = "تصدير";
+ar.export_csv = "تصدير إلى CSV";
+ar.exporting = "جاري التصدير...";
+ar.refresh = "تحديث";
+ar.loading_clients = "جاري تحميل العملاء...";
 ar.client_overview = "نظرة عامة على العميل";
 ar.contact_information = "معلومات الاتصال";
 ar.main_office = "المكتب الرئيسي";
@@ -713,6 +761,9 @@ ar.no_competitors_tracked = "لا يوجد منافسين مسجلين";
 ar.social_media = "وسائل التواصل الاجتماعي";
 ar.age_label = "العمر:";
 ar.gender_label = "الجنس:";
+ar.save = "حفظ";
+ar.remove_segment = "حذف الشريحة";
+ar.segment_description_placeholder = "وصف هذه الشريحة المستهدفة...";
 ar.view_client_details = "عرض تفاصيل العميل";
 
 // Content type labels and plurals (Arabic - avoid adding English 's')

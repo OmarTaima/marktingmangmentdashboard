@@ -3,6 +3,7 @@ import { cn } from "../utils/cn";
 import Logo from "../assets/logo.jpg";
 import { navbarLinks } from "../constants";
 import { NavLink, useLocation } from "react-router-dom";
+import { logout } from "../api/requests/authService";
 import { useLang } from "../hooks/useLang";
 
 interface SidebarProps {
@@ -78,43 +79,89 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ collapsed, se
                                 {t(navbarLink.title)}
                             </p>
 
-                            {navbarLink.links.map((link) => (
-                                <NavLink
-                                    key={link.label}
-                                    to={link.path}
-                                    end
-                                    className={({ isActive }) =>
-                                        cn(
-                                            "sidebar-item flex items-center justify-start gap-x-3",
-                                            collapsed && "md:w-[45px]",
-                                            isArabic && "flex-row-reverse justify-end",
-                                            isActive && "active",
-                                        )
-                                    }
-                                    onClick={() => {
-                                        // Only auto-close sidebar on small screens (mobile/tablet)
-                                        if (typeof window !== "undefined" && window.innerWidth < 768) {
-                                            setCollapsed(true);
-                                        }
-                                    }}
-                                >
-                                    {(() => {
-                                        const Icon = (link.icon as any) || null;
-                                        return Icon ? (
-                                            <Icon
-                                                size={22}
-                                                className={cn("flex-shrink-0", isArabic ? "order-2 ml-2" : "order-1 mr-2")}
-                                            />
-                                        ) : null;
-                                    })()}
+                            {navbarLink.links.map((link) => {
+                                // Render logout link as a button that calls the auth API
+                                if (link.path === "/logout") {
+                                    return (
+                                        <button
+                                            key={link.label}
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    await logout();
+                                                } catch (err) {
+                                                    // ignore errors - we still want to redirect to login
+                                                    console.warn("Logout failed, redirecting to login", err);
+                                                } finally {
+                                                    // Redirect to login page (full reload to clear state)
+                                                    window.location.href = "/auth/login";
+                                                }
+                                            }}
+                                            className={cn(
+                                                "sidebar-item flex items-center justify-start gap-x-3",
+                                                collapsed && "md:w-[45px]",
+                                                isArabic && "flex-row-reverse justify-end",
+                                            )}
+                                        >
+                                            {(() => {
+                                                const Icon = (link.icon as any) || null;
+                                                return Icon ? (
+                                                    <Icon
+                                                        size={22}
+                                                        className={cn("flex-shrink-0", isArabic ? "order-2 ml-2" : "order-1 mr-2")}
+                                                    />
+                                                ) : null;
+                                            })()}
 
-                                    {!collapsed && (
-                                        <span className={cn("w-full whitespace-nowrap", isArabic ? "order-1 text-right" : "order-2 text-left")}>
-                                            {t(link.label)}
-                                        </span>
-                                    )}
-                                </NavLink>
-                            ))}
+                                            {!collapsed && (
+                                                <span
+                                                    className={cn("w-full whitespace-nowrap", isArabic ? "order-1 text-right" : "order-2 text-left")}
+                                                >
+                                                    {t(link.label)}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                }
+
+                                return (
+                                    <NavLink
+                                        key={link.label}
+                                        to={link.path}
+                                        end
+                                        className={({ isActive }) =>
+                                            cn(
+                                                "sidebar-item flex items-center justify-start gap-x-3",
+                                                collapsed && "md:w-[45px]",
+                                                isArabic && "flex-row-reverse justify-end",
+                                                isActive && "active",
+                                            )
+                                        }
+                                        onClick={() => {
+                                            // Only auto-close sidebar on small screens (mobile/tablet)
+                                            if (typeof window !== "undefined" && window.innerWidth < 768) {
+                                                setCollapsed(true);
+                                            }
+                                        }}
+                                    >
+                                        {(() => {
+                                            const Icon = (link.icon as any) || null;
+                                            return Icon ? (
+                                                <Icon
+                                                    size={22}
+                                                    className={cn("flex-shrink-0", isArabic ? "order-2 ml-2" : "order-1 mr-2")}
+                                                />
+                                            ) : null;
+                                        })()}
+
+                                        {!collapsed && (
+                                            <span className={cn("w-full whitespace-nowrap", isArabic ? "order-1 text-right" : "order-2 text-left")}>
+                                                {t(link.label)}
+                                            </span>
+                                        )}
+                                    </NavLink>
+                                );
+                            })}
                         </nav>
                     ))}
                 </div>

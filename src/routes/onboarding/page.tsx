@@ -8,6 +8,7 @@ import { BranchesStep } from "./steps/BranchesStep";
 import { SocialLinksStep } from "./steps/SocialLinksStep";
 import { SwotStep } from "./steps/SwotStep";
 import { CompetitorsStep } from "./steps/CompetitorsStep";
+import { SegmentsStep } from "./steps/SegmentsStep";
 
 import { useLang } from "@/hooks/useLang";
 import { User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users } from "lucide-react";
@@ -28,6 +29,8 @@ type OnboardingData = {
     competitors?: any[];
     competitorsDraft?: any;
     currentCompetitorDraft?: any;
+    segments?: any[];
+    segmentsDraft?: any;
 };
 
 type StepDef = { id: number; name: string; component: FC<any> };
@@ -40,6 +43,7 @@ const steps: StepDef[] = [
     { id: 5, name: "Social Links", component: SocialLinksStep },
     { id: 6, name: "SWOT Analysis", component: SwotStep },
     { id: 7, name: "Competitors", component: CompetitorsStep },
+    { id: 8, name: "Segments", component: SegmentsStep },
 ];
 
 const OnboardingPage: FC = () => {
@@ -54,6 +58,7 @@ const OnboardingPage: FC = () => {
         socialLinks: { business: [], personal: [] },
         swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
         competitors: [],
+        segments: [],
     });
     const [searchParams] = useSearchParams();
     const editId = searchParams.get("id");
@@ -78,15 +83,14 @@ const OnboardingPage: FC = () => {
                         socialLinks: client.socialLinks || { business: [], personal: [] },
                         swot: client.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
                         competitors: client.competitors || [],
+                        segments: client.segments || [],
                     });
                 }
             } catch (error) {
                 const err = error as any;
                 if (err?.name === "AbortError" || err?.name === "CanceledError") {
-                    console.log("Request cancelled");
                     return;
                 }
-                console.error("Error loading client:", err);
                 if (!abortController.signal.aborted) {
                     alert("Failed to load client data. Please try again.");
                 }
@@ -178,6 +182,15 @@ const OnboardingPage: FC = () => {
                 delete updatedFormData.competitorsDraft;
                 delete updatedFormData.currentCompetitorDraft;
             }
+
+            // Commit segmentsDraft if it has any non-empty value
+            if (updatedFormData.segmentsDraft) {
+                const d = updatedFormData.segmentsDraft;
+                if (d.name && d.name.trim()) {
+                    updatedFormData.segments = [...(updatedFormData.segments || []), d];
+                }
+                delete updatedFormData.segmentsDraft;
+            }
         }
 
         // persist immediately to state
@@ -189,17 +202,39 @@ const OnboardingPage: FC = () => {
             // Handle API submission
             const submitClient = async () => {
                 try {
+                    // Import segment service for separate API calls
+                    const { createSegment } = await import("@/api");
+
+                    let clientId: string | null = editId;
+
                     if (editId) {
-                        // Update existing client
+                        // Update existing client (segments NOT included in payload)
                         await updateClient(editId, updatedFormData as any);
-                        console.log("✅ Updated client:", editId);
-                        alert("Client updated successfully!");
                     } else {
-                        // Create new client
+                        // Create new client (segments NOT included in payload)
                         const newClient = await createClient(updatedFormData as any);
-                        console.log("✅ Created client:", newClient);
-                        alert("Client added successfully!");
+                        clientId = newClient?._id || newClient?.id || null;
                     }
+
+                    // Submit segments separately to /clients/:clientId/segments
+
+                    if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
+                        for (const segment of updatedFormData.segments) {
+                            try {
+                                await createSegment(clientId, segment);
+                            } catch (segmentError: any) {
+                                // Continue with other segments even if one fails
+                            }
+                        }
+                    } else {
+                        console.warn("⚠️ Segments NOT submitted. Reasons:", {
+                            noClientId: !clientId,
+                            noSegments: !updatedFormData.segments,
+                            emptySegments: updatedFormData.segments?.length === 0,
+                        });
+                    }
+
+                    alert(editId ? "Client updated successfully!" : "Client added successfully!");
 
                     // Clear draft
                     localStorage.removeItem("onboarding_draft");
@@ -291,8 +326,8 @@ const OnboardingPage: FC = () => {
                         onPrevious={handlePrevious}
                         onUpdate={(stepData?: Partial<OnboardingData>) => {
                             if (stepData) {
-                                const key = Object.keys(stepData)[0] as keyof Partial<OnboardingData>;
-                                setFormData((prev) => ({ ...prev, [key]: (stepData as any)[key] }));
+                                // Update all keys in stepData, not just the first one
+                                setFormData((prev) => ({ ...prev, ...stepData }));
                             }
                         }}
                         isFirst={currentStep === 0}

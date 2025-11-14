@@ -37,7 +37,6 @@ const RegisterPage: React.FC = () => {
 
             if (data?.accessToken) {
                 setAuthCookies(data.accessToken, data.refreshToken);
-                if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
                 axiosInstance.defaults.headers.common.Authorization = `Bearer ${data.accessToken}`;
             }
 
@@ -97,8 +96,8 @@ const RegisterPage: React.FC = () => {
                 </button>
             </div>
 
-            <div className="w-full max-w-lg">
-                <div className="card">
+            <div className="w-full max-w-2xl">
+                <div className="card mx-auto max-w-3xl">
                     <div className="card-header border-light-600 dark:border-dark-700 border-b pb-4">
                         <h2 className="card-title text-2xl">{t("register") || "Register"}</h2>
                     </div>
@@ -110,7 +109,7 @@ const RegisterPage: React.FC = () => {
                         )}
                         <form
                             onSubmit={handleSubmit}
-                            className="space-y-4"
+                            className="grid grid-cols-1 gap-4 md:grid-cols-2"
                         >
                             <div>
                                 <label
@@ -175,13 +174,15 @@ const RegisterPage: React.FC = () => {
                                 </select>
                             </div>
 
-                            <button
-                                type="submit"
-                                className="btn-primary w-full py-2.5"
-                                disabled={loading}
-                            >
-                                {loading ? t("registering") || "Registering..." : t("register") || "Register"}
-                            </button>
+                            <div className="md:col-span-2">
+                                <button
+                                    type="submit"
+                                    className="btn-primary w-full py-2.5"
+                                    disabled={loading}
+                                >
+                                    {loading ? t("registering") || "Registering..." : t("register") || "Register"}
+                                </button>
+                            </div>
                         </form>
 
                         <div className="text-light-900 dark:text-dark-50 mt-6 text-center text-sm">

@@ -3,6 +3,8 @@ import { Download, Edit2, Save } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useNavigate } from "react-router-dom";
+import { getClientsCached } from "@/api";
+import type { Client } from "@/api/interfaces/clientinterface";
 
 const ContractPage = () => {
     const { t, lang } = useLang();
@@ -19,38 +21,63 @@ const ContractPage = () => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
 
     useEffect(() => {
-        // load list of clients for the preview cards
-        try {
-            const clientsRaw = localStorage.getItem("clients");
-            if (clientsRaw) {
-                const parsed = JSON.parse(clientsRaw);
-                if (Array.isArray(parsed)) setClients(parsed);
-            }
-        } catch (e) {
-            // ignore parse errors
-        }
-
-        const selectedId = localStorage.getItem("selectedClientId");
-
-        let resolvedClient = null;
-        const clientsRaw = localStorage.getItem("clients");
-        if (clientsRaw) {
+        const loadClientsData = async () => {
             try {
-                const clients = JSON.parse(clientsRaw) as ClientLike[];
+                // Load clients from API
+                const data = await getClientsCached();
+                setClients(data);
+
+                const selectedId = localStorage.getItem("selectedClientId");
+                let resolvedClient = null;
+
                 if (selectedId) {
-                    resolvedClient = clients.find((c) => String(c?.id) === String(selectedId)) || null;
+                    resolvedClient = data.find((c: Client) => String(c?.id) === String(selectedId)) || null;
                 }
-            } catch (e) {}
-        }
 
-        const clientRaw = localStorage.getItem("clientData");
-        if (!resolvedClient && clientRaw) {
-            try {
-                resolvedClient = JSON.parse(clientRaw);
-            } catch (e) {}
-        }
-        setClientData(resolvedClient);
-        if (selectedId) setSelectedClientId(String(selectedId));
+                // Fallback to single clientData in localStorage if not found in API
+                const clientRaw = localStorage.getItem("clientData");
+                if (!resolvedClient && clientRaw) {
+                    try {
+                        resolvedClient = JSON.parse(clientRaw);
+                    } catch (e) {}
+                }
+                setClientData(resolvedClient);
+                if (selectedId) setSelectedClientId(String(selectedId));
+            } catch (e) {
+                console.error("Failed to load clients:", e);
+                // Fallback to localStorage on error
+                const selectedId = localStorage.getItem("selectedClientId");
+                let resolvedClient = null;
+
+                try {
+                    const clientsRaw = localStorage.getItem("clients");
+                    if (clientsRaw) {
+                        const parsed = JSON.parse(clientsRaw);
+                        if (Array.isArray(parsed)) {
+                            setClients(parsed);
+                            if (selectedId) {
+                                resolvedClient = parsed.find((c: any) => String(c?.id) === String(selectedId)) || null;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // ignore parse errors
+                }
+
+                // Fallback to single clientData in localStorage if not found
+                const clientRaw = localStorage.getItem("clientData");
+                if (!resolvedClient && clientRaw) {
+                    try {
+                        resolvedClient = JSON.parse(clientRaw);
+                    } catch (e) {}
+                }
+
+                setClientData(resolvedClient);
+                if (selectedId) setSelectedClientId(String(selectedId));
+            }
+        };
+
+        loadClientsData();
 
         let planObj = null;
         const planRaw = localStorage.getItem("campaign_plan_0");
@@ -160,9 +187,9 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
         };
 
         const baseTemplate = lang === "ar" ? arabicTemplate : englishTemplate;
-        const filled = fillTemplate(baseTemplate, { client: resolvedClient, plan: planObj, pkg: pkgObj });
+        const filled = fillTemplate(baseTemplate, { client: clientData, plan: planData, pkg: packageData });
         setContractTerms(filled);
-    }, [lang]);
+    }, [lang, clientData, planData, packageData]);
 
     const handlePreview = (client: any) => {
         try {

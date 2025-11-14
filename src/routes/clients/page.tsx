@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Building2, Target, TrendingUp } from "lucide-react";
+import { Plus, Building2, Target, TrendingUp, Search, Download, RefreshCw } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import ClientInfo from "./ClientInfo";
-import { getClients } from "@/api";
+import { getClientsCached, getClientsWithFilters, exportClientsToCSV } from "@/api";
 import type { Client } from "@/api/interfaces/clientinterface";
+import type { ClientFilterParams } from "@/api/requests/clientService";
 
 const ClientsPage = () => {
     const navigate = useNavigate();
@@ -12,6 +13,9 @@ const ClientsPage = () => {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [exporting, setExporting] = useState<boolean>(false);
 
     useEffect(() => {
         const abortController = new AbortController();
@@ -28,7 +32,8 @@ const ClientsPage = () => {
         try {
             setLoading(true);
             setError(null);
-            const data = await getClients();
+            // Use cached loader so clients aren't refetched when navigating back
+            const data = await getClientsCached();
 
             // Only update state if component is still mounted
             if (!signal?.aborted) {
@@ -37,10 +42,8 @@ const ClientsPage = () => {
         } catch (err) {
             const e = err as any;
             if (e?.name === "AbortError" || e?.name === "CanceledError") {
-                console.log("Request cancelled");
                 return;
             }
-            console.error("Error loading clients:", e);
             if (!signal?.aborted) {
                 setError("Failed to load clients. Please try again.");
             }
@@ -64,6 +67,39 @@ const ClientsPage = () => {
         navigate(`/strategies`);
     };
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        loadClients();
+    };
+
+    const handleExportCSV = async () => {
+        try {
+            setExporting(true);
+            const filters: ClientFilterParams = {};
+            if (searchTerm) filters.search = searchTerm;
+            if (statusFilter !== "all") filters.status = statusFilter as any;
+
+            const blob = await exportClientsToCSV(filters);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `clients-export-${new Date().toISOString().split("T")[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Export failed:", err);
+            alert("Failed to export clients. Please try again.");
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        loadClients();
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -72,13 +108,66 @@ const ClientsPage = () => {
                     <h1 className="title">{t("clients_title")}</h1>
                     <p className="text-light-600 dark:text-dark-400">{t("manage_your_client_database")}</p>
                 </div>
-                <button
-                    onClick={handleAddNewClient}
-                    className="btn-primary flex w-full items-center justify-center gap-2 sm:w-auto"
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleExportCSV}
+                        disabled={exporting || clients.length === 0}
+                        className="btn-ghost flex items-center gap-2"
+                        title={t("export_csv") || "Export to CSV"}
+                    >
+                        <Download size={16} />
+                        <span className="hidden sm:inline">{exporting ? t("exporting") || "Exporting..." : t("export") || "Export"}</span>
+                    </button>
+                    <button
+                        onClick={handleRefresh}
+                        className="btn-ghost flex items-center gap-2"
+                        title={t("refresh") || "Refresh"}
+                    >
+                        <RefreshCw size={16} />
+                    </button>
+                    <button
+                        onClick={handleAddNewClient}
+                        className="btn-primary flex items-center gap-2"
+                    >
+                        <Plus size={16} />
+                        <span className="hidden sm:inline">{t("add_new_client")}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="card">
+                <form
+                    onSubmit={handleSearch}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center"
                 >
-                    <Plus size={16} />
-                    {t("add_new_client")}
-                </button>
+                    <div className="relative flex-1">
+                        <Search className="text-light-400 dark:text-dark-500 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder={t("search_clients") || "Search clients..."}
+                            className="border-light-300 bg-light-50 text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:placeholder-dark-500 dark:focus:border-dark-600 dark:focus:ring-dark-700 w-full rounded-lg border py-2 pr-4 pl-10 text-sm focus:ring-2"
+                        />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="border-light-300 bg-light-50 text-light-900 focus:border-light-500 focus:ring-light-200 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:focus:border-dark-600 dark:focus:ring-dark-700 rounded-lg border px-4 py-2 text-sm focus:ring-2"
+                    >
+                        <option value="all">{t("all_statuses") || "All Statuses"}</option>
+                        <option value="active">{t("active") || "Active"}</option>
+                        <option value="inactive">{t("inactive") || "Inactive"}</option>
+                        <option value="pending">{t("pending") || "Pending"}</option>
+                    </select>
+                    <button
+                        type="submit"
+                        className="btn-primary whitespace-nowrap"
+                    >
+                        {t("apply_filters") || "Apply Filters"}
+                    </button>
+                </form>
             </div>
 
             {/* Loading State */}

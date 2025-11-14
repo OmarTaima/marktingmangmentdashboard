@@ -7,10 +7,10 @@ import fieldValidations from "@/constants/validations";
 type Segment = {
     name?: string;
     description?: string;
-    targetAge?: string;
-    targetGender?: string;
-    interests?: string;
-    income?: string;
+    ageRange?: string;
+    gender?: "all" | "male" | "female" | "other";
+    interests?: string[];
+    incomeLevel?: "low" | "middle" | "high" | "varied";
 };
 
 type SegmentsStepProps = {
@@ -27,36 +27,62 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
         data.segmentsDraft || {
             name: "",
             description: "",
-            targetAge: "",
-            targetGender: "",
-            interests: "",
-            income: "",
+            ageRange: "",
+            gender: "all",
+            interests: [],
+            incomeLevel: undefined,
         },
     );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [interestsText, setInterestsText] = useState<string>((data.segmentsDraft?.interests || []).join("\n"));
 
     const handleAddSegment = () => {
         const newErrors: Record<string, string> = {};
 
-        // Make segment name/description optional; validate presence only if provided
-        if (currentSegment.name && !currentSegment.name.trim()) {
-            newErrors.name = (t(fieldValidations.segmentName.messageKey) as string) || "";
-        }
-        if (currentSegment.description && !currentSegment.description.trim()) {
-            newErrors.description = (t(fieldValidations.segmentDescription.messageKey) as string) || "";
+        // Validate name is required
+        if (!currentSegment.name || !currentSegment.name.trim()) {
+            newErrors.name = (t(fieldValidations.segmentName.messageKey) as string) || "Segment name is required";
+            setErrors(newErrors);
+            return;
         }
 
-        setErrors(newErrors);
-        const next = [...segments, currentSegment];
+        // Clean the segment data - remove empty strings and keep only meaningful values
+        const cleanedSegment: Segment = {
+            name: currentSegment.name.trim(),
+        };
+
+        if (currentSegment.description && currentSegment.description.trim()) {
+            cleanedSegment.description = currentSegment.description.trim();
+        }
+
+        if (currentSegment.ageRange && currentSegment.ageRange.trim()) {
+            cleanedSegment.ageRange = currentSegment.ageRange.trim();
+        }
+
+        if (currentSegment.gender && currentSegment.gender !== "all") {
+            cleanedSegment.gender = currentSegment.gender;
+        } else {
+            cleanedSegment.gender = "all";
+        }
+
+        if (currentSegment.interests && currentSegment.interests.length > 0) {
+            cleanedSegment.interests = currentSegment.interests.filter((i) => i.trim().length > 0);
+        }
+
+        if (currentSegment.incomeLevel) {
+            cleanedSegment.incomeLevel = currentSegment.incomeLevel;
+        }
+
+        const next = [...segments, cleanedSegment];
         setSegments(next);
         const emptySegment: Segment = {
             name: "",
             description: "",
-            targetAge: "",
-            targetGender: "",
-            interests: "",
-            income: "",
+            ageRange: "",
+            gender: "all",
+            interests: [],
+            incomeLevel: undefined,
         };
         if (typeof onUpdate === "function") onUpdate({ segments: next, segmentsDraft: emptySegment });
         setCurrentSegment(emptySegment);
@@ -84,12 +110,13 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             data.segmentsDraft || {
                 name: "",
                 description: "",
-                targetAge: "",
-                targetGender: "",
-                interests: "",
-                income: "",
+                ageRange: "",
+                gender: "all",
+                interests: [],
+                incomeLevel: undefined,
             },
         );
+        setInterestsText((data.segmentsDraft?.interests || []).join("\n"));
     }, [data?.segmentsDraft]);
 
     useEffect(() => {
@@ -146,11 +173,11 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                         <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("age_range")}</label>
                         <input
                             type="text"
-                            value={currentSegment.targetAge}
+                            value={currentSegment.ageRange || ""}
                             onChange={(e) => {
                                 // Only allow numbers and dashes
                                 const value = e.target.value.replace(/[^0-9-]/g, "");
-                                const next = { ...currentSegment, targetAge: value } as Segment;
+                                const next = { ...currentSegment, ageRange: value };
                                 setCurrentSegment(next);
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
@@ -161,15 +188,15 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                     <div>
                         <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("gender")}</label>
                         <select
-                            value={currentSegment.targetGender}
+                            value={currentSegment.gender || "all"}
                             onChange={(e) => {
-                                const next = { ...currentSegment, targetGender: e.target.value } as Segment;
+                                const next = { ...currentSegment, gender: e.target.value as "all" | "male" | "female" | "other" };
                                 setCurrentSegment(next);
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
                             className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                         >
-                            <option value="">{t("all")}</option>
+                            <option value="all">{t("all")}</option>
                             <option value="male">{t("male")}</option>
                             <option value="female">{t("female")}</option>
                             <option value="other">{t("other")}</option>
@@ -179,11 +206,19 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("interests")}</label>
-                    <input
-                        type="text"
-                        value={currentSegment.interests}
+                    <textarea
+                        rows={3}
+                        value={interestsText}
                         onChange={(e) => {
-                            const next = { ...currentSegment, interests: e.target.value } as Segment;
+                            const raw = e.target.value;
+                            setInterestsText(raw);
+                        }}
+                        onBlur={() => {
+                            const interestsArray = (interestsText || "")
+                                .split(/[,;\n]+/)
+                                .map((i) => i.trim())
+                                .filter((i) => i.length > 0);
+                            const next = { ...currentSegment, interests: interestsArray };
                             setCurrentSegment(next);
                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
@@ -195,9 +230,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("income_level")}</label>
                     <select
-                        value={currentSegment.income}
+                        value={currentSegment.incomeLevel || ""}
                         onChange={(e) => {
-                            const next = { ...currentSegment, income: e.target.value } as Segment;
+                            const next = { ...currentSegment, incomeLevel: e.target.value as "low" | "middle" | "high" | "varied" | undefined };
                             setCurrentSegment(next);
                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
@@ -233,9 +268,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                 <h4 className="text-light-900 dark:text-dark-50 font-medium">{segment.name}</h4>
                                 <p className="text-light-600 dark:text-dark-400 text-sm">{segment.description}</p>
                                 <div className="text-dark-500 dark:text-dark-400 mt-2 flex gap-4 text-xs">
-                                    {segment.targetAge && <span>Age: {segment.targetAge}</span>}
-                                    {segment.targetGender && <span>Gender: {segment.targetGender}</span>}
-                                    {segment.income && <span>Income: {segment.income}</span>}
+                                    {segment.ageRange && <span>Age: {segment.ageRange}</span>}
+                                    {segment.gender && segment.gender !== "all" && <span>Gender: {segment.gender}</span>}
+                                    {segment.incomeLevel && <span>Income: {segment.incomeLevel}</span>}
                                 </div>
                             </div>
                             <button

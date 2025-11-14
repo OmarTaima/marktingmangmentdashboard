@@ -55,6 +55,20 @@ export interface Competitor {
     weaknesses: string[];
 }
 
+export interface Segment {
+    _id?: string;
+    clientId?: string;
+    name: string;
+    description?: string;
+    ageRange?: string;
+    gender?: "all" | "male" | "female" | "other";
+    interests?: string[];
+    incomeLevel?: "low" | "middle" | "high" | "varied";
+    deleted?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface Client {
     _id: string;
     id?: string;
@@ -66,6 +80,7 @@ export interface Client {
     socialLinks: SocialLinks;
     swot: SWOT;
     competitors: Competitor[];
+    segments?: Segment[];
     createdAt: string;
     updatedAt: string;
 }

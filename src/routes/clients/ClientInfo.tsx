@@ -65,6 +65,8 @@ const ClientInfo: React.FC<ClientInfoProps> = ({ client, compact = false, editin
             setClientObjectives([]);
         }
     }, [client && client.id]);
+
+    // Use segments from client object or fetch separately if needed
     if (!client && !draft) return null;
     const data: Partial<Client> = editing && draft ? draft || {} : client || {};
 

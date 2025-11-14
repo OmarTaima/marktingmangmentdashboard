@@ -3,6 +3,8 @@ import { useSearchParams, Link } from "react-router-dom";
 import { TrendingUp, Users, Eye, Heart, Share2, DollarSign } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
+import { getClientsCached } from "@/api";
+import type { Client } from "@/api/interfaces/clientinterface";
 
 const ReportsPage = () => {
     const [searchParams] = useSearchParams();
@@ -21,31 +23,44 @@ const ReportsPage = () => {
     const { t } = useLang();
 
     useEffect(() => {
-        // Load client data: try clients list and resolve by selected id, otherwise fallback to single clientData
-        const clientsRaw = localStorage.getItem("clients");
-        if (clientsRaw) {
+        const loadClientData = async () => {
             try {
-                const clients = JSON.parse(clientsRaw);
-                const found = clients.find((c: any) => String(c.id) === String(clientId));
+                // Load client data from API
+                const clients = await getClientsCached();
+                const found = clients.find((c: Client) => String(c.id) === String(clientId));
                 if (found) {
                     setClientData(found);
                     return;
                 }
-            } catch (e) {
-                // ignore parse errors
-            }
-        }
 
-        const singleRaw = localStorage.getItem("clientData");
-        if (singleRaw) {
-            try {
-                setClientData(JSON.parse(singleRaw));
+                // Fallback to single clientData in localStorage
+                const singleRaw = localStorage.getItem("clientData");
+                if (singleRaw) {
+                    try {
+                        setClientData(JSON.parse(singleRaw));
+                    } catch (e) {
+                        // ignore
+                    }
+                } else {
+                    setClientData(null);
+                }
             } catch (e) {
-                // ignore
+                console.error("Failed to load clients:", e);
+                // Fallback to localStorage on error
+                const singleRaw = localStorage.getItem("clientData");
+                if (singleRaw) {
+                    try {
+                        setClientData(JSON.parse(singleRaw));
+                    } catch (e) {
+                        setClientData(null);
+                    }
+                } else {
+                    setClientData(null);
+                }
             }
-        } else {
-            setClientData(null);
-        }
+        };
+
+        loadClientData();
     }, [clientId]);
 
     // Mock data - in real app this would come from backend based on clientId

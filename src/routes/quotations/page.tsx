@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Plus, FileText, Loader2, Check, Trash2, Edit2 } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
+import { getClientsCached } from "@/api";
+import type { Client } from "@/api/interfaces/clientinterface";
 
 const QuotationsPage = () => {
     const { t, lang } = useLang();
@@ -18,7 +20,7 @@ const QuotationsPage = () => {
         originalPrice?: string | number;
     };
 
-    const [clients, setClients] = useState<any[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>(localStorage.getItem("selectedClientId") || "");
     const [selectedClient, setSelectedClient] = useState<any | null>(null);
     const [globalClientName, setGlobalClientName] = useState<string>("");
@@ -45,11 +47,12 @@ const QuotationsPage = () => {
     const [discountType, setDiscountType] = useState<string>("percentage");
     const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
 
-    const loadClients = () => {
+    const loadClients = async () => {
         try {
-            const raw = localStorage.getItem("clients");
-            setClients(raw ? JSON.parse(raw) : []);
+            const data = await getClientsCached();
+            setClients(data);
         } catch (e) {
+            console.error("Failed to load clients:", e);
             setClients([]);
         }
     };
@@ -376,7 +379,7 @@ const QuotationsPage = () => {
                                         <h3 className="card-title text-lg">{c.business?.businessName || t("unnamed_client")}</h3>
                                         <p className="text-light-600 mt-1 text-sm">{c.business?.category}</p>
                                         <button
-                                            onClick={() => handleSelectClient(c.id)}
+                                            onClick={() => handleSelectClient(c.id || "")}
                                             className="btn-primary mt-4 w-full"
                                         >
                                             {t("create_quotation") || "Create Quotation"}

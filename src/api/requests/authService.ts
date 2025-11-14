@@ -51,81 +51,106 @@ export const clearAuthCookies = () => {
 };
 
 /**
+ * Helper to get cookie value
+ */
+const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+    return null;
+};
+
+/**
  * Login user
+ * POST /auth/login
  */
 export const login = async (payload: LoginPayload): Promise<AuthResponse | null> => {
     try {
         const resp = await axiosInstance.post(`${AUTH_ENDPOINT}/login`, payload);
-        const data = resp.data?.data || resp.data || {};
-        return data as AuthResponse;
+
+        // API returns data directly (not wrapped in data.data)
+        const data = resp.data as AuthResponse;
+
+        return data;
     } catch (error: any) {
-        console.error("Login error:", error);
-
-        // If 500 error, provide helpful message about backend
-        if (error?.response?.status === 500) {
-            const backendError = new Error(
-                "Backend server error. Please check:\n1. Backend logs on Vercel\n2. Database connection\n3. Environment variables\n4. /auth/login endpoint code",
-            );
-            backendError.name = "BackendError";
-            throw backendError;
-        }
-
         throw error;
     }
 };
 
 /**
  * Register new user
+ * POST /auth/register
  */
 export const register = async (payload: RegisterPayload): Promise<AuthResponse | null> => {
     try {
         const resp = await axiosInstance.post(`${AUTH_ENDPOINT}/register`, payload);
-        const data = resp.data?.data || resp.data || {};
-        return data as AuthResponse;
-    } catch (error) {
-        console.error("Register error:", error);
+
+        // API returns data directly (not wrapped in data.data)
+        const data = resp.data as AuthResponse;
+
+        return data;
+    } catch (error: any) {
         throw error;
     }
 };
 
 /**
  * Refresh access token
+ * POST /auth/refresh
  */
 export const refreshToken = async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string } | null> => {
     try {
         const resp = await axiosInstance.post(`${AUTH_ENDPOINT}/refresh`, { refreshToken });
-        const data = resp.data?.data || resp.data || {};
+
+        // API returns data directly (not wrapped in data.data)
+        const data = resp.data as { accessToken: string; refreshToken: string };
+
         return data;
-    } catch (error) {
-        console.error("Refresh token error:", error);
+    } catch (error: any) {
         throw error;
     }
 };
 
 /**
  * Logout user
+ * POST /auth/logout
  */
 export const logout = async (refreshToken?: string): Promise<void> => {
     try {
-        await axiosInstance.post(`${AUTH_ENDPOINT}/logout`, { refreshToken });
+        // Get refreshToken from cookie if not provided
+        const token = refreshToken || getCookie("refreshToken");
+
+        await axiosInstance.post(`${AUTH_ENDPOINT}/logout`, { refreshToken: token });
+
+        // Clear auth cookies
         clearAuthCookies();
-        localStorage.removeItem("user");
-    } catch (error) {
-        console.error("Logout error:", error);
+    } catch (error: any) {
+        // Clear local auth data even if server request fails
+        clearAuthCookies();
+
         throw error;
     }
 };
 
+// Note: localStorage is intentionally not used for auth persistence.
+// Auth state is handled with cookies and server-side sessions. The
+// previous helper that removed auth-related localStorage keys was
+// removed to avoid client-side localStorage for auth.
+
 /**
  * Get current user profile
+ * GET /auth/me
+ * Requires Authorization header with Bearer token
  */
-export const getCurrentUser = async (): Promise<any> => {
+export const getCurrentUser = async (): Promise<{ user: AuthResponse["user"] } | null> => {
     try {
         const resp = await axiosInstance.get(`${AUTH_ENDPOINT}/me`);
-        const data = resp.data?.data || resp.data || {};
-        return data.user || data;
-    } catch (error) {
-        console.error("Get current user error:", error);
+
+        // API returns { user: {...} }
+        const data = resp.data as { user: AuthResponse["user"] };
+
+        return data;
+    } catch (error: any) {
         throw error;
     }
 };

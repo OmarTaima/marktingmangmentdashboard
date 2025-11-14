@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Edit2 } from "lucide-react";
+import { Edit2, Target } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
-import type { Client } from "@/api/interfaces/clientinterface";
+import type { Client, Segment } from "@/api/interfaces/clientinterface";
 import validators from "@/constants/validators";
 import ClientInfo from "@/routes/clients/ClientInfo";
-import { getClientById, updateClient, deleteClient } from "@/api";
+import { getClientById, updateClient, deleteClient, createSegment, updateSegment, deleteSegment, getSegmentsByClientId } from "@/api";
 
 const inputBaseClass =
     "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
@@ -59,7 +59,9 @@ const ClientDetailPage = () => {
                 setError("No client id");
                 return;
             }
-            const clientData = await getClientById(id);
+            // Use cached getter to avoid refetching if data is already loaded
+            const { getClientByIdCached } = await import("@/api/requests/clientService");
+            const clientData = await getClientByIdCached(id);
 
             // Only update state if component is still mounted
             if (!signal?.aborted) {
@@ -67,10 +69,8 @@ const ClientDetailPage = () => {
             }
         } catch (err: any) {
             if (err?.name === "AbortError" || err?.name === "CanceledError") {
-                console.log("Request cancelled");
                 return;
             }
-            console.error("Error loading client:", err);
             if (!signal?.aborted) {
                 setError("Failed to load client data. Please try again.");
             }
@@ -129,13 +129,61 @@ const ClientDetailPage = () => {
         if (!draft || !id) return;
 
         try {
-            await updateClient(id, draft);
+            // Extract segments from draft before updating client
+            const draftSegments = draft.segments || [];
+            const draftWithoutSegments = { ...draft };
+            delete draftWithoutSegments.segments;
+
+            // Update client data (without segments)
+            await updateClient(id, draftWithoutSegments);
+
+            // Handle segments separately - compare with original client segments
+            const originalSegments = client?.segments || [];
+
+            // Update or create segments (sanitize draft segments before sending)
+            for (const segment of draftSegments) {
+                try {
+                    const sanitized = JSON.parse(JSON.stringify(segment));
+                    // Remove any temporary UI-only fields
+                    if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
+
+                    if (sanitized._id) {
+                        // Existing segment - use PUT to update
+                        await updateSegment(id, sanitized._id, sanitized);
+                    } else {
+                        // New segment - use POST to create
+                        await createSegment(id, sanitized);
+                    }
+                } catch (segmentError: any) {
+                    // Continue with other segments even if one fails
+                }
+            }
+
+            // Delete segments that were removed (in original but not in draft)
+            for (const originalSegment of originalSegments) {
+                const stillExists = draftSegments.find((s: Segment) => s._id === originalSegment._id);
+                if (!stillExists && originalSegment._id) {
+                    try {
+                        await deleteSegment(id, originalSegment._id);
+                    } catch (deleteError: any) {
+                        console.error("❌ Error deleting segment:", originalSegment.name, deleteError?.response?.data || deleteError);
+                    }
+                }
+            }
+
             setEditing(false);
             setDraft(null);
 
-            // Reload fresh data from API
-            const freshClient = await getClientById(id);
-            setClient(freshClient);
+            // Reload fresh data from API (force bypass cache)
+            try {
+                const { getClientByIdCached } = await import("@/api/requests/clientService");
+                const freshClient = await getClientByIdCached(id, true);
+                setClient(freshClient);
+            } catch (err) {
+                // fallback to direct call if dynamic import fails
+                const freshClient = await getClientById(id as string);
+                setClient(freshClient);
+            }
 
             alert("Client updated successfully!");
         } catch (err: any) {
@@ -230,13 +278,13 @@ const ClientDetailPage = () => {
                                 onClick={saveEditing}
                                 className="btn-primary flex items-center gap-2"
                             >
-                                Save
+                                {t("save") || "Save"}
                             </button>
                             <button
                                 onClick={cancelEditing}
                                 className="btn-ghost flex items-center gap-2"
                             >
-                                Cancel
+                                {t("cancel") || "Cancel"}
                             </button>
                         </div>
                     )}
@@ -353,99 +401,6 @@ const ClientDetailPage = () => {
                                 );
                             })}
                         </div>
-                    </div>
-
-                    {/* Segments */}
-                    <div className="card transition-colors duration-300">
-                        <h3 className="card-title mb-4">{t("target_segments") || "Target Segments"}</h3>
-                        {(editing ? draft?.segments || [] : client.segments || []).length > 0 ? (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {(editing ? draft?.segments || [] : client.segments || []).map((segment, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="bg-dark-50 dark:bg-dark-800/50 rounded-lg p-3 transition-colors duration-300"
-                                    >
-                                        {editing ? (
-                                            <>
-                                                <input
-                                                    className={inputBaseClass}
-                                                    value={segment.name || ""}
-                                                    placeholder="Name"
-                                                    onChange={(e) => updateDraftPath(`segments.${idx}.name`, e.target.value)}
-                                                />
-                                                <textarea
-                                                    className={`${inputBaseClass} mt-2`}
-                                                    value={segment.description || ""}
-                                                    placeholder="Description"
-                                                    onChange={(e) => updateDraftPath(`segments.${idx}.description`, e.target.value)}
-                                                />
-                                                <div className="mt-2 flex gap-2">
-                                                    <input
-                                                        className={inputBaseClass}
-                                                        value={(segment as any).targetAge || ""}
-                                                        placeholder={t("age_label") || "Age"}
-                                                        onChange={(e) => updateDraftPath(`segments.${idx}.targetAge`, e.target.value)}
-                                                    />
-                                                    <input
-                                                        className={inputBaseClass}
-                                                        value={(segment as any).targetGender || ""}
-                                                        placeholder={t("gender_label") || "Gender"}
-                                                        onChange={(e) => updateDraftPath(`segments.${idx}.targetGender`, e.target.value)}
-                                                    />
-                                                    <button
-                                                        className={buttonGhostClass}
-                                                        onClick={() =>
-                                                            setDraft((prev: Partial<Client> | null) => {
-                                                                const next = JSON.parse(JSON.stringify(prev || {})) as Partial<Client> &
-                                                                    Record<string, any>;
-                                                                next.segments = next.segments || [];
-                                                                next.segments.splice(idx, 1);
-                                                                return next;
-                                                            })
-                                                        }
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <h4 className="text-light-900 dark:text-dark-50 font-medium">{segment.name}</h4>
-                                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{segment.description}</p>
-                                                <div className="text-dark-500 dark:text-dark-400 mt-2 flex gap-4 text-xs">
-                                                    {(segment as any).targetAge && <span>Age: {(segment as any).targetAge}</span>}
-                                                    {(segment as any).targetGender && <span>Gender: {(segment as any).targetGender}</span>}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-dark-500 text-sm">{t("no_segments_defined") || "No segments defined"}</p>
-                        )}
-                        {editing && (
-                            <div className="mt-2">
-                                <button
-                                    className={buttonAddClass}
-                                    onClick={() => {
-                                        setDraft((prev: Partial<Client> | null) => {
-                                            const next = JSON.parse(JSON.stringify(prev || {})) as Record<string, any>;
-                                            next.segments = next.segments || [];
-                                            next.segments.push({
-                                                name: "",
-                                                description: "",
-                                                targetAge: "",
-                                                targetGender: "",
-                                            });
-                                            return next;
-                                        });
-                                    }}
-                                >
-                                    {t("add_segment") || "Add segment"}
-                                </button>
-                            </div>
-                        )}
                     </div>
 
                     {/* Competitors */}
@@ -651,6 +606,204 @@ const ClientDetailPage = () => {
                                     }}
                                 >
                                     {t("add_link") || "Add link"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Market Segments */}
+                    <div className="card transition-colors duration-300">
+                        <h3 className="card-title mb-4 flex items-center gap-2">
+                            <Target size={18} />
+                            {t("target_segments") || "Market Segments"}
+                        </h3>
+                        <div className="space-y-3">
+                            {(editing ? draft?.segments || [] : client.segments || []).map((segment, idx) => (
+                                <div
+                                    key={segment._id || idx}
+                                    className="border-light-300 dark:border-dark-700 dark:bg-dark-800/50 rounded-lg border bg-white p-4"
+                                >
+                                    {editing ? (
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                    {t("segment_name") || "Segment Name"} *
+                                                </label>
+                                                <input
+                                                    className={inputBaseClass}
+                                                    value={segment.name || ""}
+                                                    placeholder={t("segment_name_placeholder") || "e.g., Young Professionals"}
+                                                    onChange={(e) => updateDraftPath(`segments.${idx}.name`, e.target.value)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                    {t("description") || "Description"}
+                                                </label>
+                                                <textarea
+                                                    className={`${inputBaseClass} min-h-[60px]`}
+                                                    value={segment.description || ""}
+                                                    placeholder={t("segment_description_placeholder") || "Describe this market segment..."}
+                                                    onChange={(e) => updateDraftPath(`segments.${idx}.description`, e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                <div>
+                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                        {t("age_range") || "Age Range"}
+                                                    </label>
+                                                    <input
+                                                        className={inputBaseClass}
+                                                        value={segment.ageRange || ""}
+                                                        placeholder={t("age_range_placeholder") || "e.g., 25-35"}
+                                                        onChange={(e) => updateDraftPath(`segments.${idx}.ageRange`, e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                        {t("gender") || "Gender"}
+                                                    </label>
+                                                    <select
+                                                        className={inputBaseClass}
+                                                        value={segment.gender || "all"}
+                                                        onChange={(e) => updateDraftPath(`segments.${idx}.gender`, e.target.value)}
+                                                    >
+                                                        <option value="all">{t("all_genders") || "All"}</option>
+                                                        <option value="male">{t("male") || "Male"}</option>
+                                                        <option value="female">{t("female") || "Female"}</option>
+                                                        <option value="other">{t("other") || "Other"}</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                        {t("income_level") || "Income Level"}
+                                                    </label>
+                                                    <select
+                                                        className={inputBaseClass}
+                                                        value={segment.incomeLevel || ""}
+                                                        onChange={(e) => updateDraftPath(`segments.${idx}.incomeLevel`, e.target.value)}
+                                                    >
+                                                        <option value="">{t("select") || "Select..."}</option>
+                                                        <option value="low">{t("low") || "Low"}</option>
+                                                        <option value="middle">{t("middle") || "Middle"}</option>
+                                                        <option value="high">{t("high") || "High"}</option>
+                                                        <option value="varied">{t("varied") || "Varied"}</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                        {t("interests") || "Interests"}
+                                                    </label>
+                                                    <textarea
+                                                        className={`${inputBaseClass} min-h-[60px]`}
+                                                        value={
+                                                            // Prefer temporary raw text while editing to preserve spaces
+                                                            (segment as any)._interestsText !== undefined
+                                                                ? (segment as any)._interestsText
+                                                                : Array.isArray(segment.interests)
+                                                                  ? segment.interests.join("\n")
+                                                                  : segment.interests || ""
+                                                        }
+                                                        placeholder={
+                                                            t("interests_placeholder") || "Enter interests (one per line or comma-separated)"
+                                                        }
+                                                        onChange={(e) => updateDraftPath(`segments.${idx}._interestsText`, e.target.value)}
+                                                        onBlur={() => {
+                                                            const raw =
+                                                                (segment as any)._interestsText !== undefined
+                                                                    ? (segment as any)._interestsText
+                                                                    : Array.isArray(segment.interests)
+                                                                      ? segment.interests.join("\n")
+                                                                      : segment.interests || "";
+                                                            const interestsArray = raw
+                                                                .split(/[,;\n]+/)
+                                                                .map((i: string) => i.trim())
+                                                                .filter((i: string) => i.length > 0);
+                                                            updateDraftPath(`segments.${idx}.interests`, interestsArray);
+                                                            // remove temporary field
+                                                            updateDraftPath(`segments.${idx}._interestsText`, undefined);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button
+                                                className={`${buttonGhostClass} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20`}
+                                                onClick={() => {
+                                                    setDraft((prev: Partial<Client> | null) => {
+                                                        const next = JSON.parse(JSON.stringify(prev || {})) as Record<string, any>;
+                                                        next.segments = next.segments || [];
+                                                        next.segments.splice(idx, 1);
+                                                        return next;
+                                                    });
+                                                }}
+                                            >
+                                                {t("remove_segment") || "Remove Segment"}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <h4 className="text-light-900 dark:text-dark-50 mb-2 font-semibold">{segment.name}</h4>
+                                            {segment.description && (
+                                                <p className="text-light-600 dark:text-dark-400 mb-3 text-sm">{segment.description}</p>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                {segment.ageRange && (
+                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        Age: {segment.ageRange}
+                                                    </span>
+                                                )}
+                                                {segment.gender && segment.gender !== "all" && (
+                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        {segment.gender.charAt(0).toUpperCase() + segment.gender.slice(1)}
+                                                    </span>
+                                                )}
+                                                {segment.incomeLevel && (
+                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        {segment.incomeLevel.charAt(0).toUpperCase() + segment.incomeLevel.slice(1)} Income
+                                                    </span>
+                                                )}
+                                                {segment.interests && segment.interests.length > 0 && (
+                                                    <>
+                                                        {segment.interests.map((interest, iIdx) => (
+                                                            <span
+                                                                key={iIdx}
+                                                                className="bg-light-100 text-light-700 dark:bg-dark-900/30 dark:text-dark-300 rounded px-2 py-1 text-xs"
+                                                            >
+                                                                {interest}
+                                                            </span>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {(editing ? draft?.segments || [] : client.segments || []).length === 0 && !editing && (
+                                <div className="text-light-600 dark:text-dark-400 text-sm">
+                                    {t("no_segments") || "No market segments defined yet."}
+                                </div>
+                            )}
+                            {editing && (
+                                <button
+                                    className={buttonAddClass}
+                                    onClick={() => {
+                                        setDraft((prev: Partial<Client> | null) => {
+                                            const next = JSON.parse(JSON.stringify(prev || {})) as Record<string, any>;
+                                            next.segments = next.segments || [];
+                                            next.segments.push({
+                                                name: "",
+                                                description: "",
+                                                ageRange: "",
+                                                gender: "all",
+                                                interests: [],
+                                                incomeLevel: "",
+                                            });
+                                            return next;
+                                        });
+                                    }}
+                                >
+                                    {t("add_segment") || "Add Segment"}
                                 </button>
                             )}
                         </div>

@@ -436,8 +436,6 @@ const PlanningPage = () => {
     };
 
     const handleSavePlan = () => {
-        console.log("handleSavePlan called", { selectedClientId, planData, objectives, strategies });
-
         if (!selectedClientId) {
             alert(t("please_select_client_first"));
             console.warn("handleSavePlan: no selectedClientId");

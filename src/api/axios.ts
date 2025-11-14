@@ -20,14 +20,20 @@ const axiosInstance = axios.create({
 // Request interceptor (for adding auth tokens)
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Only add token for non-auth endpoints
-        const isAuthEndpoint = config.url?.includes("/auth/login") || config.url?.includes("/auth/register");
+        // Endpoints that don't need authentication
+        const publicEndpoints = ["/auth/login", "/auth/register"];
+        const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
 
-        if (!isAuthEndpoint) {
-            // Get token from cookie
+        if (!isPublicEndpoint) {
+            // Get token from cookie for all protected endpoints
             const token = getCookie("accessToken");
             if (token) {
                 config.headers.Authorization = `Bearer ${decodeURIComponent(token)}`;
+            } else {
+                // Warn about missing token for protected endpoints
+                if (!config.url?.includes("/auth/refresh")) {
+                    console.warn("⚠️ No access token found for protected endpoint:", config.url);
+                }
             }
         }
 
@@ -44,13 +50,6 @@ axiosInstance.interceptors.request.use(
         });
 
         // Log request details for debugging
-        console.log("📤 Request:", {
-            method: config.method?.toUpperCase(),
-            url: config.url,
-            baseURL: config.baseURL,
-            data: config.data,
-            headers: config.headers,
-        });
 
         return config;
     },
@@ -59,26 +58,116 @@ axiosInstance.interceptors.request.use(
     },
 );
 
+// Track if we're currently refreshing to avoid multiple refresh requests
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value?: any) => void; reject: (reason?: any) => void }> = [];
+
+const processQueue = (error: any = null, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // Response interceptor (for handling errors globally)
 axiosInstance.interceptors.response.use(
     (response) => {
-        console.log("📥 Response:", {
-            status: response.status,
-            url: response.config.url,
-            data: response.data,
-        });
         return response;
     },
-    (error) => {
+    async (error) => {
+        const originalRequest = error.config;
+
         // Handle common errors
         if (error.response) {
             // Server responded with error status
             console.error("❌ API Error:", {
                 status: error.response.status,
                 url: error.config?.url,
-                data: error.response.data,
-                headers: error.response.headers,
+                errorCode: error.response.data?.error?.code,
+                message: error.response.data?.error?.message || error.response.data?.message,
             });
+
+            // Handle 401 authentication errors
+            if (error.response.status === 401 && !originalRequest._retry) {
+                const errorCode = error.response.data?.error?.code;
+
+                // If token is expired and we haven't tried refreshing yet
+                if (errorCode === "TOKEN_EXPIRED" || errorCode === "AUTHENTICATION_FAILED") {
+                    if (isRefreshing) {
+                        // If already refreshing, queue this request
+                        return new Promise((resolve, reject) => {
+                            failedQueue.push({ resolve, reject });
+                        })
+                            .then((token) => {
+                                originalRequest.headers.Authorization = `Bearer ${token}`;
+                                return axiosInstance(originalRequest);
+                            })
+                            .catch((err) => {
+                                return Promise.reject(err);
+                            });
+                    }
+
+                    originalRequest._retry = true;
+                    isRefreshing = true;
+
+                    const refreshToken = getCookie("refreshToken");
+
+                    if (refreshToken) {
+                        try {
+                            const response = await axiosInstance.post("/auth/refresh", {
+                                refreshToken: decodeURIComponent(refreshToken),
+                            });
+
+                            const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+                            // Update cookies with new tokens
+                            const setCookie = (name: string, value: string, days: number) => {
+                                const maxAge = days * 24 * 60 * 60;
+                                document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+                            };
+                            setCookie("accessToken", accessToken, 1);
+                            setCookie("refreshToken", newRefreshToken, 7);
+
+                            // Update authorization header
+                            axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+                            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+                            processQueue(null, accessToken);
+
+                            return axiosInstance(originalRequest);
+                        } catch (refreshError) {
+                            console.error("❌ Token refresh failed:", refreshError);
+                            processQueue(refreshError, null);
+
+                            // Clear invalid cookies and redirect to login
+                            document.cookie = "accessToken=; Path=/; Max-Age=0";
+                            document.cookie = "refreshToken=; Path=/; Max-Age=0";
+
+                            if (!window.location.pathname.includes("/auth/login")) {
+                                console.warn("⚠️ Redirecting to login page");
+                                window.location.href = "/auth/login";
+                            }
+
+                            return Promise.reject(refreshError);
+                        } finally {
+                            isRefreshing = false;
+                        }
+                    } else {
+                        // No refresh token available, clear auth and redirect
+                        console.warn("⚠️ No refresh token found - redirecting to login");
+                        document.cookie = "accessToken=; Path=/; Max-Age=0";
+                        document.cookie = "refreshToken=; Path=/; Max-Age=0";
+
+                        if (!window.location.pathname.includes("/auth/login")) {
+                            window.location.href = "/auth/login";
+                        }
+                    }
+                }
+            }
         } else if (error.request) {
             // Request made but no response
             console.error("❌ Network Error:", error.message);
