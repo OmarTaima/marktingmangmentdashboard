@@ -202,22 +202,21 @@ const OnboardingPage: FC = () => {
             // Handle API submission
             const submitClient = async () => {
                 try {
-                    // Import segment service for separate API calls
-                    const { createSegment } = await import("@/api");
+                    // Import segment and competitor services for separate API calls
+                    const { createSegment, createCompetitor } = await import("@/api");
 
                     let clientId: string | null = editId;
 
                     if (editId) {
-                        // Update existing client (segments NOT included in payload)
+                        // Update existing client (segments and competitors NOT included in payload)
                         await updateClient(editId, updatedFormData as any);
                     } else {
-                        // Create new client (segments NOT included in payload)
+                        // Create new client (segments and competitors NOT included in payload)
                         const newClient = await createClient(updatedFormData as any);
                         clientId = newClient?._id || newClient?.id || null;
                     }
 
                     // Submit segments separately to /clients/:clientId/segments
-
                     if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
                         for (const segment of updatedFormData.segments) {
                             try {
@@ -231,6 +230,24 @@ const OnboardingPage: FC = () => {
                             noClientId: !clientId,
                             noSegments: !updatedFormData.segments,
                             emptySegments: updatedFormData.segments?.length === 0,
+                        });
+                    }
+
+                    // Submit competitors separately to /clients/:clientId/competitors
+                    if (clientId && updatedFormData.competitors && updatedFormData.competitors.length > 0) {
+                        for (const competitor of updatedFormData.competitors) {
+                            try {
+                                await createCompetitor(clientId, competitor);
+                            } catch (competitorError: any) {
+                                // Continue with other competitors even if one fails
+                                console.error("Failed to create competitor:", competitorError);
+                            }
+                        }
+                    } else {
+                        console.warn("⚠️ Competitors NOT submitted. Reasons:", {
+                            noClientId: !clientId,
+                            noCompetitors: !updatedFormData.competitors,
+                            emptyCompetitors: updatedFormData.competitors?.length === 0,
                         });
                     }
 

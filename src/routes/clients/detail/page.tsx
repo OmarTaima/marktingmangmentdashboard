@@ -7,7 +7,17 @@ import { useLang } from "@/hooks/useLang";
 import type { Client, Segment } from "@/api/interfaces/clientinterface";
 import validators from "@/constants/validators";
 import ClientInfo from "@/routes/clients/ClientInfo";
-import { getClientById, updateClient, deleteClient, createSegment, updateSegment, deleteSegment, getSegmentsByClientId } from "@/api";
+import {
+    getClientById,
+    updateClient,
+    deleteClient,
+    createSegment,
+    updateSegment,
+    deleteSegment,
+    createCompetitor,
+    updateCompetitor,
+    deleteCompetitor,
+} from "@/api";
 
 const inputBaseClass =
     "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
@@ -129,29 +139,27 @@ const ClientDetailPage = () => {
         if (!draft || !id) return;
 
         try {
-            // Extract segments from draft before updating client
+            // Extract segments and competitors from draft before updating client
             const draftSegments = draft.segments || [];
-            const draftWithoutSegments = { ...draft };
+            const draftCompetitors = draft.competitors || [];
+            const draftWithoutSegments = { ...draft } as Record<string, any>;
             delete draftWithoutSegments.segments;
+            delete draftWithoutSegments.competitors;
 
-            // Update client data (without segments)
+            // Update client data (without segments and competitors)
             await updateClient(id, draftWithoutSegments);
 
-            // Handle segments separately - compare with original client segments
+            // === Segments handling ===
             const originalSegments = client?.segments || [];
 
-            // Update or create segments (sanitize draft segments before sending)
             for (const segment of draftSegments) {
                 try {
                     const sanitized = JSON.parse(JSON.stringify(segment));
-                    // Remove any temporary UI-only fields
                     if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
 
                     if (sanitized._id) {
-                        // Existing segment - use PUT to update
                         await updateSegment(id, sanitized._id, sanitized);
                     } else {
-                        // New segment - use POST to create
                         await createSegment(id, sanitized);
                     }
                 } catch (segmentError: any) {
@@ -159,7 +167,6 @@ const ClientDetailPage = () => {
                 }
             }
 
-            // Delete segments that were removed (in original but not in draft)
             for (const originalSegment of originalSegments) {
                 const stillExists = draftSegments.find((s: Segment) => s._id === originalSegment._id);
                 if (!stillExists && originalSegment._id) {
@@ -167,6 +174,36 @@ const ClientDetailPage = () => {
                         await deleteSegment(id, originalSegment._id);
                     } catch (deleteError: any) {
                         console.error("❌ Error deleting segment:", originalSegment.name, deleteError?.response?.data || deleteError);
+                    }
+                }
+            }
+
+            // === Competitors handling ===
+            const originalCompetitors = client?.competitors || [];
+
+            for (const competitor of draftCompetitors) {
+                try {
+                    const sanitized = JSON.parse(JSON.stringify(competitor));
+                    // No special temporary fields expected, but keep payload minimal
+                    // If it's an existing competitor, update; otherwise create
+                    if (sanitized._id) {
+                        await updateCompetitor(id, sanitized._id, sanitized);
+                    } else {
+                        await createCompetitor(id, sanitized);
+                    }
+                } catch (compError: any) {
+                    // Continue with other competitors even if one fails
+                    console.error("Error saving competitor:", compError?.response?.data || compError);
+                }
+            }
+
+            for (const originalCompetitor of originalCompetitors) {
+                const stillExists = draftCompetitors.find((c: any) => c._id === originalCompetitor._id);
+                if (!stillExists && originalCompetitor._id) {
+                    try {
+                        await deleteCompetitor(id, originalCompetitor._id);
+                    } catch (deleteErr: any) {
+                        console.error("❌ Error deleting competitor:", originalCompetitor.name, deleteErr?.response?.data || deleteErr);
                     }
                 }
             }
@@ -427,23 +464,142 @@ const ClientDetailPage = () => {
                                                     placeholder={t("description") || "Description"}
                                                     onChange={(e) => updateDraftPath(`competitors.${idx}.description`, e.target.value)}
                                                 />
-                                                {(() => {
-                                                    const val = competitor.website || "";
-                                                    const invalid = val !== "" && !validators.isValidURL(val, { allowProtocolLess: true });
-                                                    return (
-                                                        <div>
-                                                            <input
-                                                                className={`${inputBaseClass} mt-2 ${makeInvalidClass(invalid)}`}
-                                                                value={val}
-                                                                placeholder={t("website_label") || "Website"}
-                                                                onChange={(e) => updateDraftPath(`competitors.${idx}.website`, e.target.value)}
-                                                            />
-                                                            {invalid && (
-                                                                <div className="mt-1 text-xs text-red-600">{t("invalid_url") || "Invalid URL"}</div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })()}
+                                                {/* Social Links in editing mode */}
+                                                <div className="mt-2 space-y-2">
+                                                    <label className="text-light-600 dark:text-dark-400 text-xs">
+                                                        {t("social_media") || "Social Media"}
+                                                    </label>
+                                                    {["website", "facebook", "instagram", "twitter", "tiktok"].map((platform) => {
+                                                        // Find the link for this platform in socialLinks array
+                                                        const linkObj = competitor.socialLinks?.find((l: any) => l.platform === platform);
+                                                        const val = linkObj?.url || "";
+                                                        const invalid = val !== "" && !validators.isValidURL(val, { allowProtocolLess: true });
+
+                                                        return (
+                                                            <div key={platform}>
+                                                                <input
+                                                                    className={`${inputBaseClass} ${makeInvalidClass(invalid)}`}
+                                                                    value={val}
+                                                                    placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`}
+                                                                    onChange={(e) => {
+                                                                        const newUrl = e.target.value;
+                                                                        setDraft((prev: Partial<Client> | null) => {
+                                                                            const next = JSON.parse(JSON.stringify(prev || {})) as Record<
+                                                                                string,
+                                                                                any
+                                                                            >;
+                                                                            if (!next.competitors) next.competitors = [];
+                                                                            if (!next.competitors[idx]) next.competitors[idx] = {};
+                                                                            if (!next.competitors[idx].socialLinks)
+                                                                                next.competitors[idx].socialLinks = [];
+
+                                                                            // Find existing link or create new one
+                                                                            const existingLinkIdx = next.competitors[idx].socialLinks.findIndex(
+                                                                                (l: any) => l.platform === platform,
+                                                                            );
+
+                                                                            if (newUrl.trim()) {
+                                                                                if (existingLinkIdx >= 0) {
+                                                                                    next.competitors[idx].socialLinks[existingLinkIdx].url = newUrl;
+                                                                                } else {
+                                                                                    next.competitors[idx].socialLinks.push({ platform, url: newUrl });
+                                                                                }
+                                                                            } else {
+                                                                                // Remove if empty
+                                                                                if (existingLinkIdx >= 0) {
+                                                                                    next.competitors[idx].socialLinks.splice(existingLinkIdx, 1);
+                                                                                }
+                                                                            }
+
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                />
+                                                                {invalid && (
+                                                                    <div className="mt-1 text-xs text-red-600">
+                                                                        {t("invalid_url") || "Invalid URL"}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* SWOT Analysis in editing mode */}
+                                                <div className="mt-3 space-y-2">
+                                                    <label className="text-light-600 dark:text-dark-400 text-xs">
+                                                        {t("swot_analysis") || "SWOT Analysis"}
+                                                    </label>
+
+                                                    {/* Strengths */}
+                                                    <div>
+                                                        <label className="text-xs text-green-600 dark:text-green-400">
+                                                            {t("strengths") || "Strengths"}
+                                                        </label>
+                                                        <textarea
+                                                            className={`${inputBaseClass} text-xs`}
+                                                            rows={2}
+                                                            value={(competitor.swot_strengths || []).join("\n")}
+                                                            placeholder={t("one_per_line") || "One per line"}
+                                                            onChange={(e) => {
+                                                                const values = e.target.value.split("\n").filter((v) => v.trim());
+                                                                updateDraftPath(`competitors.${idx}.swot_strengths`, values);
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Weaknesses */}
+                                                    <div>
+                                                        <label className="text-xs text-red-600 dark:text-red-400">
+                                                            {t("weaknesses") || "Weaknesses"}
+                                                        </label>
+                                                        <textarea
+                                                            className={`${inputBaseClass} text-xs`}
+                                                            rows={2}
+                                                            value={(competitor.swot_weaknesses || []).join("\n")}
+                                                            placeholder={t("one_per_line") || "One per line"}
+                                                            onChange={(e) => {
+                                                                const values = e.target.value.split("\n").filter((v) => v.trim());
+                                                                updateDraftPath(`competitors.${idx}.swot_weaknesses`, values);
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Opportunities */}
+                                                    <div>
+                                                        <label className="text-xs text-blue-600 dark:text-blue-400">
+                                                            {t("opportunities") || "Opportunities"}
+                                                        </label>
+                                                        <textarea
+                                                            className={`${inputBaseClass} text-xs`}
+                                                            rows={2}
+                                                            value={(competitor.swot_opportunities || []).join("\n")}
+                                                            placeholder={t("one_per_line") || "One per line"}
+                                                            onChange={(e) => {
+                                                                const values = e.target.value.split("\n").filter((v) => v.trim());
+                                                                updateDraftPath(`competitors.${idx}.swot_opportunities`, values);
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Threats */}
+                                                    <div>
+                                                        <label className="text-xs text-orange-600 dark:text-orange-400">
+                                                            {t("threats") || "Threats"}
+                                                        </label>
+                                                        <textarea
+                                                            className={`${inputBaseClass} text-xs`}
+                                                            rows={2}
+                                                            value={(competitor.swot_threats || []).join("\n")}
+                                                            placeholder={t("one_per_line") || "One per line"}
+                                                            onChange={(e) => {
+                                                                const values = e.target.value.split("\n").filter((v) => v.trim());
+                                                                updateDraftPath(`competitors.${idx}.swot_threats`, values);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
                                                 <div className="mt-2">
                                                     <button
                                                         className={buttonGhostClass}
@@ -465,15 +621,110 @@ const ClientDetailPage = () => {
                                             <>
                                                 <h4 className="text-light-900 dark:text-dark-50 font-medium">{competitor.name}</h4>
                                                 <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{competitor.description}</p>
+
+                                                {/* Social Links */}
+                                                {competitor.socialLinks && competitor.socialLinks.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {competitor.socialLinks.map((link: any, linkIdx: number) => {
+                                                            const platformLower = (link.platform || "").toLowerCase();
+                                                            let Icon = null;
+                                                            let colorClass = "text-light-600";
+                                                            if (platformLower === "facebook") {
+                                                                Icon = SiFacebook;
+                                                                colorClass = "text-secdark-700";
+                                                            } else if (platformLower === "instagram") {
+                                                                Icon = SiInstagram;
+                                                                colorClass = "text-pink-600";
+                                                            } else if (platformLower === "tiktok") {
+                                                                Icon = SiTiktok;
+                                                                colorClass = "text-dark-900 dark:text-dark-50";
+                                                            } else if (platformLower === "twitter" || platformLower === "x") {
+                                                                Icon = SiX;
+                                                                colorClass = "text-dark-900 dark:text-dark-50";
+                                                            }
+                                                            return (
+                                                                <a
+                                                                    key={linkIdx}
+                                                                    href={link.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`${colorClass} transition-opacity hover:opacity-70`}
+                                                                    title={`${link.platform}: ${link.url}`}
+                                                                >
+                                                                    {Icon ? <Icon size={18} /> : <span className="text-xs">{link.platform}</span>}
+                                                                </a>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {/* Website (if not in socialLinks) */}
                                                 {competitor.website && (
                                                     <a
                                                         href={competitor.website}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-light-500 mt-1 text-xs break-words hover:underline"
+                                                        className="text-light-500 mt-2 block text-xs break-words hover:underline"
                                                     >
                                                         {competitor.website}
                                                     </a>
+                                                )}
+
+                                                {/* SWOT Analysis */}
+                                                {((competitor.swot_strengths && competitor.swot_strengths.length > 0) ||
+                                                    (competitor.swot_weaknesses && competitor.swot_weaknesses.length > 0) ||
+                                                    (competitor.swot_opportunities && competitor.swot_opportunities.length > 0) ||
+                                                    (competitor.swot_threats && competitor.swot_threats.length > 0)) && (
+                                                    <div className="mt-3 space-y-2 text-xs">
+                                                        {competitor.swot_strengths && competitor.swot_strengths.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-green-600 dark:text-green-400">
+                                                                    {t("strengths") || "Strengths"}:
+                                                                </strong>
+                                                                <ul className="text-light-700 dark:text-dark-300 mt-1 ml-2 list-inside list-disc">
+                                                                    {competitor.swot_strengths.map((s: string, i: number) => (
+                                                                        <li key={i}>{s}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {competitor.swot_weaknesses && competitor.swot_weaknesses.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-red-600 dark:text-red-400">
+                                                                    {t("weaknesses") || "Weaknesses"}:
+                                                                </strong>
+                                                                <ul className="text-light-700 dark:text-dark-300 mt-1 ml-2 list-inside list-disc">
+                                                                    {competitor.swot_weaknesses.map((w: string, i: number) => (
+                                                                        <li key={i}>{w}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {competitor.swot_opportunities && competitor.swot_opportunities.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-blue-600 dark:text-blue-400">
+                                                                    {t("opportunities") || "Opportunities"}:
+                                                                </strong>
+                                                                <ul className="text-light-700 dark:text-dark-300 mt-1 ml-2 list-inside list-disc">
+                                                                    {competitor.swot_opportunities.map((o: string, i: number) => (
+                                                                        <li key={i}>{o}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {competitor.swot_threats && competitor.swot_threats.length > 0 && (
+                                                            <div>
+                                                                <strong className="text-orange-600 dark:text-orange-400">
+                                                                    {t("threats") || "Threats"}:
+                                                                </strong>
+                                                                <ul className="text-light-700 dark:text-dark-300 mt-1 ml-2 list-inside list-disc">
+                                                                    {competitor.swot_threats.map((t: string, i: number) => (
+                                                                        <li key={i}>{t}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </>
                                         )}
@@ -494,7 +745,11 @@ const ClientDetailPage = () => {
                                             next.competitors.push({
                                                 name: "",
                                                 description: "",
-                                                website: "",
+                                                socialLinks: [],
+                                                swot_strengths: [],
+                                                swot_weaknesses: [],
+                                                swot_opportunities: [],
+                                                swot_threats: [],
                                             });
                                             return next;
                                         });

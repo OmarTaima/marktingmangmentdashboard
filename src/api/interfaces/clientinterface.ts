@@ -47,12 +47,23 @@ export interface SWOT {
 }
 
 export interface Competitor {
-    _id: string;
+    _id?: string;
+    clientId?: string;
     name: string;
-    description: string;
-    website: string;
-    strengths: string[];
-    weaknesses: string[];
+    description?: string;
+    website?: string;
+    swot_strengths?: string[];
+    swot_weaknesses?: string[];
+    swot_opportunities?: string[];
+    swot_threats?: string[];
+    socialLinks?: Array<{
+        platform: string;
+        url: string;
+        _id?: string;
+    }>;
+    deleted?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Segment {
