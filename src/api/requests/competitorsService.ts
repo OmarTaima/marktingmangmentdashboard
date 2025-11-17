@@ -128,31 +128,28 @@ const transformCompetitorToFrontendFormat = (backendData: any): Competitor | nul
  * GET /clients/:clientId/competitors
  */
 export const getCompetitorsByClientId = async (clientId: string): Promise<Competitor[]> => {
-    return withCache(
-        `/clients/${clientId}/competitors`,
-        async () => {
-            try {
-                const response = await axiosInstance.get(`/clients/${clientId}/competitors`);
+    return withCache(`/clients/${clientId}/competitors`, async () => {
+        try {
+            const response = await axiosInstance.get(`/clients/${clientId}/competitors`);
 
-                // Handle different response structures
-                let competitorsData = [];
-                if (Array.isArray(response.data)) {
-                    competitorsData = response.data;
-                } else if (Array.isArray(response.data.competitors)) {
-                    competitorsData = response.data.competitors;
-                } else if (response.data.data && Array.isArray(response.data.data)) {
-                    competitorsData = response.data.data;
-                } else if (response.data.data && Array.isArray(response.data.data.competitors)) {
-                    competitorsData = response.data.data.competitors;
-                }
-
-                const transformed = competitorsData.map(transformCompetitorToFrontendFormat).filter(Boolean);
-                return transformed as Competitor[];
-            } catch (error) {
-                throw error;
+            // Handle different response structures
+            let competitorsData = [];
+            if (Array.isArray(response.data)) {
+                competitorsData = response.data;
+            } else if (Array.isArray(response.data.competitors)) {
+                competitorsData = response.data.competitors;
+            } else if (response.data.data && Array.isArray(response.data.data)) {
+                competitorsData = response.data.data;
+            } else if (response.data.data && Array.isArray(response.data.data.competitors)) {
+                competitorsData = response.data.data.competitors;
             }
+
+            const transformed = competitorsData.map(transformCompetitorToFrontendFormat).filter(Boolean);
+            return transformed as Competitor[];
+        } catch (error) {
+            throw error;
         }
-    );
+    });
 };
 
 /**

@@ -1,7 +1,7 @@
 /**
  * API Cache Manager
  * Provides in-memory caching for API requests to avoid redundant network calls
- * 
+ *
  * Features:
  * - Time-based expiration (TTL)
  * - Manual cache invalidation
@@ -35,7 +35,7 @@ class ApiCache {
      */
     private generateKey(endpoint: string, params?: any): string {
         if (!params) return endpoint;
-        
+
         // Sort params for consistent key generation
         const sortedParams = Object.keys(params)
             .sort()
@@ -43,7 +43,7 @@ class ApiCache {
                 acc[key] = params[key];
                 return acc;
             }, {} as any);
-        
+
         return `${endpoint}?${JSON.stringify(sortedParams)}`;
     }
 
@@ -61,8 +61,7 @@ class ApiCache {
         if (this.cache.size <= this.maxSize) return;
 
         // Convert to array and sort by timestamp
-        const entries = Array.from(this.cache.entries())
-            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+        const entries = Array.from(this.cache.entries()).sort(([, a], [, b]) => a.timestamp - b.timestamp);
 
         // Remove oldest entries until within limit
         const toRemove = entries.slice(0, this.cache.size - this.maxSize);
@@ -151,7 +150,7 @@ class ApiCache {
         options?: {
             ttl?: number;
             forceRefresh?: boolean;
-        }
+        },
     ): Promise<T> {
         // Check if force refresh is requested
         if (options?.forceRefresh) {
@@ -185,12 +184,7 @@ export const apiCache = new ApiCache({
 });
 
 // Export helper function for easy use
-export const withCache = <T>(
-    endpoint: string,
-    apiCall: () => Promise<T>,
-    params?: any,
-    ttl?: number
-): Promise<T> => {
+export const withCache = <T>(endpoint: string, apiCall: () => Promise<T>, params?: any, ttl?: number): Promise<T> => {
     return apiCache.cachedRequest(endpoint, apiCall, params, { ttl });
 };
 

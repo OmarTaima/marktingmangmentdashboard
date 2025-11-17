@@ -50,22 +50,19 @@ const transformBranchToFrontend = (backendData: any): Branch | null => {
 };
 
 export const getBranchesByClientId = async (clientId: string): Promise<Branch[]> => {
-    return withCache(
-        `/clients/${clientId}/branches`,
-        async () => {
-            try {
-                const res = await axiosInstance.get(`/clients/${clientId}/branches`);
-                let data: any[] = [];
-                if (Array.isArray(res.data)) data = res.data;
-                else if (Array.isArray(res.data.data)) data = res.data.data;
-                else if (Array.isArray(res.data.branches)) data = res.data.branches;
+    return withCache(`/clients/${clientId}/branches`, async () => {
+        try {
+            const res = await axiosInstance.get(`/clients/${clientId}/branches`);
+            let data: any[] = [];
+            if (Array.isArray(res.data)) data = res.data;
+            else if (Array.isArray(res.data.data)) data = res.data.data;
+            else if (Array.isArray(res.data.branches)) data = res.data.branches;
 
-                return data.map(transformBranchToFrontend).filter(Boolean) as Branch[];
-            } catch (err) {
-                throw err;
-            }
+            return data.map(transformBranchToFrontend).filter(Boolean) as Branch[];
+        } catch (err) {
+            throw err;
         }
-    );
+    });
 };
 
 export const createBranch = async (clientId: string, branchData: any): Promise<Branch | null> => {

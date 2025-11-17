@@ -91,7 +91,7 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
                 throw error;
             }
         },
-        params
+        params,
     );
 };
 
@@ -99,18 +99,15 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
  * Get a single contract by ID
  */
 export const getContractById = async (id: string): Promise<Contract> => {
-    return withCache(
-        `/contracts/${id}`,
-        async () => {
-            try {
-                const response = await api.get(`/contracts/${id}`);
-                return response.data.data;
-            } catch (error) {
-                console.error(`Error fetching contract ${id}:`, error);
-                throw error;
-            }
+    return withCache(`/contracts/${id}`, async () => {
+        try {
+            const response = await api.get(`/contracts/${id}`);
+            return response.data.data;
+        } catch (error) {
+            console.error(`Error fetching contract ${id}:`, error);
+            throw error;
         }
-    );
+    });
 };
 
 /**

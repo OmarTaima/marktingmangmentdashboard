@@ -88,31 +88,28 @@ const transformSegmentToFrontendFormat = (backendData: any): Segment | null => {
  * GET /clients/:clientId/segments
  */
 export const getSegmentsByClientId = async (clientId: string): Promise<Segment[]> => {
-    return withCache(
-        `/clients/${clientId}/segments`,
-        async () => {
-            try {
-                const response = await axiosInstance.get(`/clients/${clientId}/segments`);
+    return withCache(`/clients/${clientId}/segments`, async () => {
+        try {
+            const response = await axiosInstance.get(`/clients/${clientId}/segments`);
 
-                // Handle different response structures
-                let segmentsData = [];
-                if (Array.isArray(response.data)) {
-                    segmentsData = response.data;
-                } else if (Array.isArray(response.data.segments)) {
-                    segmentsData = response.data.segments;
-                } else if (response.data.data && Array.isArray(response.data.data)) {
-                    segmentsData = response.data.data;
-                } else if (response.data.data && Array.isArray(response.data.data.segments)) {
-                    segmentsData = response.data.data.segments;
-                }
-
-                const transformed = segmentsData.map(transformSegmentToFrontendFormat).filter(Boolean);
-                return transformed;
-            } catch (error) {
-                throw error;
+            // Handle different response structures
+            let segmentsData = [];
+            if (Array.isArray(response.data)) {
+                segmentsData = response.data;
+            } else if (Array.isArray(response.data.segments)) {
+                segmentsData = response.data.segments;
+            } else if (response.data.data && Array.isArray(response.data.data)) {
+                segmentsData = response.data.data;
+            } else if (response.data.data && Array.isArray(response.data.data.segments)) {
+                segmentsData = response.data.data.segments;
             }
+
+            const transformed = segmentsData.map(transformSegmentToFrontendFormat).filter(Boolean);
+            return transformed;
+        } catch (error) {
+            throw error;
         }
-    );
+    });
 };
 
 /**

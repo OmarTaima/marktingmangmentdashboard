@@ -277,29 +277,26 @@ const buildQueryString = (filters: ClientFilterParams): string => {
  * Get all clients (simple version without filters)
  */
 export const getClients = async (): Promise<Client[]> => {
-    return withCache(
-        "/clients",
-        async () => {
-            try {
-                const response = await axiosInstance.get(CLIENTS_ENDPOINT);
+    return withCache("/clients", async () => {
+        try {
+            const response = await axiosInstance.get(CLIENTS_ENDPOINT);
 
-                // Handle nested data structure - backend might return {data: [...]} or [...]
-                let data;
-                if (Array.isArray(response.data)) {
-                    data = response.data;
-                } else if (Array.isArray(response.data.data)) {
-                    data = response.data.data;
-                } else {
-                    data = [];
-                }
-
-                const transformed = data.map(transformToFrontendFormat).filter(Boolean);
-                return transformed;
-            } catch (error) {
-                throw error;
+            // Handle nested data structure - backend might return {data: [...]} or [...]
+            let data;
+            if (Array.isArray(response.data)) {
+                data = response.data;
+            } else if (Array.isArray(response.data.data)) {
+                data = response.data.data;
+            } else {
+                data = [];
             }
+
+            const transformed = data.map(transformToFrontendFormat).filter(Boolean);
+            return transformed;
+        } catch (error) {
+            throw error;
         }
-    );
+    });
 };
 
 /**
@@ -335,7 +332,7 @@ export const getClientsWithFilters = async (filters: ClientFilterParams = {}): P
                 throw error;
             }
         },
-        filters
+        filters,
     );
 };
 
@@ -393,23 +390,20 @@ export const clearClientCache = (clientId: string) => {
  * Get a single client by ID
  */
 export const getClientById = async (clientId: string): Promise<Client | null> => {
-    return withCache(
-        `/clients/${clientId}`,
-        async () => {
-            try {
-                const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`);
+    return withCache(`/clients/${clientId}`, async () => {
+        try {
+            const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`);
 
-                // Handle nested data structure - backend can return:
-                // {client: {...}}, {data: {...}}, or {...}
-                const clientData = response.data.client || response.data.data || response.data;
+            // Handle nested data structure - backend can return:
+            // {client: {...}}, {data: {...}}, or {...}
+            const clientData = response.data.client || response.data.data || response.data;
 
-                const transformed = transformToFrontendFormat(clientData);
-                return transformed;
-            } catch (error) {
-                throw error;
-            }
+            const transformed = transformToFrontendFormat(clientData);
+            return transformed;
+        } catch (error) {
+            throw error;
         }
-    );
+    });
 };
 
 /**

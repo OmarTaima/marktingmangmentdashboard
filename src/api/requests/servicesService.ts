@@ -64,7 +64,7 @@ export const getServices = async (params?: ServiceQueryParams): Promise<ServiceL
                 throw error;
             }
         },
-        params
+        params,
     );
 };
 
@@ -72,18 +72,15 @@ export const getServices = async (params?: ServiceQueryParams): Promise<ServiceL
  * Get a single service by ID
  */
 export const getServiceById = async (id: string): Promise<Service> => {
-    return withCache(
-        `/services/${id}`,
-        async () => {
-            try {
-                const response = await api.get(`/services/${id}`);
-                return response.data.data;
-            } catch (error) {
-                console.error(`Error fetching service ${id}:`, error);
-                throw error;
-            }
+    return withCache(`/services/${id}`, async () => {
+        try {
+            const response = await api.get(`/services/${id}`);
+            return response.data.data;
+        } catch (error) {
+            console.error(`Error fetching service ${id}:`, error);
+            throw error;
         }
-    );
+    });
 };
 
 /**

@@ -117,7 +117,7 @@ export const getQuotations = async (params?: QuotationQueryParams): Promise<Quot
             const response = await api.get("/quotations", { params });
             return response.data;
         },
-        params
+        params,
     );
 };
 
@@ -135,13 +135,10 @@ export const createQuotation = async (payload: CreateQuotationPayload): Promise<
  * Get a single quotation by ID
  */
 export const getQuotationById = async (id: string): Promise<{ data: Quotation }> => {
-    return withCache(
-        `/quotations/${id}`,
-        async () => {
-            const response = await api.get(`/quotations/${id}`);
-            return response.data;
-        }
-    );
+    return withCache(`/quotations/${id}`, async () => {
+        const response = await api.get(`/quotations/${id}`);
+        return response.data;
+    });
 };
 
 /**

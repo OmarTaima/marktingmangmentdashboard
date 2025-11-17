@@ -54,7 +54,7 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
                 throw error;
             }
         },
-        params
+        params,
     );
 };
 
@@ -62,18 +62,15 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
  * Get a single package by ID
  */
 export const getPackageById = async (id: string): Promise<Package> => {
-    return withCache(
-        `/packages/${id}`,
-        async () => {
-            try {
-                const response = await api.get(`/packages/${id}`);
-                return response.data.data;
-            } catch (error) {
-                console.error(`Error fetching package ${id}:`, error);
-                throw error;
-            }
+    return withCache(`/packages/${id}`, async () => {
+        try {
+            const response = await api.get(`/packages/${id}`);
+            return response.data.data;
+        } catch (error) {
+            console.error(`Error fetching package ${id}:`, error);
+            throw error;
         }
-    );
+    });
 };
 
 /**

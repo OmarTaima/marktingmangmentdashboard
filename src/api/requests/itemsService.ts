@@ -48,7 +48,7 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
                 throw error;
             }
         },
-        params
+        params,
     );
 };
 
@@ -56,18 +56,15 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
  * Get a single item by ID
  */
 export const getItemById = async (id: string): Promise<Item> => {
-    return withCache(
-        `/items/${id}`,
-        async () => {
-            try {
-                const response = await api.get(`/items/${id}`);
-                return response.data.data;
-            } catch (error) {
-                console.error(`Error fetching item ${id}:`, error);
-                throw error;
-            }
+    return withCache(`/items/${id}`, async () => {
+        try {
+            const response = await api.get(`/items/${id}`);
+            return response.data.data;
+        } catch (error) {
+            console.error(`Error fetching item ${id}:`, error);
+            throw error;
         }
-    );
+    });
 };
 
 /**
