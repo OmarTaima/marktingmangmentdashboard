@@ -76,7 +76,9 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     const handleBusinessLinkChange = (index: number, value: string) => {
         setBusinessLinks((prevLinks) => {
             const updated = [...prevLinks];
-            updated[index] = { ...updated[index], url: value };
+            // Ensure platform is preserved from mainPlatforms if missing
+            const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
+            updated[index] = { platform, url: value };
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
             return updated;
         });
@@ -118,6 +120,8 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Non-blocking: show URL errors but allow moving forward
+        console.debug("[SocialLinksStep] Submitting businessLinks:", JSON.stringify(businessLinks));
+        console.debug("[SocialLinksStep] Submitting customLinks:", JSON.stringify(customLinks));
         onNext({
             socialLinks: {
                 business: businessLinks,
@@ -129,7 +133,16 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
 
     // Keep local lists in sync with parent data so entered values persist when navigating
     useEffect(() => {
-        setBusinessLinks(data.socialLinks?.business || mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
+        // Ensure business links always have platform names from mainPlatforms
+        if (data.socialLinks?.business) {
+            const businessWithPlatforms = data.socialLinks.business.map((link: SocialLink, index: number) => ({
+                platform: link.platform || mainPlatforms[index]?.name || "",
+                url: link.url || "",
+            }));
+            setBusinessLinks(businessWithPlatforms);
+        } else {
+            setBusinessLinks(mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
+        }
         setCustomLinks(data.socialLinks?.custom || []);
     }, [data?.socialLinks]);
 
@@ -137,10 +150,9 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
         setNewCustom(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
     }, [data?.socialLinksDraft]);
 
-    useEffect(() => {
-        if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: customLinks } });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [businessLinks, customLinks]);
+    // Note: handlers call `onUpdate` when the user changes values.
+    // Avoid calling onUpdate from a generic effect here to prevent update loops
+    // between child local state and parent `data` prop.
 
     return (
         <form

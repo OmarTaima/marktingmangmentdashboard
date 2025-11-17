@@ -10,6 +10,7 @@ import ClientsPage from "./routes/clients/page";
 import ClientDetailPage from "./routes/clients/detail/page";
 import PlanningPage from "./routes/planning/page";
 import ServicesPage from "./routes/services/page";
+import ItemsPage from "./routes/items/page";
 import QuotationsPage from "./routes/quotations/page";
 import PackagesPage from "./routes/packages/page";
 import AddPackagePage from "./routes/packages/add";
@@ -34,10 +35,12 @@ function App() {
                     { path: "clients/:id", element: <ClientDetailPage /> },
                     { path: "strategies", element: <PlanningPage /> },
                     { path: "services", element: <ServicesPage /> },
+                    { path: "items", element: <ItemsPage /> },
                     { path: "quotations", element: <QuotationsPage /> },
                     { path: "packages", element: <PackagesPage /> },
                     { path: "packages/add", element: <AddPackagePage /> },
                     { path: "contracts", element: <ContractPage /> },
+                    { path: "contracts/manage", element: <ContractPage /> },
                     { path: "reports", element: <ReportsPage /> },
                 ],
             },

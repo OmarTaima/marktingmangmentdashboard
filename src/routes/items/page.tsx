@@ -1,20 +1,16 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, Check, X, Loader2, Search } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
-import { getServices, createService, updateService, deleteService, Service } from "@/api/requests/servicesService";
+import { getItems, createItem, updateItem, deleteItem, Item } from "@/api/requests/itemsService";
 
-const ServicesPage = () => {
-    const { t, lang } = useLang();
-    const [services, setServices] = useState<Service[]>([]);
-    const [inputEn, setInputEn] = useState<string>("");
-    const [inputAr, setInputAr] = useState<string>("");
+const ItemsPage = () => {
+    const { t } = useLang();
+    const [items, setItems] = useState<Item[]>([]);
+    const [inputName, setInputName] = useState<string>("");
     const [inputDescription, setInputDescription] = useState<string>("");
-    const [inputPrice, setInputPrice] = useState<string>("");
     const [editingId, setEditingId] = useState<string>("");
-    const [editingValueEn, setEditingValueEn] = useState<string>("");
-    const [editingValueAr, setEditingValueAr] = useState<string>("");
+    const [editingName, setEditingName] = useState<string>("");
     const [editingDescription, setEditingDescription] = useState<string>("");
-    const [editingPrice, setEditingPrice] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -22,99 +18,86 @@ const ServicesPage = () => {
     const [totalPages, setTotalPages] = useState<number>(1);
     const [error, setError] = useState<string>("");
 
-    const loadServices = async () => {
+    // Load items from API
+    const loadItems = async () => {
         try {
             setIsLoading(true);
             setError("");
-            const response = await getServices({
+            const response = await getItems({
                 page: currentPage,
                 limit: 20,
                 search: searchQuery || undefined,
             });
-            setServices(response.data);
+            setItems(response.data);
             setTotalPages(response.meta.totalPages);
         } catch (e: any) {
-            console.error("Error loading services:", e);
-            setError(e.response?.data?.message || "Failed to load services");
+            console.error("Error loading items:", e);
+            setError(e.response?.data?.message || "Failed to load items");
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        loadServices();
+        loadItems();
     }, [currentPage, searchQuery]);
 
     const handleAdd = async () => {
-        const en = (inputEn || "").trim();
-        const ar = (inputAr || "").trim();
+        const name = (inputName || "").trim();
         const desc = (inputDescription || "").trim();
-        const price = inputPrice ? parseFloat(inputPrice) : undefined;
 
-        if (!en || !ar) {
-            setError(t("service_name_required") || "English and Arabic names are required");
+        if (!name) {
+            setError(t("item_name_required") || "Item name is required");
             return;
         }
 
         try {
             setIsSaving(true);
             setError("");
-            await createService({
-                en,
-                ar,
+            await createItem({
+                name,
                 description: desc || undefined,
-                price,
             });
-            setInputEn("");
-            setInputAr("");
+            setInputName("");
             setInputDescription("");
-            setInputPrice("");
-            await loadServices();
+            await loadItems();
         } catch (e: any) {
-            console.error("Error creating service:", e);
-            setError(e.response?.data?.message || "Failed to create service");
+            console.error("Error creating item:", e);
+            setError(e.response?.data?.message || "Failed to create item");
         } finally {
             setIsSaving(false);
         }
     };
 
-    const startEdit = (service: Service) => {
-        setEditingId(service._id);
-        setEditingValueEn(service.en || "");
-        setEditingValueAr(service.ar || "");
-        setEditingDescription(service.description || "");
-        setEditingPrice(service.price?.toString() || "");
+    const startEdit = (item: Item) => {
+        setEditingId(item._id);
+        setEditingName(item.name || "");
+        setEditingDescription(item.description || "");
     };
 
     const saveEdit = async (id: string) => {
-        const en = (editingValueEn || "").trim();
-        const ar = (editingValueAr || "").trim();
+        const name = (editingName || "").trim();
         const desc = (editingDescription || "").trim();
-        const price = editingPrice ? parseFloat(editingPrice) : undefined;
 
-        if (!en || !ar) {
-            setError(t("service_name_required") || "English and Arabic names are required");
+        if (!name) {
+            setError(t("item_name_required") || "Item name is required");
             return;
         }
 
         try {
             setIsSaving(true);
             setError("");
-            await updateService(id, {
-                en,
-                ar,
+            await updateItem(id, {
+                name,
                 description: desc || undefined,
-                price,
             });
             setEditingId("");
-            setEditingValueEn("");
-            setEditingValueAr("");
+            setEditingName("");
             setEditingDescription("");
-            setEditingPrice("");
-            await loadServices();
+            await loadItems();
         } catch (e: any) {
-            console.error("Error updating service:", e);
-            setError(e.response?.data?.message || "Failed to update service");
+            console.error("Error updating item:", e);
+            setError(e.response?.data?.message || "Failed to update item");
         } finally {
             setIsSaving(false);
         }
@@ -122,34 +105,31 @@ const ServicesPage = () => {
 
     const cancelEdit = () => {
         setEditingId("");
-        setEditingValueEn("");
-        setEditingValueAr("");
+        setEditingName("");
         setEditingDescription("");
-        setEditingPrice("");
     };
 
-    const remove = async (service: Service) => {
-        if (!confirm(t("confirm_delete_service") || "Delete this service category?")) return;
+    const remove = async (item: Item) => {
+        if (!confirm(t("confirm_delete_item") || "Delete this item?")) return;
 
         try {
             setError("");
-            await deleteService(service._id);
-            await loadServices();
+            await deleteItem(item._id);
+            await loadItems();
         } catch (e: any) {
-            console.error("Error deleting service:", e);
-            setError(e.response?.data?.message || "Failed to delete service");
+            console.error("Error deleting item:", e);
+            setError(e.response?.data?.message || "Failed to delete item");
         }
     };
+
+    const filteredItems = items;
 
     return (
         <div className="space-y-6 px-4 sm:px-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="title">{t("Services") || "Service Categories"}</h1>
-                    <p className="text-light-600 dark:text-dark-400">
-                        {t("manage_service_categories_sub") ||
-                            "Manage service categories that contain items. These act as categories for your items."}
-                    </p>
+                    <h1 className="title">{t("Items")}</h1>
+                    <p className="text-light-600 dark:text-dark-400">{t("manage_items_sub") || "Manage available items shown throughout the app."}</p>
                 </div>
             </div>
 
@@ -161,7 +141,7 @@ const ServicesPage = () => {
 
             <div className="card">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="card-title">{t("manage_services") || "Manage Service Categories"}</h2>
+                    <h2 className="card-title">{t("manage_items") || "Manage Items"}</h2>
                     <div className="relative">
                         <Search className="text-light-600 dark:text-dark-400 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <input
@@ -171,7 +151,7 @@ const ServicesPage = () => {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            placeholder={t("search_services") || "Search services..."}
+                            placeholder={t("search_items") || "Search items..."}
                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-64 rounded-lg border bg-white py-2 pr-3 pl-10 text-sm transition-colors focus:outline-none"
                         />
                     </div>
@@ -184,39 +164,26 @@ const ServicesPage = () => {
                 ) : (
                     <>
                         <div className="grid gap-3">
-                            {services.length > 0 ? (
-                                services.map((service) => (
+                            {filteredItems.length > 0 ? (
+                                filteredItems.map((item) => (
                                     <div
-                                        key={service._id}
+                                        key={item._id}
                                         className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                                     >
                                         <div className="flex w-full items-center gap-3">
-                                            {editingId === service._id ? (
+                                            {editingId === item._id ? (
                                                 <div className="flex w-full gap-2">
                                                     <input
-                                                        value={editingValueEn}
-                                                        onChange={(e) => setEditingValueEn(e.target.value)}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("english_label") || "English"}
-                                                    />
-                                                    <input
-                                                        value={editingValueAr}
-                                                        onChange={(e) => setEditingValueAr(e.target.value)}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("arabic_label") || "Arabic"}
+                                                        value={editingName}
+                                                        onChange={(e) => setEditingName(e.target.value)}
+                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                        placeholder={t("item_name") || "Item Name"}
                                                     />
                                                     <input
                                                         value={editingDescription}
                                                         onChange={(e) => setEditingDescription(e.target.value)}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("service_description") || "Description"}
-                                                    />
-                                                    <input
-                                                        value={editingPrice}
-                                                        onChange={(e) => setEditingPrice(e.target.value)}
-                                                        type="number"
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("price") || "Price"}
+                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                        placeholder={t("item_description") || "Description"}
                                                     />
                                                 </div>
                                             ) : (
@@ -224,16 +191,11 @@ const ServicesPage = () => {
                                                     <div className="flex w-full items-center justify-between">
                                                         <div className="flex flex-col">
                                                             <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
-                                                                {lang === "ar" ? service.ar : service.en}
+                                                                {item.name}
                                                             </span>
-                                                            {service.description && (
+                                                            {item.description && (
                                                                 <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                    {service.description}
-                                                                </span>
-                                                            )}
-                                                            {service.price !== undefined && (
-                                                                <span className="text-light-600 dark:text-dark-400 mt-1 text-xs font-semibold">
-                                                                    {t("starting_price") || "Starting Price"}: {service.price}
+                                                                    {item.description}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -242,10 +204,10 @@ const ServicesPage = () => {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {editingId === service._id ? (
+                                            {editingId === item._id ? (
                                                 <>
                                                     <button
-                                                        onClick={() => saveEdit(service._id)}
+                                                        onClick={() => saveEdit(item._id)}
                                                         disabled={isSaving}
                                                         className="btn-ghost flex items-center gap-2"
                                                     >
@@ -261,13 +223,13 @@ const ServicesPage = () => {
                                             ) : (
                                                 <>
                                                     <button
-                                                        onClick={() => startEdit(service)}
+                                                        onClick={() => startEdit(item)}
                                                         className="btn-ghost flex items-center gap-2"
                                                     >
                                                         <Edit2 size={14} />
                                                     </button>
                                                     <button
-                                                        onClick={() => remove(service)}
+                                                        onClick={() => remove(item)}
                                                         className="btn-ghost text-danger-500 flex items-center gap-2"
                                                     >
                                                         <Trash2 size={14} />
@@ -278,7 +240,7 @@ const ServicesPage = () => {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-light-600">{t("no_services_defined") || "No service categories defined yet."}</p>
+                                <p className="text-light-600">{t("no_items_defined") || "No items defined yet."}</p>
                             )}
                         </div>
 
@@ -309,33 +271,18 @@ const ServicesPage = () => {
 
                 <div className="mt-4 flex gap-2">
                     <input
-                        value={inputEn}
-                        onChange={(e) => setInputEn(e.target.value)}
-                        placeholder={t("add_service_placeholder") || "Service (English)"}
+                        value={inputName}
+                        onChange={(e) => setInputName(e.target.value)}
+                        placeholder={t("item_name") || "Item Name"}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
-                    />
-                    <input
-                        value={inputAr}
-                        onChange={(e) => setInputAr(e.target.value)}
-                        placeholder={t("add_service_placeholder_arabic") || "الخدمة (بالعربية)"}
-                        disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
                     />
                     <input
                         value={inputDescription}
                         onChange={(e) => setInputDescription(e.target.value)}
-                        placeholder={t("service_description") || "Description"}
+                        placeholder={t("item_description") || "Description"}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
-                    />
-                    <input
-                        value={inputPrice}
-                        onChange={(e) => setInputPrice(e.target.value)}
-                        type="number"
-                        placeholder={t("price") || "Price (optional)"}
-                        disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
                     />
                     <button
                         onClick={handleAdd}
@@ -358,4 +305,4 @@ const ServicesPage = () => {
     );
 };
 
-export default ServicesPage;
+export default ItemsPage;

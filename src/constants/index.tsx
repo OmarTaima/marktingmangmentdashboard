@@ -84,6 +84,11 @@ export const navbarLinks = [
                 icon: Briefcase,
                 path: "/services",
             },
+            {
+                label: "Items",
+                icon: Layers,
+                path: "/items",
+            },
         ],
     },
     {

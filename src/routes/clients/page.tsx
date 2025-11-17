@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Building2, Target, TrendingUp, Search, Download, RefreshCw } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import ClientInfo from "./ClientInfo";
-import { getClientsCached, getClientsWithFilters, exportClientsToCSV } from "@/api";
+import { getClientsCached, exportClientsToCSV } from "@/api";
 import type { Client } from "@/api/interfaces/clientinterface";
 import type { ClientFilterParams } from "@/api/requests/clientService";
 

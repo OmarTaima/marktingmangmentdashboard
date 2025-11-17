@@ -1,5 +1,6 @@
 import axiosInstance from "../axios";
 import type { Segment } from "../interfaces/clientinterface";
+import { withCache, invalidateCachePattern } from "../../utils/apiCache";
 
 /**
  * Segment API Service
@@ -87,26 +88,31 @@ const transformSegmentToFrontendFormat = (backendData: any): Segment | null => {
  * GET /clients/:clientId/segments
  */
 export const getSegmentsByClientId = async (clientId: string): Promise<Segment[]> => {
-    try {
-        const response = await axiosInstance.get(`/clients/${clientId}/segments`);
+    return withCache(
+        `/clients/${clientId}/segments`,
+        async () => {
+            try {
+                const response = await axiosInstance.get(`/clients/${clientId}/segments`);
 
-        // Handle different response structures
-        let segmentsData = [];
-        if (Array.isArray(response.data)) {
-            segmentsData = response.data;
-        } else if (Array.isArray(response.data.segments)) {
-            segmentsData = response.data.segments;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-            segmentsData = response.data.data;
-        } else if (response.data.data && Array.isArray(response.data.data.segments)) {
-            segmentsData = response.data.data.segments;
+                // Handle different response structures
+                let segmentsData = [];
+                if (Array.isArray(response.data)) {
+                    segmentsData = response.data;
+                } else if (Array.isArray(response.data.segments)) {
+                    segmentsData = response.data.segments;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    segmentsData = response.data.data;
+                } else if (response.data.data && Array.isArray(response.data.data.segments)) {
+                    segmentsData = response.data.data.segments;
+                }
+
+                const transformed = segmentsData.map(transformSegmentToFrontendFormat).filter(Boolean);
+                return transformed;
+            } catch (error) {
+                throw error;
+            }
         }
-
-        const transformed = segmentsData.map(transformSegmentToFrontendFormat).filter(Boolean);
-        return transformed;
-    } catch (error) {
-        throw error;
-    }
+    );
 };
 
 /**
@@ -121,14 +127,9 @@ export const createSegment = async (clientId: string, segmentData: any): Promise
 
         const segment = response.data.segment || response.data;
         const transformed = transformSegmentToFrontendFormat(segment);
-        // Invalidate per-client cache so client detail will reload fresh data
-        try {
-            // Use dynamic import to avoid circular import issues at module load time
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {
-            // ignore cache invalidation errors
-        }
+        // Invalidate segments and client cache after creating
+        invalidateCachePattern(`/clients/${clientId}/segments`);
+        invalidateCachePattern(`/clients/${clientId}`);
         return transformed;
     } catch (error) {
         throw error;
@@ -147,10 +148,9 @@ export const updateSegment = async (clientId: string, segmentId: string, segment
 
         const segment = response.data.segment || response.data;
         const transformed = transformSegmentToFrontendFormat(segment);
-        try {
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {}
+        // Invalidate segments and client cache after updating
+        invalidateCachePattern(`/clients/${clientId}/segments`);
+        invalidateCachePattern(`/clients/${clientId}`);
         return transformed;
     } catch (error) {
         throw error;
@@ -164,10 +164,9 @@ export const updateSegment = async (clientId: string, segmentId: string, segment
 export const deleteSegment = async (clientId: string, segmentId: string): Promise<void> => {
     try {
         await axiosInstance.delete(`/clients/${clientId}/segments/${segmentId}`);
-        try {
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {}
+        // Invalidate segments and client cache after deleting
+        invalidateCachePattern(`/clients/${clientId}/segments`);
+        invalidateCachePattern(`/clients/${clientId}`);
     } catch (error) {
         throw error;
     }

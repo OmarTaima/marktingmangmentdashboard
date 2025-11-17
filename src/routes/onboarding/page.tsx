@@ -203,7 +203,7 @@ const OnboardingPage: FC = () => {
             const submitClient = async () => {
                 try {
                     // Import segment and competitor services for separate API calls
-                    const { createSegment, createCompetitor } = await import("@/api");
+                    const { createSegment, createCompetitor, createBranch } = await import("@/api");
 
                     let clientId: string | null = editId;
 
@@ -248,6 +248,23 @@ const OnboardingPage: FC = () => {
                             noClientId: !clientId,
                             noCompetitors: !updatedFormData.competitors,
                             emptyCompetitors: updatedFormData.competitors?.length === 0,
+                        });
+                    }
+
+                    // Submit branches separately to /clients/:clientId/branches
+                    if (clientId && updatedFormData.branches && updatedFormData.branches.length > 0) {
+                        for (const branch of updatedFormData.branches) {
+                            try {
+                                await createBranch(clientId, branch);
+                            } catch (branchErr: any) {
+                                console.error("Failed to create branch:", branchErr);
+                            }
+                        }
+                    } else {
+                        console.warn("⚠️ Branches NOT submitted. Reasons:", {
+                            noClientId: !clientId,
+                            noBranches: !updatedFormData.branches,
+                            emptyBranches: updatedFormData.branches?.length === 0,
                         });
                     }
 

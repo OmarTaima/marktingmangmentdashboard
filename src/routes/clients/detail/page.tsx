@@ -17,6 +17,9 @@ import {
     createCompetitor,
     updateCompetitor,
     deleteCompetitor,
+    createBranch,
+    updateBranch,
+    deleteBranch,
 } from "@/api";
 
 const inputBaseClass =
@@ -139,15 +142,106 @@ const ClientDetailPage = () => {
         if (!draft || !id) return;
 
         try {
-            // Extract segments and competitors from draft before updating client
-            const draftSegments = draft.segments || [];
-            const draftCompetitors = draft.competitors || [];
-            const draftWithoutSegments = { ...draft } as Record<string, any>;
-            delete draftWithoutSegments.segments;
-            delete draftWithoutSegments.competitors;
+            // Debug: log the raw draft to see what's actually captured from UI edits
+            // eslint-disable-next-line no-console
+            console.debug("[saveEditing] RAW DRAFT before processing:", JSON.stringify(draft));
 
-            // Update client data (without segments and competitors)
-            await updateClient(id, draftWithoutSegments);
+            // Deep clone draft to capture all nested changes (SWOT, socialLinks, etc.)
+            const draftCopy = JSON.parse(JSON.stringify(draft)) as Record<string, any>;
+
+            // Extract segments, competitors and branches from draft before updating client
+            const draftSegments = draftCopy.segments || [];
+            const draftCompetitors = draftCopy.competitors || [];
+            const draftBranches = draftCopy.branches || [];
+
+            delete draftCopy.segments;
+            delete draftCopy.competitors;
+            delete draftCopy.branches;
+
+            // Sanitize and ensure socialLinks and swot are included in client payload
+            const sanitizedForClient = draftCopy;
+
+            // Normalize socialLinks: flatten grouped object or normalize array entries,
+            // and remove any backend-disallowed fields like `_id`.
+            if (sanitizedForClient.socialLinks) {
+                const flat: any[] = [];
+                if (Array.isArray(sanitizedForClient.socialLinks)) {
+                    flat.push(...sanitizedForClient.socialLinks);
+                } else if (typeof sanitizedForClient.socialLinks === "object") {
+                    const business = Array.isArray(sanitizedForClient.socialLinks.business) ? sanitizedForClient.socialLinks.business : [];
+                    const personal = Array.isArray(sanitizedForClient.socialLinks.personal) ? sanitizedForClient.socialLinks.personal : [];
+                    const custom = Array.isArray(sanitizedForClient.socialLinks.custom) ? sanitizedForClient.socialLinks.custom : [];
+                    flat.push(...business, ...personal, ...custom);
+                }
+
+                // Main platforms that should always be sent (even with empty URL)
+                const mainPlatforms = ["Facebook", "Instagram", "TikTok", "X (Twitter)"];
+
+                sanitizedForClient.socialLinks = flat
+                    .map((l: any) => {
+                        if (!l) return null;
+
+                        // Extract platform - prioritize l.platform, fallback to l.name
+                        let platform = "";
+                        if (l.platform && typeof l.platform === "string" && l.platform.trim()) {
+                            platform = l.platform.trim();
+                        } else if (l.name && typeof l.name === "string" && l.name.trim()) {
+                            platform = l.name.trim();
+                        } else {
+                            platform = "Website";
+                        }
+
+                        const url = (l.url || l.link || "").toString().trim();
+                        const isMainPlatform = mainPlatforms.includes(platform);
+                        // Keep entry if it's a main platform OR if it has a URL
+                        if (!url && !isMainPlatform) return null;
+                        return { platform, url };
+                    })
+                    .filter(Boolean);
+            }
+
+            // Ensure SWOT object is well-formed
+            if (sanitizedForClient.swot && typeof sanitizedForClient.swot === "object") {
+                sanitizedForClient.swot = {
+                    strengths: Array.isArray(sanitizedForClient.swot.strengths)
+                        ? sanitizedForClient.swot.strengths.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean)
+                        : [],
+                    weaknesses: Array.isArray(sanitizedForClient.swot.weaknesses)
+                        ? sanitizedForClient.swot.weaknesses.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean)
+                        : [],
+                    opportunities: Array.isArray(sanitizedForClient.swot.opportunities)
+                        ? sanitizedForClient.swot.opportunities.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean)
+                        : [],
+                    threats: Array.isArray(sanitizedForClient.swot.threats)
+                        ? sanitizedForClient.swot.threats.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean)
+                        : [],
+                };
+            }
+
+            // Debug: show payload being sent to updateClient (remove or comment out after verification)
+            // eslint-disable-next-line no-console
+            console.debug("[saveEditing] sanitized client payload:", JSON.stringify(sanitizedForClient));
+
+            // Update client data (without segments, competitors, branches) — now includes socialLinks and swot
+            await updateClient(id, sanitizedForClient);
+
+            // Make a second PUT with full payload to ensure socialLinks and swot persist
+            // (backend may ignore nested arrays on first PUT)
+            if (sanitizedForClient.socialLinks || sanitizedForClient.swot) {
+                const { default: axiosInstance } = await import("@/api/axios");
+                const explicitPayload: Record<string, any> = {
+                    ...sanitizedForClient,
+                };
+                if (sanitizedForClient.swot) {
+                    explicitPayload.swot_strengths = sanitizedForClient.swot.strengths || [];
+                    explicitPayload.swot_weaknesses = sanitizedForClient.swot.weaknesses || [];
+                    explicitPayload.swot_opportunities = sanitizedForClient.swot.opportunities || [];
+                    explicitPayload.swot_threats = sanitizedForClient.swot.threats || [];
+                }
+                // eslint-disable-next-line no-console
+                console.debug("[saveEditing] explicit socialLinks/swot PUT:", JSON.stringify(explicitPayload));
+                await axiosInstance.put(`/clients/${id}`, explicitPayload);
+            }
 
             // === Segments handling ===
             const originalSegments = client?.segments || [];
@@ -208,18 +302,50 @@ const ClientDetailPage = () => {
                 }
             }
 
+            // === Branches handling ===
+            const originalBranches = client?.branches || [];
+
+            for (const branch of draftBranches) {
+                try {
+                    const sanitized = JSON.parse(JSON.stringify(branch));
+                    if (sanitized._id) {
+                        await updateBranch(id, sanitized._id, sanitized);
+                    } else {
+                        await createBranch(id, sanitized);
+                    }
+                } catch (brErr: any) {
+                    console.error("Error saving branch:", brErr?.response?.data || brErr);
+                }
+            }
+
+            for (const originalBranch of originalBranches) {
+                const stillExists = draftBranches.find((b: any) => b._id === originalBranch._id);
+                if (!stillExists && originalBranch._id) {
+                    try {
+                        await deleteBranch(id, originalBranch._id);
+                    } catch (deleteErr: any) {
+                        console.error("❌ Error deleting branch:", originalBranch.name, deleteErr?.response?.data || deleteErr);
+                    }
+                }
+            }
+
             setEditing(false);
             setDraft(null);
 
             // Reload fresh data from API (force bypass cache)
             try {
-                const { getClientByIdCached } = await import("@/api/requests/clientService");
-                const freshClient = await getClientByIdCached(id, true);
-                setClient(freshClient);
-            } catch (err) {
-                // fallback to direct call if dynamic import fails
+                // Directly fetch fresh client bypassing any cache implementation
                 const freshClient = await getClientById(id as string);
                 setClient(freshClient);
+            } catch (err) {
+                // fallback to cached getter if direct call fails for some reason
+                try {
+                    const { getClientByIdCached } = await import("@/api/requests/clientService");
+                    const freshClient = await getClientByIdCached(id as string);
+                    setClient(freshClient);
+                } catch (err2) {
+                    console.error("Failed to reload client after update:", err2 || err);
+                }
             }
 
             alert("Client updated successfully!");

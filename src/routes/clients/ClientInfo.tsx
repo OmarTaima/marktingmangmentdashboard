@@ -411,6 +411,82 @@ const ClientInfo: React.FC<ClientInfoProps> = ({ client, compact = false, editin
                                         )}
                                     </div>
                                 )}
+                                {/* Branches overview + editing */}
+                                {(editing || (data.branches && data.branches.length > 0)) && (
+                                    <div className="sm:col-span-2">
+                                        <span className="text-dark-500 dark:text-dark-400">{t("branches")}</span>
+                                        {editing ? (
+                                            <div className="mt-2 space-y-3">
+                                                {(data.branches || []).map((branch: any, idx: number) => (
+                                                    <div
+                                                        key={branch._id || idx}
+                                                        className="space-y-2"
+                                                    >
+                                                        <input
+                                                            className={inputBaseClass}
+                                                            value={branch.name || ""}
+                                                            placeholder={t("branch_name")}
+                                                            onChange={(e) => updateDraft(`branches.${idx}.name`, e.target.value)}
+                                                        />
+                                                        <input
+                                                            className={inputBaseClass}
+                                                            value={branch.address || ""}
+                                                            placeholder={t("branch_address")}
+                                                            onChange={(e) => updateDraft(`branches.${idx}.address`, e.target.value)}
+                                                        />
+                                                        <input
+                                                            className={inputBaseClass}
+                                                            value={branch.phone || ""}
+                                                            placeholder={t("phone_number")}
+                                                            onChange={(e) => updateDraft(`branches.${idx}.phone`, e.target.value)}
+                                                        />
+                                                        <button
+                                                            className="text-danger-500 hover:text-danger-600"
+                                                            onClick={() => {
+                                                                if (!editing || !setDraft) return;
+                                                                setDraft((prev) => {
+                                                                    const next = JSON.parse(JSON.stringify(prev || {})) as any;
+                                                                    next.branches = next.branches || [];
+                                                                    next.branches.splice(idx, 1);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                        >
+                                                            {t("remove")}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    className="btn-ghost"
+                                                    onClick={() => {
+                                                        if (!editing || !setDraft) return;
+                                                        setDraft((prev) => {
+                                                            const next = JSON.parse(JSON.stringify(prev || {})) as any;
+                                                            next.branches = next.branches || [];
+                                                            next.branches.push({ name: "", address: "", phone: "" });
+                                                            return next;
+                                                        });
+                                                    }}
+                                                >
+                                                    {t("add_branch")}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-2 space-y-2">
+                                                {(data.branches || []).map((b: any, i: number) => (
+                                                    <div
+                                                        key={b._id || i}
+                                                        className="text-sm"
+                                                    >
+                                                        <strong className="text-light-600 dark:text-dark-500">{b.name}</strong>
+                                                        {b.address && <div className="text-light-600 dark:text-dark-200">{b.address}</div>}
+                                                        {b.phone && <div className="text-light-600 dark:text-dark-200">{b.phone}</div>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

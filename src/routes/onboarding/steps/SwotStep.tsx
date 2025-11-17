@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FC, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import type { OnboardingStepProps } from "../types";
@@ -117,30 +117,92 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
         );
     };
 
+    // Keep a ref of last-swot we reported to parent to avoid echoing identical updates
+    const lastSentSwotRef = useRef<string | null>(null);
+
     useEffect(() => {
-        if (typeof onUpdate === "function") onUpdate({ swot });
+        const propSwot = (data?.swot as Swot) || { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+        try {
+            const swotJson = JSON.stringify(swot);
+            // If swot differs from last value we reported, and differs from prop, report it
+            if (swotJson !== lastSentSwotRef.current) {
+                if (JSON.stringify(propSwot) !== swotJson) {
+                    if (typeof onUpdate === "function") onUpdate({ swot });
+                }
+                lastSentSwotRef.current = swotJson;
+            }
+        } catch (e) {
+            if (typeof onUpdate === "function") onUpdate({ swot });
+            try {
+                lastSentSwotRef.current = JSON.stringify(swot);
+            } catch {}
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [swot]); // No change here, just keeping context
+    }, [swot]);
 
     // sync with parent data when it changes (preserve values when navigating)
     useEffect(() => {
-        setSwot(data.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] });
+        const propSwot = (data?.swot as Swot) || { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+        try {
+            const propJson = JSON.stringify(propSwot);
+            if (propJson !== JSON.stringify(swot)) {
+                setSwot(propSwot);
+                // mark lastSent so we don't immediately echo back to parent
+                lastSentSwotRef.current = propJson;
+            }
+        } catch (e) {
+            setSwot(propSwot);
+            try {
+                lastSentSwotRef.current = JSON.stringify(propSwot);
+            } catch {}
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.swot]); // No change here, just keeping context
 
+    const lastSentInputsRef = useRef<string | null>(null);
+
     useEffect(() => {
-        setInputs(
-            (data?.swotDraftInputs as Record<string, string>) || {
-                strength: "",
-                weakness: "",
-                opportunity: "",
-                threat: "",
-            },
-        );
+        const propInputs = (data?.swotDraftInputs as Record<string, string>) || {
+            strength: "",
+            weakness: "",
+            opportunity: "",
+            threat: "",
+        };
+        try {
+            const propJson = JSON.stringify(propInputs);
+            if (propJson !== JSON.stringify(inputs)) {
+                setInputs(propInputs);
+                lastSentInputsRef.current = propJson;
+            }
+        } catch (e) {
+            setInputs(propInputs);
+            try {
+                lastSentInputsRef.current = JSON.stringify(propInputs);
+            } catch {}
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.swotDraftInputs]);
 
     // Persist partially-typed SWOT inputs so they are not lost when navigating away
     useEffect(() => {
-        if (typeof onUpdate === "function") onUpdate({ swotDraftInputs: inputs });
+        const propInputs = (data?.swotDraftInputs as Record<string, string>) || {
+            strength: "",
+            weakness: "",
+            opportunity: "",
+            threat: "",
+        };
+        try {
+            const inputsJson = JSON.stringify(inputs);
+            if (inputsJson !== lastSentInputsRef.current && inputsJson !== JSON.stringify(propInputs)) {
+                if (typeof onUpdate === "function") onUpdate({ swotDraftInputs: inputs });
+                lastSentInputsRef.current = inputsJson;
+            }
+        } catch (e) {
+            if (typeof onUpdate === "function") onUpdate({ swotDraftInputs: inputs });
+            try {
+                lastSentInputsRef.current = JSON.stringify(inputs);
+            } catch {}
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inputs]);
 

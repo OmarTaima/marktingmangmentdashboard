@@ -1,4 +1,5 @@
 import axiosInstance from "../axios";
+import { withCache, invalidateCachePattern } from "../../utils/apiCache";
 
 /**
  * Competitor API Service
@@ -78,7 +79,7 @@ const transformCompetitorToBackendPayload = (competitorData: any): any => {
             if (!link) continue;
             const url = (link.url || link.value || "").toString().trim();
             const platform = (link.platform || link.name || "").toString().trim().toLowerCase();
-            if (url) socialLinks.push({ platform: platform || "website", url, _id: link._id });
+            if (url) socialLinks.push({ platform: platform || "website", url });
         }
     }
 
@@ -127,26 +128,31 @@ const transformCompetitorToFrontendFormat = (backendData: any): Competitor | nul
  * GET /clients/:clientId/competitors
  */
 export const getCompetitorsByClientId = async (clientId: string): Promise<Competitor[]> => {
-    try {
-        const response = await axiosInstance.get(`/clients/${clientId}/competitors`);
+    return withCache(
+        `/clients/${clientId}/competitors`,
+        async () => {
+            try {
+                const response = await axiosInstance.get(`/clients/${clientId}/competitors`);
 
-        // Handle different response structures
-        let competitorsData = [];
-        if (Array.isArray(response.data)) {
-            competitorsData = response.data;
-        } else if (Array.isArray(response.data.competitors)) {
-            competitorsData = response.data.competitors;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-            competitorsData = response.data.data;
-        } else if (response.data.data && Array.isArray(response.data.data.competitors)) {
-            competitorsData = response.data.data.competitors;
+                // Handle different response structures
+                let competitorsData = [];
+                if (Array.isArray(response.data)) {
+                    competitorsData = response.data;
+                } else if (Array.isArray(response.data.competitors)) {
+                    competitorsData = response.data.competitors;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    competitorsData = response.data.data;
+                } else if (response.data.data && Array.isArray(response.data.data.competitors)) {
+                    competitorsData = response.data.data.competitors;
+                }
+
+                const transformed = competitorsData.map(transformCompetitorToFrontendFormat).filter(Boolean);
+                return transformed as Competitor[];
+            } catch (error) {
+                throw error;
+            }
         }
-
-        const transformed = competitorsData.map(transformCompetitorToFrontendFormat).filter(Boolean);
-        return transformed as Competitor[];
-    } catch (error) {
-        throw error;
-    }
+    );
 };
 
 /**
@@ -162,14 +168,9 @@ export const createCompetitor = async (clientId: string, competitorData: any): P
         const competitor = response.data.competitor || response.data;
         const transformed = transformCompetitorToFrontendFormat(competitor);
 
-        // Invalidate per-client cache so client detail will reload fresh data
-        try {
-            // Use dynamic import to avoid circular import issues at module load time
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {
-            // ignore cache invalidation errors
-        }
+        // Invalidate competitors and client cache after creating
+        invalidateCachePattern(`/clients/${clientId}/competitors`);
+        invalidateCachePattern(`/clients/${clientId}`);
 
         return transformed;
     } catch (error) {
@@ -190,10 +191,9 @@ export const updateCompetitor = async (clientId: string, competitorId: string, c
         const competitor = response.data.competitor || response.data;
         const transformed = transformCompetitorToFrontendFormat(competitor);
 
-        try {
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {}
+        // Invalidate competitors and client cache after updating
+        invalidateCachePattern(`/clients/${clientId}/competitors`);
+        invalidateCachePattern(`/clients/${clientId}`);
 
         return transformed;
     } catch (error) {
@@ -208,11 +208,9 @@ export const updateCompetitor = async (clientId: string, competitorId: string, c
 export const deleteCompetitor = async (clientId: string, competitorId: string): Promise<void> => {
     try {
         await axiosInstance.delete(`/clients/${clientId}/competitors/${competitorId}`);
-
-        try {
-            const { clearClientCache } = await import("./clientService");
-            clearClientCache(clientId);
-        } catch (err) {}
+        // Invalidate competitors and client cache after deleting
+        invalidateCachePattern(`/clients/${clientId}/competitors`);
+        invalidateCachePattern(`/clients/${clientId}`);
     } catch (error) {
         throw error;
     }

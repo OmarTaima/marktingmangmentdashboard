@@ -60,10 +60,10 @@ const PlanningPage = () => {
     const [strategyInputAr, setStrategyInputAr] = useState<string>("");
     const [editingStrategyIndex, setEditingStrategyIndex] = useState<number>(-1);
 
-    // Load master services list from localStorage (services_master).
+    // Load master items list from localStorage (items_master).
     useEffect(() => {
         try {
-            const stored = localStorage.getItem("services_master");
+            const stored = localStorage.getItem("items_master");
             if (stored) {
                 const parsed = JSON.parse(stored) || [];
                 setAvailableServices(parsed);
