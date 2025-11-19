@@ -14,7 +14,13 @@ const axiosInstance = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
-    timeout: 30000, // 30 seconds timeout for auth requests
+    timeout: 10000, // 10 seconds timeout - faster failure detection
+    // Performance optimizations
+    maxRedirects: 5,
+    decompress: true,
+    // Reuse TCP connections
+    httpAgent: undefined,
+    httpsAgent: undefined,
 });
 
 // Request interceptor (for adding auth tokens)
@@ -49,8 +55,6 @@ axiosInstance.interceptors.request.use(
             }
         });
 
-        // Log request details for debugging
-
         return config;
     },
     (error) => {
@@ -83,13 +87,10 @@ axiosInstance.interceptors.response.use(
 
         // Handle common errors
         if (error.response) {
-            // Server responded with error status
-            console.error("❌ API Error:", {
-                status: error.response.status,
-                url: error.config?.url,
-                errorCode: error.response.data?.error?.code,
-                message: error.response.data?.error?.message || error.response.data?.message,
-            });
+            // Only log in development
+            if (process.env.NODE_ENV === "development") {
+                console.error("❌ API Error:", error.response.status, error.config?.url);
+            }
 
             // Handle 401 authentication errors
             if (error.response.status === 401 && !originalRequest._retry) {
@@ -168,12 +169,8 @@ axiosInstance.interceptors.response.use(
                     }
                 }
             }
-        } else if (error.request) {
-            // Request made but no response
+        } else if (error.request && process.env.NODE_ENV === "development") {
             console.error("❌ Network Error:", error.message);
-        } else {
-            // Something else happened
-            console.error("❌ Error:", error.message);
         }
         return Promise.reject(error);
     },

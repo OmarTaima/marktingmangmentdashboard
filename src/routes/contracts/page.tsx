@@ -3,15 +3,18 @@ import { Download, Edit2, Save } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useNavigate } from "react-router-dom";
-import { getClientsCached } from "@/api";
+import { useClients } from "@/hooks/queries";
 import type { Client } from "@/api/interfaces/clientinterface";
 
 const ContractPage = () => {
     const { t, lang } = useLang();
     const navigate = useNavigate();
+
+    // Use React Query for clients data
+    const { data: clients = [], error: clientsError } = useClients();
+
     type ClientLike = { business?: { businessName?: string }; personal?: { fullName?: string }; [key: string]: any } | null;
     const [clientData, setClientData] = useState<ClientLike>(null);
-    const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>(localStorage.getItem("selectedClientId") || "");
     const [planData, setPlanData] = useState<any | null>(null);
     const [packageData, setPackageData] = useState<any | null>(null);
@@ -20,65 +23,72 @@ const ContractPage = () => {
     const [termsInputAr, setTermsInputAr] = useState<string>("");
     const [isEditing, setIsEditing] = useState<boolean>(false);
 
+    // Update clientData when clients are loaded or selectedClientId changes
     useEffect(() => {
-        const loadClientsData = async () => {
-            try {
-                // Load clients from API
-                const data = await getClientsCached();
-                setClients(data);
+        if (!clients || clients.length === 0) return;
 
-                const selectedId = localStorage.getItem("selectedClientId");
-                let resolvedClient = null;
+        const selectedId = localStorage.getItem("selectedClientId");
+        let resolvedClient = null;
 
-                if (selectedId) {
-                    resolvedClient = data.find((c: Client) => String(c?.id) === String(selectedId)) || null;
-                }
+        if (selectedId) {
+            resolvedClient = clients.find((c: Client) => String(c?.id) === String(selectedId)) || null;
+        }
 
-                // Fallback to single clientData in localStorage if not found in API
-                const clientRaw = localStorage.getItem("clientData");
-                if (!resolvedClient && clientRaw) {
-                    try {
-                        resolvedClient = JSON.parse(clientRaw);
-                    } catch (e) {}
-                }
-                setClientData(resolvedClient);
-                if (selectedId) setSelectedClientId(String(selectedId));
-            } catch (e) {
-                console.error("Failed to load clients:", e);
-                // Fallback to localStorage on error
-                const selectedId = localStorage.getItem("selectedClientId");
-                let resolvedClient = null;
-
+        // Fallback to single clientData in localStorage if not found in API
+        if (!resolvedClient) {
+            const clientRaw = localStorage.getItem("clientData");
+            if (clientRaw) {
                 try {
-                    const clientsRaw = localStorage.getItem("clients");
-                    if (clientsRaw) {
-                        const parsed = JSON.parse(clientsRaw);
-                        if (Array.isArray(parsed)) {
-                            setClients(parsed);
-                            if (selectedId) {
-                                resolvedClient = parsed.find((c: any) => String(c?.id) === String(selectedId)) || null;
-                            }
-                        }
-                    }
+                    resolvedClient = JSON.parse(clientRaw);
                 } catch (e) {
-                    // ignore parse errors
+                    console.error("Failed to parse clientData from localStorage:", e);
                 }
+            }
+        }
 
-                // Fallback to single clientData in localStorage if not found
+        setClientData(resolvedClient);
+        if (selectedId) setSelectedClientId(String(selectedId));
+    }, [clients]);
+
+    // Fallback to localStorage if API fails
+    useEffect(() => {
+        if (clientsError && clients.length === 0) {
+            console.error("Failed to load clients from API, falling back to localStorage:", clientsError);
+
+            const selectedId = localStorage.getItem("selectedClientId");
+            let resolvedClient = null;
+
+            try {
+                const clientsRaw = localStorage.getItem("clients");
+                if (clientsRaw) {
+                    const parsed = JSON.parse(clientsRaw);
+                    if (Array.isArray(parsed) && selectedId) {
+                        resolvedClient = parsed.find((c: any) => String(c?.id) === String(selectedId)) || null;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse clients from localStorage:", e);
+            }
+
+            // Fallback to single clientData in localStorage if not found
+            if (!resolvedClient) {
                 const clientRaw = localStorage.getItem("clientData");
-                if (!resolvedClient && clientRaw) {
+                if (clientRaw) {
                     try {
                         resolvedClient = JSON.parse(clientRaw);
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error("Failed to parse clientData from localStorage:", e);
+                    }
                 }
-
-                setClientData(resolvedClient);
-                if (selectedId) setSelectedClientId(String(selectedId));
             }
-        };
 
-        loadClientsData();
+            setClientData(resolvedClient);
+            if (selectedId) setSelectedClientId(String(selectedId));
+        }
+    }, [clientsError, clients.length]);
 
+    // Load other data from localStorage
+    useEffect(() => {
         let planObj = null;
         const planRaw = localStorage.getItem("campaign_plan_0");
         if (planRaw) {

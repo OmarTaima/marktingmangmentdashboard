@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLang } from "@/hooks/useLang";
 import { Check, Loader2, Search } from "lucide-react";
-import { getPackages, Package } from "@/api/requests/packagesService";
+import { usePackages } from "@/hooks/queries";
+import type { Package } from "@/api/requests/packagesService";
 
 const PackagesPage = () => {
     const { t, lang } = useLang();
@@ -14,35 +15,18 @@ const PackagesPage = () => {
             return null;
         }
     });
-    const [packages, setPackages] = useState<Package[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [error, setError] = useState<string>("");
 
-    const loadPackages = async () => {
-        try {
-            setIsLoading(true);
-            setError("");
-            const response = await getPackages({
-                page: currentPage,
-                limit: 20,
-                search: searchQuery || undefined,
-            });
-            setPackages(response.data);
-            setTotalPages(response.meta.totalPages);
-        } catch (e: any) {
-            console.error("Error loading packages:", e);
-            setError(e.response?.data?.message || "Failed to load packages");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadPackages();
-    }, [currentPage, searchQuery]);
+    // React Query hook
+    const { data: packagesResponse, isLoading } = usePackages({
+        page: currentPage,
+        limit: 20,
+        search: searchQuery || undefined,
+    });
+    const packages = packagesResponse?.data || [];
+    const totalPages = packagesResponse?.meta.totalPages || 1;
 
     const handleSelectPackage = (pkg: any) => {
         setSelectedPackage(pkg as any);

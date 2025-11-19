@@ -1,5 +1,4 @@
 import api from "../axios";
-import { withCache, invalidateCachePattern } from "../../utils/apiCache";
 
 /**
  * Services API Service
@@ -53,34 +52,16 @@ export interface ServiceQueryParams {
  * Get all services with pagination and filters
  */
 export const getServices = async (params?: ServiceQueryParams): Promise<ServiceListResponse> => {
-    return withCache(
-        "/services",
-        async () => {
-            try {
-                const response = await api.get("/services", { params });
-                return response.data;
-            } catch (error) {
-                console.error("Error fetching services:", error);
-                throw error;
-            }
-        },
-        params,
-    );
+    const response = await api.get("/services", { params });
+    return response.data;
 };
 
 /**
  * Get a single service by ID
  */
 export const getServiceById = async (id: string): Promise<Service> => {
-    return withCache(`/services/${id}`, async () => {
-        try {
-            const response = await api.get(`/services/${id}`);
-            return response.data.data;
-        } catch (error) {
-            console.error(`Error fetching service ${id}:`, error);
-            throw error;
-        }
-    });
+    const response = await api.get(`/services/${id}`);
+    return response.data.data;
 };
 
 /**
@@ -93,15 +74,8 @@ export const createService = async (serviceData: {
     price?: number;
     packages?: string[];
 }): Promise<Service> => {
-    try {
-        const response = await api.post("/services", serviceData);
-        // Invalidate services cache after creating
-        invalidateCachePattern("/services");
-        return response.data.data;
-    } catch (error) {
-        console.error("Error creating service:", error);
-        throw error;
-    }
+    const response = await api.post("/services", serviceData);
+    return response.data.data;
 };
 
 /**
@@ -117,33 +91,13 @@ export const updateService = async (
         packages?: string[];
     },
 ): Promise<Service> => {
-    try {
-        const response = await api.put(`/services/${id}`, serviceData);
-        // Invalidate services cache after updating
-        invalidateCachePattern("/services");
-        return response.data.data;
-    } catch (error) {
-        console.error(`Error updating service ${id}:`, error);
-        throw error;
-    }
+    const response = await api.put(`/services/${id}`, serviceData);
+    return response.data.data;
 };
 
 /**
  * Delete a service (soft delete)
  */
 export const deleteService = async (id: string): Promise<void> => {
-    try {
-        await api.delete(`/services/${id}`);
-        // Invalidate services cache after deleting
-        invalidateCachePattern("/services");
-    } catch (error) {
-        console.error(`Error deleting service ${id}:`, error);
-        throw error;
-    }
-};
-
-// Cache clearing utility
-export const clearServicesCache = () => {
-    invalidateCachePattern("/services");
-    console.debug("Services cache cleared");
+    await api.delete(`/services/${id}`);
 };

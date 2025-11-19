@@ -8,19 +8,19 @@ import type { Client, Segment } from "@/api/interfaces/clientinterface";
 import validators from "@/constants/validators";
 import ClientInfo from "@/routes/clients/ClientInfo";
 import {
-    getClientById,
-    updateClient,
-    deleteClient,
-    createSegment,
-    updateSegment,
-    deleteSegment,
-    createCompetitor,
-    updateCompetitor,
-    deleteCompetitor,
-    createBranch,
-    updateBranch,
-    deleteBranch,
-} from "@/api";
+    useClient,
+    useUpdateClient,
+    useDeleteClient,
+    useCreateSegment,
+    useUpdateSegment,
+    useDeleteSegment,
+    useCreateCompetitor,
+    useUpdateCompetitor,
+    useDeleteCompetitor,
+    useCreateBranch,
+    useUpdateBranch,
+    useDeleteBranch,
+} from "@/hooks/queries";
 
 const inputBaseClass =
     "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
@@ -36,24 +36,28 @@ const ClientDetailPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { t } = useLang();
-    const [client, setClient] = useState<Client | null>(null);
+
+    // Use React Query for fetching client data
+    const { data: client, isLoading: loading, error: queryError, refetch } = useClient(id || "");
+    const error = queryError?.message || null;
+
+    // React Query mutations
+    const updateClientMutation = useUpdateClient();
+    const deleteClientMutation = useDeleteClient();
+    const createSegmentMutation = useCreateSegment();
+    const updateSegmentMutation = useUpdateSegment();
+    const deleteSegmentMutation = useDeleteSegment();
+    const createCompetitorMutation = useCreateCompetitor();
+    const updateCompetitorMutation = useUpdateCompetitor();
+    const deleteCompetitorMutation = useDeleteCompetitor();
+    const createBranchMutation = useCreateBranch();
+    const updateBranchMutation = useUpdateBranch();
+    const deleteBranchMutation = useDeleteBranch();
+
     const [editing, setEditing] = useState<boolean>(false);
     const [draft, setDraft] = useState<Partial<Client> | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
 
     const makeInvalidClass = (invalid: boolean) => (invalid ? " border-red-500 ring-1 ring-red-200 dark:ring-red-900/30" : "");
-
-    useEffect(() => {
-        const abortController = new AbortController();
-
-        loadClient(abortController.signal);
-
-        // Cleanup function to abort request on unmount
-        return () => {
-            abortController.abort();
-        };
-    }, [id]);
 
     useEffect(() => {
         if (searchParams.get("edit") === "true") {
@@ -63,36 +67,6 @@ const ClientDetailPage = () => {
             }
         }
     }, [searchParams, client]);
-
-    const loadClient = async (signal?: AbortSignal) => {
-        try {
-            setLoading(true);
-            setError(null);
-            if (!id) {
-                setError("No client id");
-                return;
-            }
-            // Use cached getter to avoid refetching if data is already loaded
-            const { getClientByIdCached } = await import("@/api/requests/clientService");
-            const clientData = await getClientByIdCached(id);
-
-            // Only update state if component is still mounted
-            if (!signal?.aborted) {
-                setClient(clientData);
-            }
-        } catch (err: any) {
-            if (err?.name === "AbortError" || err?.name === "CanceledError") {
-                return;
-            }
-            if (!signal?.aborted) {
-                setError("Failed to load client data. Please try again.");
-            }
-        } finally {
-            if (!signal?.aborted) {
-                setLoading(false);
-            }
-        }
-    };
 
     const startEditing = () => {
         setDraft(client ? (JSON.parse(JSON.stringify(client)) as Partial<Client>) : null);
@@ -222,8 +196,8 @@ const ClientDetailPage = () => {
             // eslint-disable-next-line no-console
             console.debug("[saveEditing] sanitized client payload:", JSON.stringify(sanitizedForClient));
 
-            // Update client data (without segments, competitors, branches) — now includes socialLinks and swot
-            await updateClient(id, sanitizedForClient);
+            // Update client data using React Query mutation
+            await updateClientMutation.mutateAsync({ id, data: sanitizedForClient });
 
             // Make a second PUT with full payload to ensure socialLinks and swot persist
             // (backend may ignore nested arrays on first PUT)
@@ -252,9 +226,9 @@ const ClientDetailPage = () => {
                     if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
 
                     if (sanitized._id) {
-                        await updateSegment(id, sanitized._id, sanitized);
+                        await updateSegmentMutation.mutateAsync({ clientId: id, segmentId: sanitized._id, data: sanitized });
                     } else {
-                        await createSegment(id, sanitized);
+                        await createSegmentMutation.mutateAsync({ clientId: id, data: sanitized });
                     }
                 } catch (segmentError: any) {
                     // Continue with other segments even if one fails
@@ -265,7 +239,7 @@ const ClientDetailPage = () => {
                 const stillExists = draftSegments.find((s: Segment) => s._id === originalSegment._id);
                 if (!stillExists && originalSegment._id) {
                     try {
-                        await deleteSegment(id, originalSegment._id);
+                        await deleteSegmentMutation.mutateAsync({ clientId: id, segmentId: originalSegment._id });
                     } catch (deleteError: any) {
                         console.error("❌ Error deleting segment:", originalSegment.name, deleteError?.response?.data || deleteError);
                     }
@@ -281,9 +255,9 @@ const ClientDetailPage = () => {
                     // No special temporary fields expected, but keep payload minimal
                     // If it's an existing competitor, update; otherwise create
                     if (sanitized._id) {
-                        await updateCompetitor(id, sanitized._id, sanitized);
+                        await updateCompetitorMutation.mutateAsync({ clientId: id, competitorId: sanitized._id, data: sanitized });
                     } else {
-                        await createCompetitor(id, sanitized);
+                        await createCompetitorMutation.mutateAsync({ clientId: id, data: sanitized });
                     }
                 } catch (compError: any) {
                     // Continue with other competitors even if one fails
@@ -295,7 +269,7 @@ const ClientDetailPage = () => {
                 const stillExists = draftCompetitors.find((c: any) => c._id === originalCompetitor._id);
                 if (!stillExists && originalCompetitor._id) {
                     try {
-                        await deleteCompetitor(id, originalCompetitor._id);
+                        await deleteCompetitorMutation.mutateAsync({ clientId: id, competitorId: originalCompetitor._id });
                     } catch (deleteErr: any) {
                         console.error("❌ Error deleting competitor:", originalCompetitor.name, deleteErr?.response?.data || deleteErr);
                     }
@@ -309,9 +283,9 @@ const ClientDetailPage = () => {
                 try {
                     const sanitized = JSON.parse(JSON.stringify(branch));
                     if (sanitized._id) {
-                        await updateBranch(id, sanitized._id, sanitized);
+                        await updateBranchMutation.mutateAsync({ clientId: id, branchId: sanitized._id, data: sanitized });
                     } else {
-                        await createBranch(id, sanitized);
+                        await createBranchMutation.mutateAsync({ clientId: id, data: sanitized });
                     }
                 } catch (brErr: any) {
                     console.error("Error saving branch:", brErr?.response?.data || brErr);
@@ -322,7 +296,7 @@ const ClientDetailPage = () => {
                 const stillExists = draftBranches.find((b: any) => b._id === originalBranch._id);
                 if (!stillExists && originalBranch._id) {
                     try {
-                        await deleteBranch(id, originalBranch._id);
+                        await deleteBranchMutation.mutateAsync({ clientId: id, branchId: originalBranch._id });
                     } catch (deleteErr: any) {
                         console.error("❌ Error deleting branch:", originalBranch.name, deleteErr?.response?.data || deleteErr);
                     }
@@ -332,21 +306,8 @@ const ClientDetailPage = () => {
             setEditing(false);
             setDraft(null);
 
-            // Reload fresh data from API (force bypass cache)
-            try {
-                // Directly fetch fresh client bypassing any cache implementation
-                const freshClient = await getClientById(id as string);
-                setClient(freshClient);
-            } catch (err) {
-                // fallback to cached getter if direct call fails for some reason
-                try {
-                    const { getClientByIdCached } = await import("@/api/requests/clientService");
-                    const freshClient = await getClientByIdCached(id as string);
-                    setClient(freshClient);
-                } catch (err2) {
-                    console.error("Failed to reload client after update:", err2 || err);
-                }
-            }
+            // React Query will automatically refetch and update the client data
+            await refetch();
 
             alert("Client updated successfully!");
         } catch (err: any) {
@@ -363,7 +324,7 @@ const ClientDetailPage = () => {
 
         try {
             if (!id) return;
-            await deleteClient(id);
+            await deleteClientMutation.mutateAsync(id);
             alert("Client deleted successfully!");
             navigate("/clients");
         } catch (err: any) {

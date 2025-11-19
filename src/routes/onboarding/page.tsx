@@ -12,7 +12,7 @@ import { SegmentsStep } from "./steps/SegmentsStep";
 
 import { useLang } from "@/hooks/useLang";
 import { User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users } from "lucide-react";
-import { createClient, getClientById, updateClient } from "@/api";
+import { useClient, useCreateClient, useUpdateClient, useCreateSegment, useCreateCompetitor, useCreateBranch } from "@/hooks/queries";
 
 type Swot = { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
 
@@ -63,47 +63,29 @@ const OnboardingPage: FC = () => {
     const [searchParams] = useSearchParams();
     const editId = searchParams.get("id");
 
-    // If editing an existing client, load its data from API
+    // React Query hooks
+    const { data: clientData } = useClient(editId || "", !!editId);
+    const createClientMutation = useCreateClient();
+    const updateClientMutation = useUpdateClient();
+    const createSegmentMutation = useCreateSegment();
+    const createCompetitorMutation = useCreateCompetitor();
+    const createBranchMutation = useCreateBranch();
+
+    // If editing an existing client, load its data from React Query
     useEffect(() => {
-        if (!editId) return;
-
-        const abortController = new AbortController();
-
-        const fetchClient = async () => {
-            try {
-                const client = await getClientById(editId);
-
-                // Only update state if component is still mounted and we received a client
-                if (!abortController.signal.aborted && client) {
-                    setFormData({
-                        personal: client.personal || {},
-                        business: client.business || {},
-                        contact: client.contact || {},
-                        branches: client.branches || [],
-                        socialLinks: client.socialLinks || { business: [], personal: [] },
-                        swot: client.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
-                        competitors: client.competitors || [],
-                        segments: client.segments || [],
-                    });
-                }
-            } catch (error) {
-                const err = error as any;
-                if (err?.name === "AbortError" || err?.name === "CanceledError") {
-                    return;
-                }
-                if (!abortController.signal.aborted) {
-                    alert("Failed to load client data. Please try again.");
-                }
-            }
-        };
-
-        fetchClient();
-
-        // Cleanup function to abort request on unmount
-        return () => {
-            abortController.abort();
-        };
-    }, [editId]);
+        if (clientData) {
+            setFormData({
+                personal: clientData.personal || {},
+                business: clientData.business || {},
+                contact: clientData.contact || {},
+                branches: clientData.branches || [],
+                socialLinks: clientData.socialLinks || { business: [], personal: [] },
+                swot: clientData.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+                competitors: clientData.competitors || [],
+                segments: clientData.segments || [],
+            });
+        }
+    }, [clientData]);
 
     // Load draft from localStorage when not editing an existing client
     useEffect(() => {
@@ -199,20 +181,17 @@ const OnboardingPage: FC = () => {
         if (currentStep < steps.length - 1) {
             setCurrentStep((s) => s + 1);
         } else {
-            // Handle API submission
+            // Handle API submission using React Query mutations
             const submitClient = async () => {
                 try {
-                    // Import segment and competitor services for separate API calls
-                    const { createSegment, createCompetitor, createBranch } = await import("@/api");
-
                     let clientId: string | null = editId;
 
                     if (editId) {
-                        // Update existing client (segments and competitors NOT included in payload)
-                        await updateClient(editId, updatedFormData as any);
+                        // Update existing client using mutation
+                        await updateClientMutation.mutateAsync({ id: editId, data: updatedFormData as any });
                     } else {
-                        // Create new client (segments and competitors NOT included in payload)
-                        const newClient = await createClient(updatedFormData as any);
+                        // Create new client using mutation
+                        const newClient = await createClientMutation.mutateAsync(updatedFormData as any);
                         clientId = newClient?._id || newClient?.id || null;
                     }
 
@@ -220,7 +199,7 @@ const OnboardingPage: FC = () => {
                     if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
                         for (const segment of updatedFormData.segments) {
                             try {
-                                await createSegment(clientId, segment);
+                                await createSegmentMutation.mutateAsync({ clientId, data: segment });
                             } catch (segmentError: any) {
                                 // Continue with other segments even if one fails
                             }
@@ -237,7 +216,7 @@ const OnboardingPage: FC = () => {
                     if (clientId && updatedFormData.competitors && updatedFormData.competitors.length > 0) {
                         for (const competitor of updatedFormData.competitors) {
                             try {
-                                await createCompetitor(clientId, competitor);
+                                await createCompetitorMutation.mutateAsync({ clientId, data: competitor });
                             } catch (competitorError: any) {
                                 // Continue with other competitors even if one fails
                                 console.error("Failed to create competitor:", competitorError);
@@ -255,7 +234,7 @@ const OnboardingPage: FC = () => {
                     if (clientId && updatedFormData.branches && updatedFormData.branches.length > 0) {
                         for (const branch of updatedFormData.branches) {
                             try {
-                                await createBranch(clientId, branch);
+                                await createBranchMutation.mutateAsync({ clientId, data: branch });
                             } catch (branchErr: any) {
                                 console.error("Failed to create branch:", branchErr);
                             }

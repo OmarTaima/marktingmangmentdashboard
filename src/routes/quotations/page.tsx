@@ -1,44 +1,59 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, FileText, Loader2, Check, Trash2, Edit2, Download, FileCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
-import { getClientsCached } from "@/api";
-import { getServices, type Service } from "@/api/requests/servicesService";
 import {
-    getQuotations,
-    createQuotation,
-    updateQuotation,
-    deleteQuotation,
-    convertQuotationToContract,
-    type Quotation,
-    type CustomService,
-    type CreateQuotationPayload,
-} from "@/api/requests/quotationsService";
+    useClients,
+    useServices,
+    useQuotations,
+    useCreateQuotation,
+    useUpdateQuotation,
+    useDeleteQuotation,
+    useConvertQuotationToContract,
+} from "@/hooks/queries";
 import type { Client } from "@/api/interfaces/clientinterface";
+import type { Quotation, CustomService, CreateQuotationPayload } from "@/api/requests/quotationsService";
 import { printQuotation } from "@/utils/quotationPdfGenerator";
 
 const QuotationsPage = () => {
     const { t, lang } = useLang();
 
-    // State for clients and services
-    const [clients, setClients] = useState<Client[]>([]);
-    const [services, setServices] = useState<Service[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>("");
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-
-    // State for quotations list
-    const [quotations, setQuotations] = useState<Quotation[]>([]);
-    const [totalQuotations, setTotalQuotations] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize] = useState<number>(20);
     const [statusFilter, setStatusFilter] = useState<string>("");
-
-    // Loading states
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [isSaving, setIsSaving] = useState<boolean>(false);
-    const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    const [isConverting, setIsConverting] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
+
+    // React Query hooks for data fetching
+    const { data: clients = [], isLoading: clientsLoading } = useClients();
+    const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
+    const services = servicesResponse?.data || [];
+
+    const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations(
+        selectedClientId
+            ? {
+                  clientId: selectedClientId,
+                  page: currentPage,
+                  limit: pageSize,
+                  status: statusFilter || undefined,
+              }
+            : undefined,
+    );
+    const quotations = quotationsResponse?.data || [];
+    const totalQuotations = quotationsResponse?.meta?.total || 0;
+
+    // React Query mutations
+    const createQuotationMutation = useCreateQuotation();
+    const updateQuotationMutation = useUpdateQuotation();
+    const deleteQuotationMutation = useDeleteQuotation();
+    const convertQuotationMutation = useConvertQuotationToContract();
+
+    // Derived loading states
+    const isLoading = clientsLoading || servicesLoading || quotationsLoading;
+    const isSaving = createQuotationMutation.isPending || updateQuotationMutation.isPending;
+    const isDeleting = deleteQuotationMutation.isPending ? "pending" : null;
+    const isConverting = convertQuotationMutation.isPending ? "pending" : null;
 
     // Form state
     const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -65,59 +80,7 @@ const QuotationsPage = () => {
     const [contractEndDate, setContractEndDate] = useState<string>("");
     const [contractTerms, setContractTerms] = useState<string>("");
 
-    // Load initial data
-    useEffect(() => {
-        loadInitialData();
-    }, []);
-
-    // Load quotations when client or filters change
-    useEffect(() => {
-        if (selectedClientId) {
-            loadQuotations();
-        }
-    }, [selectedClientId, currentPage, statusFilter]);
-
-    const loadInitialData = async () => {
-        setIsLoading(true);
-        try {
-            const [clientsData, servicesData] = await Promise.all([getClientsCached(), getServices({ limit: 100 })]);
-            setClients(clientsData);
-            setServices(servicesData.data);
-        } catch (error) {
-            console.error("Failed to load initial data:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const loadQuotations = async () => {
-        if (!selectedClientId) return;
-
-        setIsLoading(true);
-        try {
-            const params: any = {
-                page: currentPage,
-                limit: pageSize,
-            };
-
-            if (selectedClientId !== "global") {
-                params.clientId = selectedClientId;
-            }
-
-            if (statusFilter) {
-                params.status = statusFilter;
-            }
-
-            const response = await getQuotations(params);
-            setQuotations(response.data);
-            setTotalQuotations(response.meta.total);
-        } catch (error) {
-            console.error("Failed to load quotations:", error);
-            setQuotations([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // React Query handles all data loading automatically
 
     const handleSelectClient = (client: Client) => {
         setSelectedClient(client);
@@ -230,7 +193,6 @@ const QuotationsPage = () => {
             return;
         }
 
-        setIsSaving(true);
         try {
             // Ensure services are strings (IDs only)
             const serviceIds = selectedServices.map((s) => (typeof s === "string" ? s : (s as any)._id || s));
@@ -252,18 +214,15 @@ const QuotationsPage = () => {
             }
 
             if (editingQuotationId) {
-                await updateQuotation(editingQuotationId, payload);
+                await updateQuotationMutation.mutateAsync({ id: editingQuotationId, payload });
             } else {
-                await createQuotation(payload);
+                await createQuotationMutation.mutateAsync(payload);
             }
 
-            await loadQuotations();
             resetForm();
         } catch (error: any) {
             console.error("Failed to save quotation:", error);
             alert(error.response?.data?.message || t("failed_to_save_quotation") || "Failed to save quotation");
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -288,15 +247,11 @@ const QuotationsPage = () => {
             return;
         }
 
-        setIsDeleting(id);
         try {
-            await deleteQuotation(id);
-            await loadQuotations();
+            await deleteQuotationMutation.mutateAsync(id);
         } catch (error) {
             console.error("Failed to delete quotation:", error);
             alert(t("failed_to_delete_quotation") || "Failed to delete quotation");
-        } finally {
-            setIsDeleting(null);
         }
     };
 
@@ -361,12 +316,14 @@ const QuotationsPage = () => {
             return;
         }
 
-        setIsConverting(convertQuotationId);
         try {
-            await convertQuotationToContract(convertQuotationId, {
-                startDate: contractStartDate,
-                endDate: contractEndDate,
-                contractTerms: contractTerms || undefined,
+            await convertQuotationMutation.mutateAsync({
+                id: convertQuotationId,
+                payload: {
+                    startDate: contractStartDate,
+                    endDate: contractEndDate,
+                    contractTerms: contractTerms || undefined,
+                },
             });
 
             setShowConvertModal(false);
@@ -375,13 +332,10 @@ const QuotationsPage = () => {
             setContractEndDate("");
             setContractTerms("");
 
-            await loadQuotations();
             alert(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!");
         } catch (error: any) {
             console.error("Failed to convert quotation:", error);
             alert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract");
-        } finally {
-            setIsConverting(null);
         }
     };
 

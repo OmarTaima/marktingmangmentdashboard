@@ -1,46 +1,34 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Edit2, Trash2, Check, X, Loader2, Search } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
-import { getItems, createItem, updateItem, deleteItem, Item } from "@/api/requests/itemsService";
+import { useItems, useCreateItem, useUpdateItem, useDeleteItem } from "@/hooks/queries";
+import type { Item } from "@/api/requests/itemsService";
 
 const ItemsPage = () => {
     const { t } = useLang();
-    const [items, setItems] = useState<Item[]>([]);
     const [inputName, setInputName] = useState<string>("");
     const [inputDescription, setInputDescription] = useState<string>("");
     const [editingId, setEditingId] = useState<string>("");
     const [editingName, setEditingName] = useState<string>("");
     const [editingDescription, setEditingDescription] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [isSaving, setIsSaving] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [totalPages, setTotalPages] = useState<number>(1);
     const [error, setError] = useState<string>("");
 
-    // Load items from API
-    const loadItems = async () => {
-        try {
-            setIsLoading(true);
-            setError("");
-            const response = await getItems({
-                page: currentPage,
-                limit: 20,
-                search: searchQuery || undefined,
-            });
-            setItems(response.data);
-            setTotalPages(response.meta.totalPages);
-        } catch (e: any) {
-            console.error("Error loading items:", e);
-            setError(e.response?.data?.message || "Failed to load items");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // React Query hooks
+    const { data: itemsResponse, isLoading } = useItems({
+        page: currentPage,
+        limit: 20,
+        search: searchQuery || undefined,
+    });
+    const items = itemsResponse?.data || [];
+    const totalPages = itemsResponse?.meta.totalPages || 1;
 
-    useEffect(() => {
-        loadItems();
-    }, [currentPage, searchQuery]);
+    const createItemMutation = useCreateItem();
+    const updateItemMutation = useUpdateItem();
+    const deleteItemMutation = useDeleteItem();
+
+    const isSaving = createItemMutation.isPending || updateItemMutation.isPending;
 
     const handleAdd = async () => {
         const name = (inputName || "").trim();
@@ -52,20 +40,16 @@ const ItemsPage = () => {
         }
 
         try {
-            setIsSaving(true);
             setError("");
-            await createItem({
+            await createItemMutation.mutateAsync({
                 name,
                 description: desc || undefined,
             });
             setInputName("");
             setInputDescription("");
-            await loadItems();
         } catch (e: any) {
             console.error("Error creating item:", e);
             setError(e.response?.data?.message || "Failed to create item");
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -85,21 +69,20 @@ const ItemsPage = () => {
         }
 
         try {
-            setIsSaving(true);
             setError("");
-            await updateItem(id, {
-                name,
-                description: desc || undefined,
+            await updateItemMutation.mutateAsync({
+                id,
+                data: {
+                    name,
+                    description: desc || undefined,
+                },
             });
             setEditingId("");
             setEditingName("");
             setEditingDescription("");
-            await loadItems();
         } catch (e: any) {
             console.error("Error updating item:", e);
             setError(e.response?.data?.message || "Failed to update item");
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -114,8 +97,7 @@ const ItemsPage = () => {
 
         try {
             setError("");
-            await deleteItem(item._id);
-            await loadItems();
+            await deleteItemMutation.mutateAsync(item._id);
         } catch (e: any) {
             console.error("Error deleting item:", e);
             setError(e.response?.data?.message || "Failed to delete item");

@@ -1,7 +1,29 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import "./index.css";
 import App from "./App";
+
+// Create a QueryClient instance
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 2 * 60 * 1000, // 2 minutes - fresher data, less waiting
+            gcTime: 5 * 60 * 1000, // 5 minutes - faster cleanup
+            refetchOnWindowFocus: false,
+            retry: 1,
+            // Performance optimizations
+            refetchOnMount: false, // Don't refetch if data exists
+            refetchOnReconnect: true, // Refetch when reconnected
+            networkMode: "online", // Skip offline checks
+        },
+        mutations: {
+            retry: 0, // Don't retry mutations
+            networkMode: "online",
+        },
+    },
+});
 
 const rootElement = document.getElementById("root");
 
@@ -52,6 +74,9 @@ try {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <App />
+        <QueryClientProvider client={queryClient}>
+            <App />
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
     </StrictMode>,
 );

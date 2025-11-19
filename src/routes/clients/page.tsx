@@ -1,58 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Building2, Target, TrendingUp, Search, Download, RefreshCw } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import ClientInfo from "./ClientInfo";
-import { getClientsCached, exportClientsToCSV } from "@/api";
-import type { Client } from "@/api/interfaces/clientinterface";
+import { exportClientsToCSV } from "@/api";
+import { useClients } from "@/hooks/queries";
 import type { ClientFilterParams } from "@/api/requests/clientService";
 
 const ClientsPage = () => {
     const navigate = useNavigate();
     const { t } = useLang();
-    const [clients, setClients] = useState<Client[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+
+    // Use React Query for clients data
+    const { data: clients = [], isLoading: loading, error, refetch } = useClients();
+
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [exporting, setExporting] = useState<boolean>(false);
-
-    useEffect(() => {
-        const abortController = new AbortController();
-
-        loadClients(abortController.signal);
-
-        // Cleanup function to abort request on unmount
-        return () => {
-            abortController.abort();
-        };
-    }, []);
-
-    const loadClients = async (signal?: AbortSignal) => {
-        try {
-            setLoading(true);
-            setError(null);
-            // Use cached loader so clients aren't refetched when navigating back
-            const data = await getClientsCached();
-
-            // Only update state if component is still mounted
-            if (!signal?.aborted) {
-                setClients(data as Client[]);
-            }
-        } catch (err) {
-            const e = err as any;
-            if (e?.name === "AbortError" || e?.name === "CanceledError") {
-                return;
-            }
-            if (!signal?.aborted) {
-                setError("Failed to load clients. Please try again.");
-            }
-        } finally {
-            if (!signal?.aborted) {
-                setLoading(false);
-            }
-        }
-    };
 
     const handleAddNewClient = () => {
         navigate("/onboarding");
@@ -69,7 +33,7 @@ const ClientsPage = () => {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        loadClients();
+        refetch();
     };
 
     const handleExportCSV = async () => {
@@ -97,7 +61,7 @@ const ClientsPage = () => {
     };
 
     const handleRefresh = () => {
-        loadClients();
+        refetch();
     };
 
     return (
@@ -179,9 +143,9 @@ const ClientsPage = () => {
             ) : error ? (
                 /* Error State */
                 <div className="border-light-600 dark:border-dark-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed text-center">
-                    <p className="text-red-600 dark:text-red-400">{error}</p>
+                    <p className="text-red-600 dark:text-red-400">{error.message || "Failed to load clients"}</p>
                     <button
-                        onClick={() => loadClients()}
+                        onClick={() => refetch()}
                         className="btn-primary"
                     >
                         {t("retry") || "Retry"}

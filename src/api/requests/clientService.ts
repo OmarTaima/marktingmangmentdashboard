@@ -1,6 +1,5 @@
 import axiosInstance from "../axios";
 import type { Client } from "../interfaces/clientinterface";
-import { withCache, invalidateCachePattern } from "../../utils/apiCache";
 
 /**
  * Client API Service
@@ -250,8 +249,6 @@ export const createClient = async (clientData: Partial<Client>): Promise<Client 
         const clientResponseData = response.data.data || response.data;
 
         const transformed = transformToFrontendFormat(clientResponseData);
-        // Invalidate clients cache after creating
-        invalidateCachePattern("/clients");
         return transformed;
     } catch (error) {
         throw error;
@@ -277,26 +274,24 @@ const buildQueryString = (filters: ClientFilterParams): string => {
  * Get all clients (simple version without filters)
  */
 export const getClients = async (): Promise<Client[]> => {
-    return withCache("/clients", async () => {
-        try {
-            const response = await axiosInstance.get(CLIENTS_ENDPOINT);
+    try {
+        const response = await axiosInstance.get(CLIENTS_ENDPOINT);
 
-            // Handle nested data structure - backend might return {data: [...]} or [...]
-            let data;
-            if (Array.isArray(response.data)) {
-                data = response.data;
-            } else if (Array.isArray(response.data.data)) {
-                data = response.data.data;
-            } else {
-                data = [];
-            }
-
-            const transformed = data.map(transformToFrontendFormat).filter(Boolean);
-            return transformed;
-        } catch (error) {
-            throw error;
+        // Handle nested data structure - backend might return {data: [...]} or [...]
+        let data;
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (Array.isArray(response.data.data)) {
+            data = response.data.data;
+        } else {
+            data = [];
         }
-    });
+
+        const transformed = data.map(transformToFrontendFormat).filter(Boolean);
+        return transformed;
+    } catch (error) {
+        throw error;
+    }
 };
 
 /**
@@ -304,36 +299,30 @@ export const getClients = async (): Promise<Client[]> => {
  * GET /clients with query parameters
  */
 export const getClientsWithFilters = async (filters: ClientFilterParams = {}): Promise<PaginatedClientsResponse> => {
-    return withCache(
-        "/clients",
-        async () => {
-            try {
-                const queryString = buildQueryString(filters);
-                const url = queryString ? `${CLIENTS_ENDPOINT}?${queryString}` : CLIENTS_ENDPOINT;
+    try {
+        const queryString = buildQueryString(filters);
+        const url = queryString ? `${CLIENTS_ENDPOINT}?${queryString}` : CLIENTS_ENDPOINT;
 
-                const response = await axiosInstance.get(url);
+        const response = await axiosInstance.get(url);
 
-                // Handle paginated response format
-                const data = response.data.data || response.data;
-                const meta = response.data.meta || {
-                    total: Array.isArray(data) ? data.length : 0,
-                    page: filters.page || 1,
-                    limit: filters.limit || 20,
-                    totalPages: 1,
-                };
+        // Handle paginated response format
+        const data = response.data.data || response.data;
+        const meta = response.data.meta || {
+            total: Array.isArray(data) ? data.length : 0,
+            page: filters.page || 1,
+            limit: filters.limit || 20,
+            totalPages: 1,
+        };
 
-                const clients = Array.isArray(data) ? data.map(transformToFrontendFormat).filter((c): c is Client => c !== null) : [];
+        const clients = Array.isArray(data) ? data.map(transformToFrontendFormat).filter((c): c is Client => c !== null) : [];
 
-                return {
-                    data: clients,
-                    meta,
-                };
-            } catch (error) {
-                throw error;
-            }
-        },
-        filters,
-    );
+        return {
+            data: clients,
+            meta,
+        };
+    } catch (error) {
+        throw error;
+    }
 };
 
 /**
@@ -372,38 +361,30 @@ export const getClientByIdCached = async (clientId: string): Promise<Client | nu
     return getClientById(clientId);
 };
 
-/**
- * Clear the clients cache (useful after mutations)
- */
-export const clearClientsCache = () => {
-    invalidateCachePattern("/clients");
-};
 
-/**
- * Clear cache for a specific client id
- */
-export const clearClientCache = (clientId: string) => {
-    invalidateCachePattern(`/clients/${clientId}`);
-};
 
 /**
  * Get a single client by ID
  */
 export const getClientById = async (clientId: string): Promise<Client | null> => {
-    return withCache(`/clients/${clientId}`, async () => {
-        try {
-            const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`);
+    try {
+        // Try to specify which fields to populate to avoid nested population errors
+        // If backend still has issues, we may need them to fix their model
+        const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, {
+            params: {
+                populate: "segments,competitors,branches", // Only populate these, not contracts
+            },
+        });
 
-            // Handle nested data structure - backend can return:
-            // {client: {...}}, {data: {...}}, or {...}
-            const clientData = response.data.client || response.data.data || response.data;
+        // Handle nested data structure - backend can return:
+        // {client: {...}}, {data: {...}}, or {...}
+        const clientData = response.data.client || response.data.data || response.data;
 
-            const transformed = transformToFrontendFormat(clientData);
-            return transformed;
-        } catch (error) {
-            throw error;
-        }
-    });
+        const transformed = transformToFrontendFormat(clientData);
+        return transformed;
+    } catch (error) {
+        throw error;
+    }
 };
 
 /**
@@ -417,8 +398,6 @@ export const updateClient = async (clientId: string, clientData: Partial<Client>
         console.debug("[clientService] updateClient payload:", JSON.stringify(payload));
         const response = await axiosInstance.put(`${CLIENTS_ENDPOINT}/${clientId}`, payload);
         const updated = transformToFrontendFormat(response.data);
-        // Invalidate clients cache after updating
-        invalidateCachePattern("/clients");
         return updated;
     } catch (error) {
         console.error("Error updating client:", error);
@@ -436,8 +415,6 @@ export const patchClient = async (clientId: string, partialData: Record<string, 
         console.debug("[clientService] patchClient payload:", JSON.stringify(partialData));
         const response = await axiosInstance.patch(`${CLIENTS_ENDPOINT}/${clientId}`, partialData);
         const updated = transformToFrontendFormat(response.data);
-        // Invalidate clients cache after patching
-        invalidateCachePattern("/clients");
         return updated;
     } catch (error) {
         console.error("Error patching client:", error);
@@ -451,8 +428,6 @@ export const patchClient = async (clientId: string, partialData: Record<string, 
 export const deleteClient = async (clientId: string): Promise<any> => {
     try {
         const response = await axiosInstance.delete(`${CLIENTS_ENDPOINT}/${clientId}`);
-        // Invalidate clients cache after deleting
-        invalidateCachePattern("/clients");
         return response.data;
     } catch (error) {
         console.error("Error deleting client:", error);
