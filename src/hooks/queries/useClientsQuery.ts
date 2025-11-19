@@ -27,6 +27,12 @@ export const useClients = () => {
     return useQuery({
         queryKey: clientsKeys.lists(),
         queryFn: getClients,
+        staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+        gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+        refetchOnWindowFocus: false, // Don't refetch when window regains focus
+        refetchOnMount: false, // Don't refetch on component mount if data exists
+        refetchOnReconnect: false, // Don't refetch on reconnect
+        retry: 1, // Only retry once on failure
     });
 };
 
@@ -48,6 +54,11 @@ export const useClient = (id: string, enabled = true) => {
         queryKey: clientsKeys.detail(id),
         queryFn: () => getClientById(id),
         enabled: !!id && enabled,
+        staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+        gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+        refetchOnWindowFocus: false, // Don't refetch when window regains focus
+        refetchOnMount: false, // Don't refetch on mount if data exists
+        refetchOnReconnect: false, // Don't refetch on reconnect
     });
 };
 
@@ -74,8 +85,10 @@ export const useUpdateClient = () => {
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: Partial<Client> }) => updateClient(id, data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.id) });
+            // Ensure clients list is refreshed whenever a client is updated
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            // Also invalidate the detail for the updated client
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail((variables as any).id) });
         },
     });
 };
@@ -104,7 +117,12 @@ export const useDeleteClient = () => {
     return useMutation({
         mutationFn: deleteClient,
         onSuccess: () => {
+            // Invalidate cached clients list and immediately refetch it even if the
+            // clients list query is not currently active (e.g. we're on the detail page).
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            // Refetch inactive queries as well so the list is up-to-date when user
+            // navigates back without needing a manual page refresh.
+            queryClient.refetchQueries({ queryKey: clientsKeys.lists(), active: false });
         },
     });
 };

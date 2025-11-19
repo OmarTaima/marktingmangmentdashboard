@@ -229,7 +229,7 @@ const ServicesPage = () => {
                                                                 : t("select_packages") || "Select packages"}
                                                         </button>
                                                         {showEditPackageDropdown && (
-                                                            <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-light-300 bg-white p-2 shadow-lg dark:border-dark-700 dark:bg-dark-800">
+                                                            <div className="border-light-300 dark:border-dark-700 dark:bg-dark-800 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white p-2 shadow-lg">
                                                                 {packages && packages.length > 0 ? (
                                                                     <div className="flex flex-wrap gap-2">
                                                                         {packages.map((pkg) => {
@@ -240,14 +240,16 @@ const ServicesPage = () => {
                                                                                     type="button"
                                                                                     onClick={() => {
                                                                                         if (isSelected) {
-                                                                                            setEditingPackages(editingPackages.filter((id) => id !== pkg._id));
+                                                                                            setEditingPackages(
+                                                                                                editingPackages.filter((id) => id !== pkg._id),
+                                                                                            );
                                                                                         } else {
                                                                                             setEditingPackages([...editingPackages, pkg._id]);
                                                                                         }
                                                                                     }}
                                                                                     className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
                                                                                         isSelected
-                                                                                            ? "bg-light-500 text-white dark:bg-secdark-700"
+                                                                                            ? "bg-light-500 dark:bg-secdark-700 text-white"
                                                                                             : "bg-light-100 text-light-700 hover:bg-light-200 dark:bg-dark-700 dark:text-dark-300 dark:hover:bg-dark-600"
                                                                                     }`}
                                                                                 >
@@ -257,7 +259,7 @@ const ServicesPage = () => {
                                                                         })}
                                                                     </div>
                                                                 ) : (
-                                                                    <div className="px-3 py-2 text-sm text-light-600 dark:text-dark-400">
+                                                                    <div className="text-light-600 dark:text-dark-400 px-3 py-2 text-sm">
                                                                         {t("no_packages_available") || "No packages available"}
                                                                     </div>
                                                                 )}
@@ -284,7 +286,8 @@ const ServicesPage = () => {
                                                             )}
                                                             {service.packages && service.packages.length > 0 && (
                                                                 <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                    {t("packages") || "Packages"}: {service.packages.length} {t("selected") || "selected"}
+                                                                    {t("packages") || "Packages"}: {service.packages.length}{" "}
+                                                                    {t("selected") || "selected"}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -400,7 +403,7 @@ const ServicesPage = () => {
                                 : t("select_packages") || "Select packages"}
                         </button>
                         {showPackageDropdown && !isSaving && (
-                            <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-light-300 bg-white p-2 shadow-lg dark:border-dark-700 dark:bg-dark-800">
+                            <div className="border-light-300 dark:border-dark-700 dark:bg-dark-800 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white p-2 shadow-lg">
                                 {packages && packages.length > 0 ? (
                                     <div className="flex flex-wrap gap-2">
                                         {packages.map((pkg) => {
@@ -418,7 +421,7 @@ const ServicesPage = () => {
                                                     }}
                                                     className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
                                                         isSelected
-                                                            ? "bg-light-500 text-white dark:bg-secdark-700"
+                                                            ? "bg-light-500 dark:bg-secdark-700 text-white"
                                                             : "bg-light-100 text-light-700 hover:bg-light-200 dark:bg-dark-700 dark:text-dark-300 dark:hover:bg-dark-600"
                                                     }`}
                                                 >
@@ -428,7 +431,7 @@ const ServicesPage = () => {
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="px-3 py-2 text-sm text-light-600 dark:text-dark-400">
+                                    <div className="text-light-600 dark:text-dark-400 px-3 py-2 text-sm">
                                         {t("no_packages_available") || "No packages available"}
                                     </div>
                                 )}

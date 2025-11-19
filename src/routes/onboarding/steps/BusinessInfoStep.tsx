@@ -24,6 +24,7 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
     );
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [categoryCustom, setCategoryCustom] = useState<string>("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,26 +45,63 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
         }
 
         setErrors(newErrors);
-        onNext({ business: formData });
+
+        // If user selected "other" and provided a custom category, use that
+        const businessPayload = { ...formData } as BusinessForm;
+        if (businessPayload.category === "other" && categoryCustom && categoryCustom.trim()) {
+            businessPayload.category = categoryCustom.trim();
+        }
+
+        onNext({ business: businessPayload });
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const next = { ...formData, [e.target.name]: e.target.value } as BusinessForm;
+        const name = e.target.name;
+        const value = e.target.value;
+
+        // Special handling for category select
+        if (name === "category") {
+            const next = { ...formData, category: value } as BusinessForm;
+            setFormData(next);
+            // If switching away from "other", clear custom category
+            if (value !== "other") {
+                setCategoryCustom("");
+            }
+            // For drafts, just store the selection; resolved category (custom) will be sent when available
+            if (typeof onUpdate === "function") {
+                onUpdate({ business: next });
+            }
+            return;
+        }
+
+        const next = { ...formData, [name]: value } as BusinessForm;
         setFormData(next);
         if (typeof onUpdate === "function") onUpdate({ business: next });
     };
 
     // Keep formData synced with parent data so values persist when navigating
+    // Only sync when data.business changes externally (e.g., navigating steps)
     useEffect(() => {
-        setFormData(
-            (data?.business as BusinessForm) || {
-                businessName: "",
-                category: "",
-                description: "",
-                mainOfficeAddress: "",
-                establishedYear: "",
-            },
-        );
+        const initial = (data?.business as BusinessForm) || {
+            businessName: "",
+            category: "",
+            description: "",
+            mainOfficeAddress: "",
+            establishedYear: "",
+        };
+
+        // If saved category is not one of the known options, treat it as custom
+        const known = ["retail", "restaurant", "healthcare", "technology", "education", "real-estate", "automotive", "beauty", "finance"];
+
+        if (initial.category && !known.includes(String(initial.category))) {
+            // Restore custom category value
+            setFormData({ ...initial, category: "other" });
+            setCategoryCustom(String(initial.category));
+        } else {
+            setFormData(initial);
+            setCategoryCustom("");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.business]);
 
     return (
@@ -106,6 +144,30 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
                     <option value="other">{t("option_other")}</option>
                 </select>
                 {errors.category && <p className="text-danger-500 mt-1 text-sm">{errors.category}</p>}
+                {formData.category === "other" && (
+                    <div className="mt-2">
+                        <input
+                            type="text"
+                            name="categoryCustom"
+                            value={categoryCustom}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setCategoryCustom(val);
+                                // Save draft with custom category value
+                                if (typeof onUpdate === "function") {
+                                    onUpdate({
+                                        business: {
+                                            ...formData,
+                                            category: val.trim() || "other",
+                                        },
+                                    });
+                                }
+                            }}
+                            placeholder={t("other_category_placeholder") as string}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 mt-2 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        />
+                    </div>
+                )}
             </div>
 
             <div>

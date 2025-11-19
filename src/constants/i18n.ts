@@ -90,7 +90,7 @@ const en: Record<string, string> = {
     main_office_address: "Main Office Address",
     established_year: "Established Year",
     add_branch: "Add Branch",
-    added_branches: "Added Branches ({count})",
+    added_branches: "Added Branches",
     branch_name: "Branch Name",
     branch_name_placeholder: "e.g., Downtown Branch",
     branch_address: "Address",
@@ -101,7 +101,7 @@ const en: Record<string, string> = {
     competitor_name: "Competitor Name",
     competitor_swot: "Competitor SWOT",
     add_competitor: "Add Competitor",
-    added_competitors: "Added Competitors ({count})",
+    added_competitors: "Added Competitors",
     description: "Description",
 
     // Packages / Package description
@@ -131,7 +131,7 @@ const en: Record<string, string> = {
     high_income: "High Income",
     varied: "Varied",
     add_segment: "Add Segment",
-    added_segments: "Added Segments ({count})",
+    added_segments: "Added Segments",
 
     // Social Links
     social_media_links: "Social Media Links",
@@ -259,7 +259,7 @@ const ar: Record<string, string> = {
     main_office_address: "عنوان المكتب الرئيسي",
     established_year: "سنة التأسيس",
     add_branch: "إضافة فرع",
-    added_branches: "الفروع المضافة ({count})",
+    added_branches: "الفروع المضافة",
     branch_name: "اسم الفرع",
     branch_name_placeholder: "مثال: فرع وسط المدينة",
     branch_address: "العنوان",
@@ -270,7 +270,7 @@ const ar: Record<string, string> = {
     competitor_name: "اسم المنافس",
     competitor_swot: "سوات المنافس",
     add_competitor: "إضافة منافس",
-    added_competitors: "المنافسون المضافون ({count})",
+    added_competitors: "المنافسون المضافون",
     description: "الوصف",
 
     // Packages / Package description
@@ -300,7 +300,7 @@ const ar: Record<string, string> = {
     high_income: "دخل مرتفع",
     varied: "متفاوت",
     add_segment: "إضافة شريحة",
-    added_segments: "الشرائح المضافة ({count})",
+    added_segments: "الشرائح المضافة",
 
     // Social Links
     social_media_links: "روابط التواصل الاجتماعي",

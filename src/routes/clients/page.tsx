@@ -33,7 +33,8 @@ const ClientsPage = () => {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        refetch();
+        // No need to refetch - React Query will handle this with proper query keys
+        // Just prevent default form submission
     };
 
     const handleExportCSV = async () => {

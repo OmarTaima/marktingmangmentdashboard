@@ -122,7 +122,38 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        onNext({ competitors, competitorsDraft: currentCompetitor });
+
+        // Auto-add current draft if it has any content
+        let finalCompetitors = [...competitors];
+        const hasContent = Object.values(currentCompetitor).some((v) => {
+            if (Array.isArray(v)) return v.length > 0;
+            if (typeof v === "object" && v !== null)
+                return Object.values(v).some((val) => (Array.isArray(val) ? val.length > 0 : !!(val && String(val).trim())));
+            return !!(v && String(v).trim());
+        });
+
+        if (hasContent) {
+            // Validate website if provided
+            if (currentCompetitor.website && !validators.isValidURL(currentCompetitor.website, { allowProtocolLess: true })) {
+                setErrors({ website: (t("invalid_website") as string) || "" });
+                return;
+            }
+            finalCompetitors = [...competitors, currentCompetitor];
+        }
+
+        onNext({
+            competitors: finalCompetitors,
+            competitorsDraft: {
+                name: "",
+                description: "",
+                website: "",
+                facebook: "",
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+            },
+        });
     };
 
     // Keep competitors and current competitor draft synced with parent data
@@ -170,7 +201,9 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     type="text"
                                     value={currentCompetitor.name}
                                     onChange={(e) => {
-                                        setCurrentCompetitor({ ...currentCompetitor, name: e.target.value });
+                                        const updated = { ...currentCompetitor, name: e.target.value };
+                                        setCurrentCompetitor(updated);
+                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                         if (errors.name) setErrors({ ...errors, name: "" });
                                     }}
                                     className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : "border-light-600"}`}
@@ -183,7 +216,9 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     type="url"
                                     value={currentCompetitor.website}
                                     onChange={(e) => {
-                                        setCurrentCompetitor({ ...currentCompetitor, website: e.target.value });
+                                        const updated = { ...currentCompetitor, website: e.target.value };
+                                        setCurrentCompetitor(updated);
+                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                         if (errors.website) setErrors({ ...errors, website: "" });
                                     }}
                                     placeholder={t("website_placeholder")}
@@ -199,7 +234,9 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                             <textarea
                                 value={currentCompetitor.description}
                                 onChange={(e) => {
-                                    setCurrentCompetitor({ ...currentCompetitor, description: e.target.value });
+                                    const updated = { ...currentCompetitor, description: e.target.value };
+                                    setCurrentCompetitor(updated);
+                                    if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     if (errors.description) setErrors({ ...errors, description: "" });
                                 }}
                                 rows={3}
@@ -219,7 +256,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 <input
                                     type="url"
                                     value={currentCompetitor.facebook}
-                                    onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, facebook: e.target.value })}
+                                    onChange={(e) => {
+                                        const updated = { ...currentCompetitor, facebook: e.target.value };
+                                        setCurrentCompetitor(updated);
+                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
+                                    }}
                                     placeholder="https://facebook.com/..."
                                     dir={dirFor("https://facebook.com/...")}
                                     className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
@@ -235,7 +276,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 <input
                                     type="url"
                                     value={currentCompetitor.instagram}
-                                    onChange={(e) => setCurrentCompetitor({ ...currentCompetitor, instagram: e.target.value })}
+                                    onChange={(e) => {
+                                        const updated = { ...currentCompetitor, instagram: e.target.value };
+                                        setCurrentCompetitor(updated);
+                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
+                                    }}
                                     placeholder="https://instagram.com/..."
                                     dir={dirFor("https://instagram.com/...")}
                                     className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none"
@@ -315,7 +360,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                 {competitors.length > 0 && (
                     <div className="space-y-2">
                         <h3 className="text-dark-700 dark:text-secdark-200 text-sm font-medium">
-                            {(t as any)("added_competitors", { count: competitors.length })}
+                            {t("added_competitors")} ({competitors.length})
                         </h3>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {competitors.map((competitor, index) => (

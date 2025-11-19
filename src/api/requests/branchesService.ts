@@ -81,6 +81,28 @@ export const createBranch = async (clientId: string, branchData: any): Promise<B
     }
 };
 
+export const createBranches = async (clientId: string, branchesData: any[]): Promise<Branch[]> => {
+    try {
+        // Send all branch requests in parallel (simultaneous, not sequential)
+        const promises = branchesData.map(async (branchData) => {
+            const payload = transformBranchToBackendPayload(branchData);
+            const res = await axiosInstance.post(`/clients/${clientId}/branches`, payload);
+            const branch = res.data.data || res.data.branch || res.data;
+            return transformBranchToFrontend(branch);
+        });
+
+        const branches = await Promise.all(promises);
+
+        // Invalidate branches and client cache after creating all
+        invalidateCachePattern(`/clients/${clientId}/branches`);
+        invalidateCachePattern(`/clients/${clientId}`);
+
+        return branches.filter(Boolean) as Branch[];
+    } catch (err) {
+        throw err;
+    }
+};
+
 export const updateBranch = async (clientId: string, branchId: string, branchData: any): Promise<Branch | null> => {
     try {
         const payload = transformBranchToBackendPayload(branchData);
@@ -111,6 +133,7 @@ export const deleteBranch = async (clientId: string, branchId: string): Promise<
 export default {
     getBranchesByClientId,
     createBranch,
+    createBranches,
     updateBranch,
     deleteBranch,
 };

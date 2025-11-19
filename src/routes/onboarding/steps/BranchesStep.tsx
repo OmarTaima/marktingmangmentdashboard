@@ -69,7 +69,33 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onNext({ branches, branchesDraft: currentBranch });
+
+        // Auto-add current draft if it has any content
+        let finalBranches = [...branches];
+        const { name, address, phone } = currentBranch || {};
+        if (name?.trim() || address?.trim() || phone?.trim()) {
+            // Validate before adding
+            const nextErrors: Record<string, string> = {};
+            if (name && name.trim().length < 2) {
+                nextErrors.name = (t("name_too_short") as string) || t("invalid_name");
+            }
+            if (address && address.trim().length < 3) {
+                nextErrors.address = (t("address_too_short") as string) || t("invalid_address");
+            }
+            if (phone && !validators.isValidEgyptianMobile(phone)) {
+                nextErrors.phone = t("phone_error");
+            }
+
+            if (Object.keys(nextErrors).length > 0) {
+                setErrors(nextErrors);
+                return;
+            }
+
+            const normalizedPhone: string = phone ? (validators.normalizeDigits((phone as string).trim()) as string) : "";
+            finalBranches = [...branches, { name: (name || "").trim(), address: (address || "").trim(), phone: normalizedPhone }];
+        }
+
+        onNext({ branches: finalBranches, branchesDraft: { name: "", address: "", phone: "" } });
     };
 
     useEffect(() => {
@@ -103,7 +129,9 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
                         type="text"
                         value={currentBranch.name}
                         onChange={(e) => {
-                            setCurrentBranch({ ...currentBranch, name: e.target.value });
+                            const updated = { ...currentBranch, name: e.target.value };
+                            setCurrentBranch(updated);
+                            if (typeof onUpdate === "function") onUpdate({ branchesDraft: updated });
                             if (errors.name) setErrors({ ...errors, name: "" });
                         }}
                         className={`border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : ""}`}
@@ -117,7 +145,9 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
                     <textarea
                         value={currentBranch.address}
                         onChange={(e) => {
-                            setCurrentBranch({ ...currentBranch, address: e.target.value });
+                            const updated = { ...currentBranch, address: e.target.value };
+                            setCurrentBranch(updated);
+                            if (typeof onUpdate === "function") onUpdate({ branchesDraft: updated });
                             if (errors.address) setErrors({ ...errors, address: "" });
                         }}
                         rows={2}
@@ -132,7 +162,9 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
                         type="tel"
                         value={currentBranch.phone}
                         onChange={(e) => {
-                            setCurrentBranch({ ...currentBranch, phone: e.target.value });
+                            const updated = { ...currentBranch, phone: e.target.value };
+                            setCurrentBranch(updated);
+                            if (typeof onUpdate === "function") onUpdate({ branchesDraft: updated });
                             if (errors.phone) setErrors({ ...errors, phone: "" });
                         }}
                         placeholder={t("phone_placeholder")}

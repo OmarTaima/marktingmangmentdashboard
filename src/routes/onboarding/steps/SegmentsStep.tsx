@@ -97,7 +97,47 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onNext({ segments, segmentsDraft: currentSegment });
+
+        // Auto-add current draft if it has content
+        let finalSegments = [...segments];
+        if (currentSegment.name?.trim()) {
+            // Clean the segment data
+            const cleanedSegment: Segment = {
+                name: currentSegment.name.trim(),
+            };
+
+            if (currentSegment.description && currentSegment.description.trim()) {
+                cleanedSegment.description = currentSegment.description.trim();
+            }
+            if (currentSegment.ageRange && currentSegment.ageRange.trim()) {
+                cleanedSegment.ageRange = currentSegment.ageRange.trim();
+            }
+            if (currentSegment.gender && currentSegment.gender !== "all") {
+                cleanedSegment.gender = currentSegment.gender;
+            } else {
+                cleanedSegment.gender = "all";
+            }
+            if (currentSegment.interests && currentSegment.interests.length > 0) {
+                cleanedSegment.interests = currentSegment.interests.filter((i) => i.trim().length > 0);
+            }
+            if (currentSegment.incomeLevel) {
+                cleanedSegment.incomeLevel = currentSegment.incomeLevel;
+            }
+
+            finalSegments = [...segments, cleanedSegment];
+        }
+
+        onNext({
+            segments: finalSegments,
+            segmentsDraft: {
+                name: "",
+                description: "",
+                ageRange: "",
+                gender: "all",
+                interests: [],
+                incomeLevel: undefined,
+            },
+        });
     };
 
     // Keep segments synced with parent data so values persist when navigating

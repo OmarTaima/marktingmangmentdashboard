@@ -100,11 +100,6 @@ const transformToBackendPayload = (formData: Partial<Client>): any => {
             opportunities: Array.isArray(formData.swot.opportunities) ? formData.swot.opportunities : [],
             threats: Array.isArray(formData.swot.threats) ? formData.swot.threats : [],
         };
-        // Also include flattened swot_* arrays for backends that expect them
-        if (Array.isArray(payload.swot.strengths) && payload.swot.strengths.length) payload.swot_strengths = payload.swot.strengths;
-        if (Array.isArray(payload.swot.weaknesses) && payload.swot.weaknesses.length) payload.swot_weaknesses = payload.swot.weaknesses;
-        if (Array.isArray(payload.swot.opportunities) && payload.swot.opportunities.length) payload.swot_opportunities = payload.swot.opportunities;
-        if (Array.isArray(payload.swot.threats) && payload.swot.threats.length) payload.swot_threats = payload.swot.threats;
     }
 
     if (formData.socialLinks) {
@@ -190,6 +185,9 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         return null;
     }
 
+    // Debug: Log raw backend data
+    console.log("[Transform] Raw backend data:", JSON.stringify(backendData, null, 2));
+
     const normalizeSocialLinks = (raw: any): any => {
         // Expected frontend shape: { business: [], personal: [], custom: [] }
         if (!raw) return { business: [], personal: [], custom: [] };
@@ -216,8 +214,12 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         personal: backendData.personal || {},
         business: {
             ...(backendData.business || {}),
-            businessName: backendData.business?.name,
-            name: backendData.business?.name,
+            businessName: backendData.business?.name || backendData.business?.businessName,
+            name: backendData.business?.name || backendData.business?.businessName,
+            category: backendData.business?.category || "",
+            description: backendData.business?.description || "",
+            mainOfficeAddress: backendData.business?.mainOfficeAddress || "",
+            establishedYear: backendData.business?.establishedYear || new Date().getFullYear(),
         },
         contact: backendData.contact || {},
         status: backendData.status || "active",
@@ -230,6 +232,9 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         segments: backendData.segments || [],
         competitors: backendData.competitors || [],
     };
+
+    // Debug: Log transformed data
+    console.log("[Transform] Transformed frontend data:", JSON.stringify(transformed, null, 2));
 
     return transformed;
 };
@@ -275,7 +280,12 @@ const buildQueryString = (filters: ClientFilterParams): string => {
  */
 export const getClients = async (): Promise<Client[]> => {
     try {
-        const response = await axiosInstance.get(CLIENTS_ENDPOINT);
+        // Request all clients with populated relationships in a single efficient request
+        const response = await axiosInstance.get(CLIENTS_ENDPOINT, {
+            params: {
+                populate: "segments,competitors,branches",
+            },
+        });
 
         // Handle nested data structure - backend might return {data: [...]} or [...]
         let data;
@@ -301,7 +311,9 @@ export const getClients = async (): Promise<Client[]> => {
 export const getClientsWithFilters = async (filters: ClientFilterParams = {}): Promise<PaginatedClientsResponse> => {
     try {
         const queryString = buildQueryString(filters);
-        const url = queryString ? `${CLIENTS_ENDPOINT}?${queryString}` : CLIENTS_ENDPOINT;
+        const url = queryString
+            ? `${CLIENTS_ENDPOINT}?${queryString}&populate=segments,competitors,branches`
+            : `${CLIENTS_ENDPOINT}?populate=segments,competitors,branches`;
 
         const response = await axiosInstance.get(url);
 
@@ -360,8 +372,6 @@ export const getClientsCached = async (): Promise<Client[]> => {
 export const getClientByIdCached = async (clientId: string): Promise<Client | null> => {
     return getClientById(clientId);
 };
-
-
 
 /**
  * Get a single client by ID

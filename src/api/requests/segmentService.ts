@@ -133,6 +133,28 @@ export const createSegment = async (clientId: string, segmentData: any): Promise
     }
 };
 
+export const createSegments = async (clientId: string, segmentsData: any[]): Promise<Segment[]> => {
+    try {
+        // Send all segment requests in parallel (simultaneous, not sequential)
+        const promises = segmentsData.map(async (segmentData) => {
+            const payload = transformSegmentToBackendPayload(segmentData);
+            const response = await axiosInstance.post(`/clients/${clientId}/segments`, payload);
+            const segment = response.data.segment || response.data.data || response.data;
+            return transformSegmentToFrontendFormat(segment);
+        });
+
+        const segments = await Promise.all(promises);
+
+        // Invalidate segments and client cache after creating all
+        invalidateCachePattern(`/clients/${clientId}/segments`);
+        invalidateCachePattern(`/clients/${clientId}`);
+
+        return segments.filter(Boolean) as Segment[];
+    } catch (error) {
+        throw error;
+    }
+};
+
 /**
  * Update an existing segment
  * PUT /clients/:clientId/segments/:segmentId
@@ -173,6 +195,7 @@ export const deleteSegment = async (clientId: string, segmentId: string): Promis
 export default {
     getSegmentsByClientId,
     createSegment,
+    createSegments,
     updateSegment,
     deleteSegment,
 };

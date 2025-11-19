@@ -175,6 +175,28 @@ export const createCompetitor = async (clientId: string, competitorData: any): P
     }
 };
 
+export const createCompetitors = async (clientId: string, competitorsData: any[]): Promise<Competitor[]> => {
+    try {
+        // Send all competitor requests in parallel (simultaneous, not sequential)
+        const promises = competitorsData.map(async (competitorData) => {
+            const payload = transformCompetitorToBackendPayload(competitorData);
+            const response = await axiosInstance.post(`/clients/${clientId}/competitors`, payload);
+            const competitor = response.data.competitor || response.data.data || response.data;
+            return transformCompetitorToFrontendFormat(competitor);
+        });
+
+        const competitors = await Promise.all(promises);
+
+        // Invalidate competitors and client cache after creating all
+        invalidateCachePattern(`/clients/${clientId}/competitors`);
+        invalidateCachePattern(`/clients/${clientId}`);
+
+        return competitors.filter(Boolean) as Competitor[];
+    } catch (error) {
+        throw error;
+    }
+};
+
 /**
  * Update an existing competitor
  * PUT /clients/:clientId/competitors/:competitorId
@@ -217,6 +239,7 @@ export const deleteCompetitor = async (clientId: string, competitorId: string): 
 export default {
     getCompetitorsByClientId,
     createCompetitor,
+    createCompetitors,
     updateCompetitor,
     deleteCompetitor,
 };

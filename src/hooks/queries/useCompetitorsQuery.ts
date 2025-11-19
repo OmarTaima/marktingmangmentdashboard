@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCompetitorsByClientId, createCompetitor, updateCompetitor, deleteCompetitor } from "@/api/requests/competitorsService";
-import { clientsKeys } from "./useClientsQuery";
+import { getCompetitorsByClientId, createCompetitor, createCompetitors, updateCompetitor, deleteCompetitor } from "@/api/requests/competitorsService";
+import { clientsKeys } from "@/hooks/queries/useClientsQuery";
 
 // Query keys
 export const competitorsKeys = {
@@ -16,6 +16,8 @@ export const useCompetitors = (clientId: string, enabled = true) => {
         queryKey: competitorsKeys.byClient(clientId),
         queryFn: () => getCompetitorsByClientId(clientId),
         enabled: !!clientId && enabled,
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch when window regains focus
     });
 };
 
@@ -24,13 +26,20 @@ export const useCompetitors = (clientId: string, enabled = true) => {
  */
 export const useCreateCompetitor = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ clientId, data }: { clientId: string; data: any }) => createCompetitor(clientId, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: competitorsKeys.byClient(variables.clientId) });
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
+    });
+};
+
+/**
+ * Hook to create multiple competitors at once
+ */
+export const useCreateCompetitors = () => {
+    return useMutation({
+        mutationFn: ({ clientId, data }: { clientId: string; data: any[] }) => createCompetitors(clientId, data),
     });
 };
 
@@ -39,13 +48,11 @@ export const useCreateCompetitor = () => {
  */
 export const useUpdateCompetitor = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ clientId, competitorId, data }: { clientId: string; competitorId: string; data: any }) =>
             updateCompetitor(clientId, competitorId, data),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: competitorsKeys.byClient(variables.clientId) });
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });
 };
@@ -55,12 +62,10 @@ export const useUpdateCompetitor = () => {
  */
 export const useDeleteCompetitor = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ clientId, competitorId }: { clientId: string; competitorId: string }) => deleteCompetitor(clientId, competitorId),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: competitorsKeys.byClient(variables.clientId) });
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });
 };

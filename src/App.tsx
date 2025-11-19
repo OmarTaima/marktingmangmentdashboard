@@ -7,7 +7,7 @@ import RegisterPage from "./routes/auth/register/page";
 import DashboardPage from "./routes/dashboard/page";
 import OnboardingPage from "./routes/onboarding/page";
 import ClientsPage from "./routes/clients/page";
-import ClientDetailPage from "./routes/clients/detail/page";
+import ClientInfo from "./routes/clients/ClientInfo";
 import PlanningPage from "./routes/planning/page";
 import ServicesPage from "./routes/services/page";
 import ItemsPage from "./routes/items/page";
@@ -32,7 +32,7 @@ function App() {
                     { path: "dashboard", element: <DashboardPage /> },
                     { path: "onboarding", element: <OnboardingPage /> },
                     { path: "clients", element: <ClientsPage /> },
-                    { path: "clients/:id", element: <ClientDetailPage /> },
+                    { path: "clients/:id", element: <ClientInfo fullPage={true} /> },
                     { path: "strategies", element: <PlanningPage /> },
                     { path: "services", element: <ServicesPage /> },
                     { path: "items", element: <ItemsPage /> },

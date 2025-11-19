@@ -9,13 +9,13 @@ import App from "./App";
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 2 * 60 * 1000, // 2 minutes - fresher data, less waiting
-            gcTime: 5 * 60 * 1000, // 5 minutes - faster cleanup
+            staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh longer
+            gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
             refetchOnWindowFocus: false,
-            retry: 1,
-            // Performance optimizations
             refetchOnMount: false, // Don't refetch if data exists
-            refetchOnReconnect: true, // Refetch when reconnected
+            refetchOnReconnect: false, // Don't refetch on reconnect
+            retry: 1,
+            retryDelay: 1000,
             networkMode: "online", // Skip offline checks
         },
         mutations: {
@@ -73,10 +73,8 @@ try {
 }
 
 createRoot(rootElement).render(
-    <StrictMode>
-        <QueryClientProvider client={queryClient}>
-            <App />
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
-    </StrictMode>,
+    <QueryClientProvider client={queryClient}>
+        <App />
+        <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>,
 );

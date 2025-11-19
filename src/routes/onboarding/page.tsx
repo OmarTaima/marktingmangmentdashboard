@@ -12,7 +12,7 @@ import { SegmentsStep } from "./steps/SegmentsStep";
 
 import { useLang } from "@/hooks/useLang";
 import { User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users } from "lucide-react";
-import { useClient, useCreateClient, useUpdateClient, useCreateSegment, useCreateCompetitor, useCreateBranch } from "@/hooks/queries";
+import { useClient, useCreateClient, useUpdateClient, useCreateSegments, useCreateCompetitors, useCreateBranches } from "@/hooks/queries";
 
 type Swot = { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
 
@@ -67,9 +67,9 @@ const OnboardingPage: FC = () => {
     const { data: clientData } = useClient(editId || "", !!editId);
     const createClientMutation = useCreateClient();
     const updateClientMutation = useUpdateClient();
-    const createSegmentMutation = useCreateSegment();
-    const createCompetitorMutation = useCreateCompetitor();
-    const createBranchMutation = useCreateBranch();
+    const createSegmentsMutation = useCreateSegments();
+    const createCompetitorsMutation = useCreateCompetitors();
+    const createBranchesMutation = useCreateBranches();
 
     // If editing an existing client, load its data from React Query
     useEffect(() => {
@@ -195,14 +195,12 @@ const OnboardingPage: FC = () => {
                         clientId = newClient?._id || newClient?.id || null;
                     }
 
-                    // Submit segments separately to /clients/:clientId/segments
+                    // Submit all segments in one request to /clients/:clientId/segments
                     if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
-                        for (const segment of updatedFormData.segments) {
-                            try {
-                                await createSegmentMutation.mutateAsync({ clientId, data: segment });
-                            } catch (segmentError: any) {
-                                // Continue with other segments even if one fails
-                            }
+                        try {
+                            await createSegmentsMutation.mutateAsync({ clientId, data: updatedFormData.segments });
+                        } catch (segmentError: any) {
+                            console.error("Failed to create segments:", segmentError);
                         }
                     } else {
                         console.warn("⚠️ Segments NOT submitted. Reasons:", {
@@ -212,15 +210,12 @@ const OnboardingPage: FC = () => {
                         });
                     }
 
-                    // Submit competitors separately to /clients/:clientId/competitors
+                    // Submit all competitors in one request to /clients/:clientId/competitors
                     if (clientId && updatedFormData.competitors && updatedFormData.competitors.length > 0) {
-                        for (const competitor of updatedFormData.competitors) {
-                            try {
-                                await createCompetitorMutation.mutateAsync({ clientId, data: competitor });
-                            } catch (competitorError: any) {
-                                // Continue with other competitors even if one fails
-                                console.error("Failed to create competitor:", competitorError);
-                            }
+                        try {
+                            await createCompetitorsMutation.mutateAsync({ clientId, data: updatedFormData.competitors });
+                        } catch (competitorError: any) {
+                            console.error("Failed to create competitors:", competitorError);
                         }
                     } else {
                         console.warn("⚠️ Competitors NOT submitted. Reasons:", {
@@ -230,14 +225,12 @@ const OnboardingPage: FC = () => {
                         });
                     }
 
-                    // Submit branches separately to /clients/:clientId/branches
+                    // Submit all branches in one request to /clients/:clientId/branches
                     if (clientId && updatedFormData.branches && updatedFormData.branches.length > 0) {
-                        for (const branch of updatedFormData.branches) {
-                            try {
-                                await createBranchMutation.mutateAsync({ clientId, data: branch });
-                            } catch (branchErr: any) {
-                                console.error("Failed to create branch:", branchErr);
-                            }
+                        try {
+                            await createBranchesMutation.mutateAsync({ clientId, data: updatedFormData.branches });
+                        } catch (branchErr: any) {
+                            console.error("Failed to create branches:", branchErr);
                         }
                     } else {
                         console.warn("⚠️ Branches NOT submitted. Reasons:", {
