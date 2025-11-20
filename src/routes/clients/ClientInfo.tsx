@@ -259,7 +259,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                     if (originalSegment) {
                         const originalSanitized = JSON.parse(JSON.stringify(originalSegment));
                         if (originalSanitized._interestsText !== undefined) delete originalSanitized._interestsText;
-                        
+
                         if (hasChanges(originalSanitized, sanitized)) {
                             segmentOperations.push(
                                 updateSegmentMutation!

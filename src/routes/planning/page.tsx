@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Edit2, FileText, Check, Plus, Trash2, Calendar } from "lucide-react";
+import { Save, Edit2, FileText, Plus, Trash2, Calendar } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { useClients } from "@/hooks/queries/useClientsQuery";
 import { useCampaignsByClient, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from "@/hooks/queries/usePlansQuery";
-import type { Campaign, CampaignObjective } from "@/api/requests/planService";
+import type { CampaignObjective } from "@/api/requests/planService";
 
 const PlanningPage = () => {
     const { t, lang } = useLang();
