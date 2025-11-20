@@ -1,19 +1,26 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Edit2, FileText, Check, Loader2, Plus, Trash2, Calendar } from "lucide-react";
+import { Save, Edit2, FileText, Check, Plus, Trash2, Calendar } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
+import { useClients } from "@/hooks/queries/useClientsQuery";
+import { useCampaignsByClient, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from "@/hooks/queries/usePlansQuery";
+import type { Campaign, CampaignObjective } from "@/api/requests/planService";
 
 const PlanningPage = () => {
     const { t, lang } = useLang();
-    const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>(localStorage.getItem("selectedClientId") || "");
     const [selectedClient, setSelectedClient] = useState<any | null>(null);
+
+    // React Query hooks for clients and campaigns
+    const { data: clients = [] } = useClients();
+    const { data: campaignsByClient } = useCampaignsByClient(selectedClientId, !!selectedClientId);
+    const createCampaignMutation = useCreateCampaign();
+    const updateCampaignMutation = useUpdateCampaign();
+    const deleteCampaignMutation = useDeleteCampaign();
 
     type PlanData = {
         objective: string;
         strategy: string;
-        services: string[];
-        servicesPricing: Record<string, string>;
         budget: string;
         timeline: string;
         [key: string]: any;
@@ -22,8 +29,6 @@ const PlanningPage = () => {
     const [planData, setPlanData] = useState<PlanData>({
         objective: "",
         strategy: "",
-        services: [],
-        servicesPricing: {},
         budget: "",
         timeline: "",
     });
@@ -35,18 +40,8 @@ const PlanningPage = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true); // Start with loading true
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     const isTransitioningRef = useRef<boolean>(false); // Track transitions without causing re-render
-    const [overlayVisible, setOverlayVisible] = useState<boolean>(false);
-    const [overlayFadeIn, setOverlayFadeIn] = useState<boolean>(false);
-    const [planErrors, setPlanErrors] = useState<Record<string, any>>({});
 
-    const [availableServices, setAvailableServices] = useState<any[]>([]);
-    const [customServiceInput, setCustomServiceInput] = useState<string>("");
-    const [customServiceInputAr, setCustomServiceInputAr] = useState<string>("");
-    const [customServicePrice, setCustomServicePrice] = useState<string>("");
-    const [customServiceDiscount, setCustomServiceDiscount] = useState<string>("");
-    const [customServiceDiscountType, setCustomServiceDiscountType] = useState<string>("percentage");
-    const [customServiceQuantity, setCustomServiceQuantity] = useState<string>("");
-    const [clientCustomServices, setClientCustomServices] = useState<any[]>([]); // per-client custom services
+    const [planErrors, setPlanErrors] = useState<Record<string, any>>({});
 
     // Campaign Objectives and Strategic Approaches as bilingual lists
     type Bilingual = { id: string; en?: string; ar?: string };
@@ -59,127 +54,6 @@ const PlanningPage = () => {
     const [strategyInputEn, setStrategyInputEn] = useState<string>("");
     const [strategyInputAr, setStrategyInputAr] = useState<string>("");
     const [editingStrategyIndex, setEditingStrategyIndex] = useState<number>(-1);
-
-    // Load master items list from localStorage (items_master).
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem("items_master");
-            if (stored) {
-                const parsed = JSON.parse(stored) || [];
-                setAvailableServices(parsed);
-            } else {
-                // no master list saved yet — start with empty list
-                setAvailableServices([]);
-            }
-        } catch (e) {
-            // ignore and keep defaults
-            setAvailableServices([]);
-        }
-    }, []);
-
-    const handleAddCustomService = () => {
-        const en = (customServiceInput || "").trim();
-        const ar = (customServiceInputAr || "").trim();
-        if (!en && !ar) return;
-        // Avoid duplicates by English label (case-insensitive) across global and client-local services
-        const combinedForDup = (availableServices || []).concat(clientCustomServices || []);
-        if (
-            combinedForDup.some((s) => {
-                const svcEn = typeof s === "string" ? s : s.en || "";
-                return svcEn.toLowerCase() === en.toLowerCase();
-            })
-        ) {
-            setCustomServiceInput("");
-            setCustomServiceInputAr("");
-            return;
-        }
-        // Use the inline price input value instead of prompt/alert
-        const price = (customServicePrice || "").toString().trim();
-        if (!price) {
-            // silently ignore invalid input (no alert as requested)
-            return;
-        }
-        if (isNaN(Number(price))) {
-            return;
-        }
-
-        // validate discount if provided
-        const disc = (customServiceDiscount || "").toString().trim();
-        if (disc) {
-            if (isNaN(Number(disc))) return;
-            const dnum = Number(disc);
-            if (customServiceDiscountType === "percentage" && (dnum < 0 || dnum > 100)) return;
-            if (customServiceDiscountType === "fixed" && dnum < 0) return;
-        }
-
-        // Get quantity - allow empty quantity (user may leave it unspecified)
-        const qtyRaw = (customServiceQuantity || "").toString().trim();
-        let quantity = "";
-        if (qtyRaw !== "") {
-            const qnum = Number(qtyRaw);
-            if (!isNaN(qnum)) {
-                // enforce minimum of 1 when a number is provided
-                quantity = String(Math.max(1, Math.floor(qnum)));
-            } else {
-                // non-numeric -> leave empty
-                quantity = "";
-            }
-        }
-
-        if (!selectedClientId) return; // ensure we have a client to attach to
-
-        const newItem = {
-            id: `svc_${Date.now()}`,
-            en: en || ar,
-            ar: ar || en,
-            price,
-            quantity: String(quantity),
-            discount: disc || "",
-            discountType: customServiceDiscountType || "percentage",
-        };
-        // Save this custom service only for the current client
-        const updated = [...(clientCustomServices || []), newItem];
-        setClientCustomServices(updated);
-        try {
-            localStorage.setItem(`services_custom_${selectedClientId}`, JSON.stringify(updated));
-        } catch (e) {}
-
-        // Also add it to the current plan (selected) so it's immediately selected for this client
-        const identifier = newItem.en || newItem.id;
-        setPlanData((prev) => ({
-            ...prev,
-            services: [...(prev.services || []), identifier],
-            servicesPricing: { ...(prev.servicesPricing || {}), [identifier]: price },
-        }));
-
-        setCustomServiceInput("");
-        setCustomServiceInputAr("");
-        setCustomServicePrice("");
-        setCustomServiceDiscount("");
-        setCustomServiceDiscountType("percentage");
-        setCustomServiceQuantity("");
-    };
-
-    const removeClientCustomService = (serviceId: string) => {
-        if (!selectedClientId) return;
-        if (!confirm(t("confirm_delete_service") || "Delete this custom service?")) return;
-        try {
-            const remaining = (clientCustomServices || []).filter((s) => s.id !== serviceId);
-            setClientCustomServices(remaining);
-            localStorage.setItem(`services_custom_${selectedClientId}`, JSON.stringify(remaining));
-            // remove from current plan if selected
-            setPlanData((prev) => {
-                const services = (prev.services || []).filter(
-                    (x) => x !== serviceId && x !== (prev.servicesPricing && prev.servicesPricing[serviceId] ? serviceId : null),
-                );
-                const pricing = { ...(prev.servicesPricing || {}) };
-                if (Object.prototype.hasOwnProperty.call(pricing, serviceId)) delete pricing[serviceId];
-                return { ...prev, services, servicesPricing: pricing };
-            });
-        } catch (e) {
-            // ignore
-        }
-    };
 
     // Objectives handlers
     const handleAddObjective = () => {
@@ -275,14 +149,10 @@ const PlanningPage = () => {
     };
 
     useEffect(() => {
-        // Load clients on mount
-        loadClients();
         // If a client was selected from another page (e.g. Clients->Plan), preselect it
         const preselected = localStorage.getItem("selectedClientId");
         if (preselected) {
             setSelectedClientId(preselected);
-            // optional: keep it in storage so other flows can reuse it; if you prefer to clear it uncomment next line
-            // localStorage.removeItem("selectedClientId");
         }
         // Small delay before showing content to prevent flash
         const timer = setTimeout(() => {
@@ -291,45 +161,93 @@ const PlanningPage = () => {
         return () => clearTimeout(timer);
     }, []);
 
-    // load per-client custom services when selectedClientId changes
+    // Load campaigns from API when they become available
     useEffect(() => {
-        if (!selectedClientId) {
-            setClientCustomServices([]);
-            return;
-        }
-        try {
-            const stored = localStorage.getItem(`services_custom_${selectedClientId}`);
-            if (stored) {
-                setClientCustomServices(JSON.parse(stored) || []);
-            } else {
-                setClientCustomServices([]);
-            }
-        } catch (e) {
-            setClientCustomServices([]);
-        }
-    }, [selectedClientId]);
-
-    // helper to compute final price for a service in the plan after applying any service-level discount
-    const finalPriceFor = (identifier: string) => {
-        const combined = (availableServices || []).concat(clientCustomServices || []);
-        const found = combined.find((s) => {
-            if (!s) return false;
-            if (typeof s === "string") return s === identifier;
-            return s.id === identifier || s.en === identifier || s.ar === identifier;
+        console.log("Campaign data effect triggered:", {
+            hasCampaigns: campaignsByClient !== undefined,
+            campaignCount: campaignsByClient?.length,
+            campaignsByClient: campaignsByClient,
+            selectedClientId,
+            clientsCount: clients.length,
         });
-        const base = Number((planData.servicesPricing && planData.servicesPricing[identifier]) || (found ? found.price || 0 : 0)) || 0;
-        let svcDiscountAmount = 0;
-        let svcDiscountType = "";
-        if (found && found.discount) {
-            const d = Number(found.discount || 0);
-            svcDiscountType = found.discountType || "percentage";
-            if (!isNaN(d) && d !== 0) {
-                if (svcDiscountType === "percentage") svcDiscountAmount = (base * d) / 100;
-                else svcDiscountAmount = d;
+
+        if (campaignsByClient !== undefined && selectedClientId && clients.length > 0) {
+            const client = clients.find((c: any) => c.id === selectedClientId || c._id === selectedClientId);
+            console.log("Found client:", client);
+            console.log("campaignsByClient type:", typeof campaignsByClient);
+            console.log("campaignsByClient is array?", Array.isArray(campaignsByClient));
+            console.log("campaignsByClient full data:", campaignsByClient);
+
+            if (client) {
+                setSelectedClient(client);
+
+                // Handle API response structure - extract data array
+                let campaignsArray: any[] = [];
+                if (Array.isArray(campaignsByClient)) {
+                    campaignsArray = campaignsByClient;
+                } else if (campaignsByClient && typeof campaignsByClient === "object") {
+                    // API returns {data: [...], meta: {...}}
+                    campaignsArray = (campaignsByClient as any).data || [];
+                }
+
+                console.log("Campaigns array:", campaignsArray);
+
+                // Transform API campaigns to local plan format
+                if (campaignsArray.length > 0) {
+                    console.log("Raw campaign data from API:", campaignsArray[0]);
+
+                    const transformedPlans = campaignsArray.map((campaign: any) => {
+                        const plan = {
+                            id: `campaign_${campaign._id}`,
+                            objective: campaign.description || "",
+                            strategy: campaign.strategy?.description || "",
+                            budget: (campaign.strategy?.budget || 0).toString(),
+                            timeline: campaign.strategy?.timeline || "",
+                            objectives: (campaign.objectives || []).map((obj: any) => ({
+                                id: `obj_${Date.now()}_${Math.random()}`,
+                                en: obj.name || "",
+                                ar: obj.description || "",
+                            })),
+                            strategies: (campaign.strategy?.description || "")
+                                .split(" | ")
+                                .filter(Boolean)
+                                .map((s: string, idx: number) => ({
+                                    id: `strat_${Date.now()}_${idx}`,
+                                    en: s,
+                                    ar: s,
+                                })),
+                        };
+                        console.log("Transformed plan:", plan);
+                        return plan;
+                    });
+
+                    setPlans(transformedPlans);
+                    // Select first plan by default
+                    const firstPlan = transformedPlans[0];
+                    console.log("Setting first plan data:", firstPlan);
+                    console.log("Objectives to set:", firstPlan.objectives);
+                    console.log("Strategies to set:", firstPlan.strategies);
+
+                    setSelectedPlanId(firstPlan.id);
+                    setPlanData(firstPlan);
+                    setObjectives(firstPlan.objectives || []);
+                    setStrategies(firstPlan.strategies || []);
+                    setIsEditing(false);
+                } else {
+                    // No campaigns found, start with empty plan
+                    console.log("No campaigns found for client");
+                    setPlans([]);
+                    setSelectedPlanId("");
+                    setPlanData({ objective: "", strategy: "", budget: "", timeline: "" });
+                    setObjectives([]);
+                    setStrategies([]);
+                    setIsEditing(true);
+                }
+            } else {
+                console.log("Client not found in clients list");
             }
         }
-        return Math.max(0, base - svcDiscountAmount);
-    };
+    }, [campaignsByClient, selectedClientId, clients]);
 
     useEffect(() => {
         if (selectedClientId) {
@@ -342,7 +260,6 @@ const PlanningPage = () => {
             setSelectedClient(null);
             // Small delay for loading animation
             setTimeout(() => {
-                loadClientAndPlan();
                 setIsLoading(false);
                 setIsTransitioning(false);
                 isTransitioningRef.current = false;
@@ -375,139 +292,68 @@ const PlanningPage = () => {
         }
     }, [selectedClientId]);
 
-    const loadClients = () => {
-        const stodangerClients = localStorage.getItem("clients");
-        if (stodangerClients) {
-            const clientsList = JSON.parse(stodangerClients);
-            setClients(clientsList);
-        }
-    };
-
-    const loadClientAndPlan = () => {
-        const stodangerClients = localStorage.getItem("clients");
-        if (stodangerClients) {
-            const clientsList = JSON.parse(stodangerClients);
-            const client = clientsList.find((c: any) => c.id === selectedClientId);
-
-            if (client) {
-                setSelectedClient(client);
-
-                // Load existing plans for this client (support multiple plans)
-                const savedPlans = localStorage.getItem(`plans_${selectedClientId}`);
-                if (savedPlans) {
-                    try {
-                        const parsed = JSON.parse(savedPlans) || [];
-                        setPlans(parsed);
-                        if (parsed.length > 0) {
-                            // pick first plan by default
-                            setSelectedPlanId(parsed[0].id);
-                            setPlanData(parsed[0]);
-                            // Load objectives and strategies from the plan
-                            setObjectives(parsed[0].objectives || []);
-                            setStrategies(parsed[0].strategies || []);
-                            setIsEditing(false);
-                        } else {
-                            // no plans, reset to empty
-                            setPlans([]);
-                            setSelectedPlanId("");
-                            setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
-                            setObjectives([]);
-                            setStrategies([]);
-                            setIsEditing(true);
-                        }
-                    } catch (e) {
-                        setPlans([]);
-                        setSelectedPlanId("");
-                        setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
-                        setObjectives([]);
-                        setStrategies([]);
-                        setIsEditing(true);
-                    }
-                } else {
-                    setPlans([]);
-                    setSelectedPlanId("");
-                    setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
-                    setObjectives([]);
-                    setStrategies([]);
-                    setIsEditing(true);
-                }
-            }
-        }
-    };
-
-    const handleSavePlan = () => {
+    const handleSavePlan = async () => {
         if (!selectedClientId) {
             alert(t("please_select_client_first"));
             console.warn("handleSavePlan: no selectedClientId");
             return;
         }
 
-        // Prepare a local copy of planData that merges list-based objectives/strategies
-        const toSave = { ...planData };
-        if (!toSave.objective || !toSave.objective.trim()) {
-            if (objectives && objectives.length > 0) {
-                // join English values (fallback to Arabic) into a single summary string for legacy fields
-                toSave.objective = objectives
-                    .map((o) => o.en || o.ar || "")
-                    .filter(Boolean)
-                    .join(" | ");
-            }
-        }
-        if (!toSave.strategy || !toSave.strategy.trim()) {
-            if (strategies && strategies.length > 0) {
-                toSave.strategy = strategies
-                    .map((s) => s.en || s.ar || "")
-                    .filter(Boolean)
-                    .join(" | ");
-            }
-        }
+        // Prepare campaign payload
+        const campaignObjectives: CampaignObjective[] = objectives.map((obj) => ({
+            name: obj.en || obj.ar || "",
+            description: obj.ar || obj.en || "",
+        }));
 
-        // No required fields: allow saving even if objective/strategy/budget are empty
-        // Clear any previous errors
+        const strategyDescription = strategies
+            .map((s) => s.en || s.ar || "")
+            .filter(Boolean)
+            .join(" | ");
+
+        const payload = {
+            clientId: selectedClientId,
+            description: planData.objective || "Campaign Plan",
+            objectives: campaignObjectives,
+            strategy: {
+                budget: Number(planData.budget) || 0,
+                timeline: planData.timeline || "",
+                description: strategyDescription || planData.strategy || "",
+            },
+        };
+
         setPlanErrors({});
 
-        // Save plan to plans_{clientId}
-        const savedPlans = localStorage.getItem(`plans_${selectedClientId}`);
-        let parsed = [];
         try {
-            parsed = savedPlans ? JSON.parse(savedPlans) : [];
-        } catch (e) {
-            parsed = [];
-        }
-
-        if (selectedPlanId) {
-            // update existing plan
-            const idx = parsed.findIndex((p: any) => p.id === selectedPlanId);
-            if (idx !== -1) {
-                parsed[idx] = { ...parsed[idx], ...toSave, objectives, strategies, id: selectedPlanId };
+            if (selectedPlanId && selectedPlanId.startsWith("campaign_")) {
+                // Extract campaign ID from selectedPlanId
+                const campaignId = selectedPlanId.replace("campaign_", "");
+                // Update existing campaign
+                await updateCampaignMutation.mutateAsync({
+                    campaignId,
+                    payload: {
+                        clientId: selectedClientId,
+                        description: payload.description,
+                        objectives: payload.objectives,
+                        strategy: payload.strategy,
+                    },
+                });
             } else {
-                parsed.push({ ...toSave, objectives, strategies, id: selectedPlanId });
+                // Create new campaign
+                const newCampaign = await createCampaignMutation.mutateAsync(payload);
+                setSelectedPlanId(`campaign_${newCampaign._id}`);
             }
-        } else {
-            // create new plan
-            const newId = `plan_${Date.now()}`;
-            parsed.push({ ...toSave, objectives, strategies, id: newId });
-            setSelectedPlanId(newId);
-        }
 
-        try {
-            localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(parsed));
-        } catch (e) {
-            console.error("Failed to save plan:", e);
+            setIsEditing(false);
+            setPlanErrors({});
+            // clear any transient draft saved while editing
+            try {
+                localStorage.removeItem(`plan_draft_${selectedClientId}`);
+            } catch (e) {}
+            alert(t("plan_saved_success") || "Plan saved successfully!");
+        } catch (error) {
+            console.error("Failed to save campaign:", error);
             alert(t("save_failed") || "Failed to save plan.");
-            return;
         }
-
-        setPlans(parsed);
-        // update in-memory planData to the merged version we saved
-        setPlanData(toSave);
-        setIsEditing(false);
-        setPlanErrors({});
-        // clear any transient draft saved while editing
-        try {
-            localStorage.removeItem(`plan_draft_${selectedClientId}`);
-        } catch (e) {}
-        alert(t("plan_saved_success"));
     };
 
     const handleCreateNewPlan = () => {
@@ -571,58 +417,35 @@ const PlanningPage = () => {
             return tb - ta;
         });
 
-    const handleDeletePlan = (planId: string) => {
+    const handleDeletePlan = async (planId: string) => {
         if (!confirm(t("confirm_delete_plan") || "Delete this plan?")) return;
-        const updated = plans.filter((p: any) => p.id !== planId);
+
         try {
-            localStorage.setItem(`plans_${selectedClientId}`, JSON.stringify(updated));
-        } catch (e) {}
-        setPlans(updated);
-        if (selectedPlanId === planId) {
-            if (updated.length > 0) {
-                setSelectedPlanId(updated[updated.length - 1].id);
-                setPlanData(updated[updated.length - 1]);
-                setIsEditing(false);
-            } else {
-                setSelectedPlanId("");
-                setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
-                setObjectives([]);
-                setStrategies([]);
-                setIsEditing(true);
+            if (planId.startsWith("campaign_") && selectedClientId) {
+                // Extract campaign ID from planId
+                const campaignId = planId.replace("campaign_", "");
+                // Delete from API
+                await deleteCampaignMutation.mutateAsync({ campaignId, clientId: selectedClientId });
+            } // Update local state
+            const updated = plans.filter((p: any) => p.id !== planId);
+            setPlans(updated);
+
+            if (selectedPlanId === planId) {
+                if (updated.length > 0) {
+                    setSelectedPlanId(updated[updated.length - 1].id);
+                    setPlanData(updated[updated.length - 1]);
+                    setIsEditing(false);
+                } else {
+                    setSelectedPlanId("");
+                    setPlanData({ objective: "", strategy: "", services: [], servicesPricing: {}, budget: "", timeline: "" });
+                    setObjectives([]);
+                    setStrategies([]);
+                    setIsEditing(true);
+                }
             }
-        }
-    };
-
-    const toggleService = (service: string) => {
-        if (planData.services.includes(service)) {
-            // simply unselect the service (remove from the plan) and remove its price from the plan pricing map
-            const newServices = planData.services.filter((s) => s !== service);
-            const newPricing = { ...(planData.servicesPricing || {}) };
-            if (Object.prototype.hasOwnProperty.call(newPricing, service)) delete newPricing[service];
-
-            setPlanData({
-                ...planData,
-                services: newServices,
-                servicesPricing: newPricing,
-            });
-        } else {
-            // add service and initialize its price from master list if available
-            let defaultPrice = "";
-            try {
-                const combined = (availableServices || []).concat(clientCustomServices || []);
-                const found = combined.find((s: any) => {
-                    if (!s) return false;
-                    if (typeof s === "string") return s === service;
-                    return s.en === service || s.ar === service || s.id === service;
-                });
-                if (found && typeof found === "object") defaultPrice = found.price || "";
-            } catch (e) {}
-
-            setPlanData({
-                ...planData,
-                services: [...planData.services, service],
-                servicesPricing: { ...(planData.servicesPricing || {}), [service]: defaultPrice },
-            });
+        } catch (error) {
+            console.error("Failed to delete campaign:", error);
+            alert(t("delete_failed") || "Failed to delete plan.");
         }
     };
 
@@ -732,7 +555,29 @@ const PlanningPage = () => {
                     )}
                 </div>
 
-                {/* Loading state handled by overlay loader; inline loaders removed */}
+                {/* Loading skeleton for client list */}
+                {!selectedClientId && isLoading && (
+                    <div>
+                        <div className="bg-light-200 dark:bg-dark-700 mb-4 h-7 w-64 animate-pulse rounded"></div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div
+                                    key={i}
+                                    className="card"
+                                >
+                                    <div className="bg-light-200 dark:bg-dark-700 mb-2 h-6 w-3/4 animate-pulse rounded"></div>
+                                    <div className="bg-light-200 dark:bg-dark-700 mb-3 h-4 w-1/2 animate-pulse rounded"></div>
+                                    <div className="space-y-2">
+                                        <div className="bg-light-200 dark:bg-dark-700 h-4 w-full animate-pulse rounded"></div>
+                                        <div className="bg-light-200 dark:bg-dark-700 h-4 w-5/6 animate-pulse rounded"></div>
+                                    </div>
+                                    <div className="bg-light-200 dark:bg-dark-700 mt-4 h-10 w-full animate-pulse rounded"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Client Selection Cards */}
                 {!selectedClientId && !isResetting && !isLoading && !isTransitioning ? (
                     <div>
@@ -765,19 +610,13 @@ const PlanningPage = () => {
                                                 onClick={() => {
                                                     if (isTransitioningRef.current) return;
                                                     isTransitioningRef.current = true;
-                                                    setOverlayVisible(true);
-                                                    setTimeout(() => setOverlayFadeIn(true), 10);
+                                                    try {
+                                                        localStorage.setItem("selectedClientId", String(client.id));
+                                                    } catch (e) {}
+                                                    setSelectedClientId(String(client.id));
                                                     setTimeout(() => {
-                                                        try {
-                                                            localStorage.setItem("selectedClientId", String(client.id));
-                                                        } catch (e) {}
-                                                        setSelectedClientId(String(client.id));
-                                                    }, 120);
-                                                    setTimeout(() => setOverlayFadeIn(false), 380);
-                                                    setTimeout(() => {
-                                                        setOverlayVisible(false);
                                                         isTransitioningRef.current = false;
-                                                    }, 480);
+                                                    }, 300);
                                                 }}
                                                 className="btn-primary mt-4 w-full"
                                             >
@@ -787,21 +626,66 @@ const PlanningPage = () => {
                                     ))}
                                 </div>
                             </>
-                        ) : (
-                            <div className="card">
-                                <div className="py-8 text-center">
-                                    <p className="text-light-600 dark:text-dark-400 mb-4">{t("no_clients_found")}</p>
-                                    <a
-                                        href="/onboarding"
-                                        className="btn-primary"
-                                    >
-                                        {t("add_your_first_client")}
-                                    </a>
-                                </div>
-                            </div>
-                        )}
+                        ) : null}
                     </div>
                 ) : null}
+
+                {/* Loading skeleton for planning form */}
+                {selectedClientId && (isLoading || isTransitioning) && (
+                    <div>
+                        {/* Client Info Skeleton */}
+                        <div className="card bg-dark-50 dark:bg-dark-800/50 mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-light-200 dark:bg-dark-700 h-16 w-16 animate-pulse rounded-full"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="bg-light-200 dark:bg-dark-700 h-6 w-48 animate-pulse rounded"></div>
+                                    <div className="bg-light-200 dark:bg-dark-700 h-4 w-32 animate-pulse rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Form Skeleton */}
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            {/* Objectives Skeleton */}
+                            <div className="card lg:col-span-2">
+                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-48 animate-pulse rounded"></div>
+                                <div className="space-y-3">
+                                    {[1, 2].map((i) => (
+                                        <div
+                                            key={i}
+                                            className="bg-light-200 dark:bg-dark-700 h-16 w-full animate-pulse rounded-lg"
+                                        ></div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Strategies Skeleton */}
+                            <div className="card lg:col-span-2">
+                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-48 animate-pulse rounded"></div>
+                                <div className="space-y-3">
+                                    {[1, 2].map((i) => (
+                                        <div
+                                            key={i}
+                                            className="bg-light-200 dark:bg-dark-700 h-16 w-full animate-pulse rounded-lg"
+                                        ></div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Budget Skeleton */}
+                            <div className="card">
+                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-32 animate-pulse rounded"></div>
+                                <div className="bg-light-200 dark:bg-dark-700 h-12 w-full animate-pulse rounded-lg"></div>
+                            </div>
+
+                            {/* Timeline Skeleton */}
+                            <div className="card">
+                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-32 animate-pulse rounded"></div>
+                                <div className="bg-light-200 dark:bg-dark-700 h-12 w-full animate-pulse rounded-lg"></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {selectedClient && !isLoading && !isTransitioning && (
                     <>
@@ -813,19 +697,13 @@ const PlanningPage = () => {
                                         onClick={() => {
                                             if (isTransitioningRef.current) return;
                                             isTransitioningRef.current = true;
-                                            setOverlayVisible(true);
-                                            setTimeout(() => setOverlayFadeIn(true), 10);
+                                            try {
+                                                localStorage.removeItem("selectedClientId");
+                                            } catch (e) {}
+                                            setSelectedClientId("");
                                             setTimeout(() => {
-                                                try {
-                                                    localStorage.removeItem("selectedClientId");
-                                                } catch (e) {}
-                                                setSelectedClientId("");
-                                            }, 120);
-                                            setTimeout(() => setOverlayFadeIn(false), 380);
-                                            setTimeout(() => {
-                                                setOverlayVisible(false);
                                                 isTransitioningRef.current = false;
-                                            }, 480);
+                                            }, 300);
                                         }}
                                         className="btn-ghost"
                                     >
@@ -863,7 +741,7 @@ const PlanningPage = () => {
                                             <input
                                                 value={objectiveInputAr}
                                                 onChange={(e) => setObjectiveInputAr(e.target.value)}
-                                                placeholder={t("objective_ar") || "الهدف (بالعربية)"}
+                                                placeholder={t("objective_description") || "Description"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
                                         </div>
@@ -936,7 +814,7 @@ const PlanningPage = () => {
                                             <input
                                                 value={strategyInputAr}
                                                 onChange={(e) => setStrategyInputAr(e.target.value)}
-                                                placeholder={t("strategy_ar") || "الاستراتيجية (بالعربية)"}
+                                                placeholder={t("strategy_description") || "Description"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
                                         </div>
@@ -993,193 +871,6 @@ const PlanningPage = () => {
 
                             {/* objectives grid moved to ClientInfo for per-client overview */}
 
-                            {/* Services */}
-                            <div className="card transition-colors duration-300 lg:col-span-2">
-                                <h3 className="card-title mb-4">{t("services_to_provide")}</h3>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                                    {(availableServices || []).concat(clientCustomServices || []).map((service) => {
-                                        const identifier = typeof service === "string" ? service : service.en || "";
-                                        const label =
-                                            typeof service === "string"
-                                                ? t(service)
-                                                : lang === "ar"
-                                                  ? service.ar || service.en
-                                                  : service.en || service.ar;
-                                        const price = typeof service === "string" ? "" : service.price || "";
-                                        const isSelected = planData.services.includes(identifier);
-                                        const isCustom =
-                                            typeof service !== "string" &&
-                                            service.id &&
-                                            (clientCustomServices || []).some((cs) => cs.id === service.id);
-                                        return (
-                                            <div
-                                                key={identifier}
-                                                className="flex flex-col items-stretch"
-                                            >
-                                                <div
-                                                    role="button"
-                                                    tabIndex={isEditing ? 0 : -1}
-                                                    onClick={() => isEditing && toggleService(identifier)}
-                                                    onKeyDown={(e) => {
-                                                        if (!isEditing) return;
-                                                        if (e.key === "Enter" || e.key === " ") {
-                                                            e.preventDefault();
-                                                            toggleService(identifier);
-                                                        }
-                                                    }}
-                                                    aria-disabled={!isEditing}
-                                                    className={`flex items-center justify-between gap-2 rounded-lg border px-4 py-2 text-sm transition-all ${
-                                                        isSelected
-                                                            ? "border-light-500 bg-light-500 dark:border-secdark-600 dark:bg-secdark-600 dark:text-dark-50 text-white"
-                                                            : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
-                                                    } ${!isEditing ? "cursor-not-allowed opacity-60" : ""}`}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        {isSelected && (
-                                                            <Check
-                                                                size={16}
-                                                                className="flex-shrink-0"
-                                                            />
-                                                        )}
-                                                        <div className="flex-1">
-                                                            <span className="truncate break-words">{label}</span>
-                                                            {typeof service !== "string" && service.quantity ? (
-                                                                <div className="text-light-600 dark:text-dark-400 text-xs">{`${t("quantity") || "Qty"}: ${service.quantity}`}</div>
-                                                            ) : null}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2">
-                                                        {!isSelected && price ? (
-                                                            <div className="text-light-600 dark:text-dark-600 text-sm">{`${finalPriceFor(identifier)} ${lang === "ar" ? "ج.م" : "EGP"}`}</div>
-                                                        ) : null}
-
-                                                        {isSelected ? (
-                                                            <div className="text-light-600 dark:text-dark-600 text-sm">
-                                                                {finalPriceFor(identifier)
-                                                                    ? `${finalPriceFor(identifier)} ${lang === "ar" ? "ج.م" : "EGP"}`
-                                                                    : null}
-                                                            </div>
-                                                        ) : null}
-
-                                                        {/* render delete button inside the card for client-custom services */}
-                                                        {isCustom && isEditing ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeClientCustomService(service.id);
-                                                                }}
-                                                                aria-label={t("delete_custom_service") || "Delete custom service"}
-                                                                title={t("delete_custom_service") || "Delete custom service"}
-                                                                className="text-danger-500 ml-2 flex-shrink-0 rounded-none border-0 bg-transparent p-0 hover:bg-transparent"
-                                                            >
-                                                                <Trash2 size={12} />
-                                                            </button>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {/* Add custom service input — two-row layout: names on top, qty/price/discount/add on bottom */}
-                                <div className="mt-3">
-                                    <div className="grid gap-2">
-                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                                            <input
-                                                type="text"
-                                                value={customServiceInput}
-                                                onChange={(e) => setCustomServiceInput(e.target.value)}
-                                                placeholder={t("add_custom_service_placeholder") || "Add custom service..."}
-                                                disabled={!isEditing}
-                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                            />
-                                            <input
-                                                type="text"
-                                                value={customServiceInputAr}
-                                                onChange={(e) => setCustomServiceInputAr(e.target.value)}
-                                                placeholder={t("custom_service_ar") || "خدمة مخصصة..."}
-                                                disabled={!isEditing}
-                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                            />
-                                            <input
-                                                type="number"
-                                                value={customServiceQuantity}
-                                                onChange={(e) => setCustomServiceQuantity(e.target.value)}
-                                                placeholder={t("quantity") || "Quantity"}
-                                                disabled={!isEditing}
-                                                className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    value={customServicePrice}
-                                                    onChange={(e) => setCustomServicePrice(e.target.value)}
-                                                    placeholder={t("service_price") || "Price"}
-                                                    disabled={!isEditing}
-                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none"
-                                                />
-                                                <div className="text-light-600 dark:text-dark-600 text-sm whitespace-nowrap">
-                                                    {lang === "ar" ? "ج.م" : "EGP"}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <select
-                                                    value={customServiceDiscountType}
-                                                    onChange={(e) => setCustomServiceDiscountType(e.target.value)}
-                                                    disabled={!isEditing}
-                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full appearance-none rounded-lg border bg-transparent px-2 py-2 text-sm focus:outline-none md:w-32"
-                                                    style={{ WebkitAppearance: "none", MozAppearance: "none" }}
-                                                >
-                                                    <option
-                                                        value="percentage"
-                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
-                                                    >
-                                                        {t("percentage") || "%"}
-                                                    </option>
-                                                    <option
-                                                        value="fixed"
-                                                        className="text-light-900 dark:text-dark-50 dark:bg-dark-800 bg-white"
-                                                    >
-                                                        {t("fixed") || "Fixed"}
-                                                    </option>
-                                                </select>
-                                                <input
-                                                    type="number"
-                                                    value={customServiceDiscount}
-                                                    onChange={(e) => setCustomServiceDiscount(e.target.value)}
-                                                    placeholder={t("discount_optional") || "Discount"}
-                                                    disabled={!isEditing}
-                                                    className="border-light-600 focus:border-light-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder:text-light-600 dark:placeholder:text-dark-400 w-full rounded-lg border bg-white px-2 py-2 text-sm focus:outline-none md:w-24"
-                                                />
-                                            </div>
-
-                                            <div className="flex items-center justify-end">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleAddCustomService}
-                                                    disabled={
-                                                        !isEditing ||
-                                                        (!customServiceInput.trim() && !customServiceInputAr.trim()) ||
-                                                        !customServicePrice.toString().trim() ||
-                                                        isNaN(Number(customServicePrice))
-                                                    }
-                                                    className="btn-ghost flex items-center justify-center gap-2 px-3 py-2"
-                                                >
-                                                    <Plus size={14} />
-                                                    {t("add")}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Budget */}
                             <div className="card transition-colors duration-300">
                                 <h3 className="card-title mb-4">{t("budget_usd")}</h3>
@@ -1224,15 +915,6 @@ const PlanningPage = () => {
                     </>
                 )}
             </>
-
-            {overlayVisible && (
-                <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-300 ${overlayFadeIn ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
-                >
-                    <div className="absolute inset-0 bg-black/40" />
-                    <Loader2 className="text-light-500 relative h-12 w-12 animate-spin" />
-                </div>
-            )}
         </div>
     );
 };

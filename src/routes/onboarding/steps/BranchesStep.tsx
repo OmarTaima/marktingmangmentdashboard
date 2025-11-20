@@ -7,6 +7,7 @@ import validators from "@/constants/validators";
 
 type Branch = {
     name?: string;
+    city?: string;
     address?: string;
     phone?: string;
 };
@@ -21,18 +22,22 @@ type BranchesStepProps = {
 export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
     const [branches, setBranches] = useState<Branch[]>(data?.branches || []);
-    const [currentBranch, setCurrentBranch] = useState<Branch>(data?.branchesDraft || { name: "", address: "", phone: "" });
+    const [currentBranch, setCurrentBranch] = useState<Branch>(data?.branchesDraft || { name: "", city: "", address: "", phone: "" });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleAddBranch = () => {
-        const { name, address, phone } = currentBranch || {};
-        if (!name && !address && !phone) return; // nothing to add
+        const { name, city, address, phone } = currentBranch || {};
+        if (!name && !city && !address && !phone) return; // nothing to add
 
         const nextErrors: Record<string, string> = {};
 
         // Conditional validation: only validate fields that have values
         if (name && name.trim().length < 2) {
             nextErrors.name = (t("name_too_short") as string) || t("invalid_name");
+        }
+
+        if (city && city.trim().length < 2) {
+            nextErrors.city = (t("city_too_short") as string) || t("invalid_city");
         }
 
         if (address && address.trim().length < 3) {
@@ -53,9 +58,12 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
         // Normalize phone digits before saving (ensure result is typed as string)
         const normalizedPhone: string = phone ? (validators.normalizeDigits((phone as string).trim()) as string) : "";
 
-        const next: Branch[] = [...branches, { name: (name || "").trim(), address: (address || "").trim(), phone: normalizedPhone }];
+        const next: Branch[] = [
+            ...branches,
+            { name: (name || "").trim(), city: (city || "").trim(), address: (address || "").trim(), phone: normalizedPhone },
+        ];
         setBranches(next);
-        const emptyBranch: Branch = { name: "", address: "", phone: "" };
+        const emptyBranch: Branch = { name: "", city: "", address: "", phone: "" };
         if (typeof onUpdate === "function") onUpdate({ branches: next, branchesDraft: emptyBranch });
         setCurrentBranch(emptyBranch);
         setErrors({});
@@ -72,12 +80,15 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
 
         // Auto-add current draft if it has any content
         let finalBranches = [...branches];
-        const { name, address, phone } = currentBranch || {};
-        if (name?.trim() || address?.trim() || phone?.trim()) {
+        const { name, city, address, phone } = currentBranch || {};
+        if (name?.trim() || city?.trim() || address?.trim() || phone?.trim()) {
             // Validate before adding
             const nextErrors: Record<string, string> = {};
             if (name && name.trim().length < 2) {
                 nextErrors.name = (t("name_too_short") as string) || t("invalid_name");
+            }
+            if (city && city.trim().length < 2) {
+                nextErrors.city = (t("city_too_short") as string) || t("invalid_city");
             }
             if (address && address.trim().length < 3) {
                 nextErrors.address = (t("address_too_short") as string) || t("invalid_address");
@@ -92,10 +103,13 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
             }
 
             const normalizedPhone: string = phone ? (validators.normalizeDigits((phone as string).trim()) as string) : "";
-            finalBranches = [...branches, { name: (name || "").trim(), address: (address || "").trim(), phone: normalizedPhone }];
+            finalBranches = [
+                ...branches,
+                { name: (name || "").trim(), city: (city || "").trim(), address: (address || "").trim(), phone: normalizedPhone },
+            ];
         }
 
-        onNext({ branches: finalBranches, branchesDraft: { name: "", address: "", phone: "" } });
+        onNext({ branches: finalBranches, branchesDraft: { name: "", city: "", address: "", phone: "" } });
     };
 
     useEffect(() => {
@@ -110,7 +124,7 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
     }, [data?.branches]);
 
     useEffect(() => {
-        setCurrentBranch(data?.branchesDraft || { name: "", address: "", phone: "" });
+        setCurrentBranch(data?.branchesDraft || { name: "", city: "", address: "", phone: "" });
     }, [data?.branchesDraft]);
 
     return (
@@ -138,6 +152,23 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
                         placeholder={t("branch_name_placeholder")}
                     />
                     {errors.name && <p className="text-danger-500 mt-1 text-sm">{errors.name}</p>}
+                </div>
+
+                <div>
+                    <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("city")}</label>
+                    <input
+                        type="text"
+                        value={currentBranch.city}
+                        onChange={(e) => {
+                            const updated = { ...currentBranch, city: e.target.value };
+                            setCurrentBranch(updated);
+                            if (typeof onUpdate === "function") onUpdate({ branchesDraft: updated });
+                            if (errors.city) setErrors({ ...errors, city: "" });
+                        }}
+                        className={`border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.city ? "border-danger-500" : ""}`}
+                        placeholder={t("city_placeholder")}
+                    />
+                    {errors.city && <p className="text-danger-500 mt-1 text-sm">{errors.city}</p>}
                 </div>
 
                 <div>
@@ -197,6 +228,7 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
                             >
                                 <div className="flex-1">
                                     <h4 className="text-light-900 dark:text-dark-50 font-medium break-words">{branch.name}</h4>
+                                    {branch.city && <p className="text-light-600 dark:text-dark-400 text-sm break-words">{branch.city}</p>}
                                     <p className="text-light-600 dark:text-dark-400 text-sm break-words">{branch.address}</p>
                                     {branch.phone && <p className="text-light-600 dark:text-dark-400 text-sm break-words">{branch.phone}</p>}
                                 </div>

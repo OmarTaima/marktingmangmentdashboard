@@ -177,21 +177,29 @@ export const createCompetitor = async (clientId: string, competitorData: any): P
 
 export const createCompetitors = async (clientId: string, competitorsData: any[]): Promise<Competitor[]> => {
     try {
-        // Send all competitor requests in parallel (simultaneous, not sequential)
-        const promises = competitorsData.map(async (competitorData) => {
-            const payload = transformCompetitorToBackendPayload(competitorData);
-            const response = await axiosInstance.post(`/clients/${clientId}/competitors`, payload);
-            const competitor = response.data.competitor || response.data.data || response.data;
-            return transformCompetitorToFrontendFormat(competitor);
-        });
+        // Transform all competitors to backend payload format
+        const payloads = competitorsData.map((competitorData) => transformCompetitorToBackendPayload(competitorData));
 
-        const competitors = await Promise.all(promises);
+        // Send bulk request to create all competitors at once
+        const response = await axiosInstance.post(`/clients/${clientId}/competitors/bulk`, payloads);
+
+        // Handle different response structures
+        let competitorsArray = [];
+        if (Array.isArray(response.data)) {
+            competitorsArray = response.data;
+        } else if (Array.isArray(response.data.competitors)) {
+            competitorsArray = response.data.competitors;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+            competitorsArray = response.data.data;
+        }
+
+        const competitors = competitorsArray.map(transformCompetitorToFrontendFormat).filter(Boolean) as Competitor[];
 
         // Invalidate competitors and client cache after creating all
         invalidateCachePattern(`/clients/${clientId}/competitors`);
         invalidateCachePattern(`/clients/${clientId}`);
 
-        return competitors.filter(Boolean) as Competitor[];
+        return competitors;
     } catch (error) {
         throw error;
     }

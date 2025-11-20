@@ -29,3 +29,6 @@ export * from "./useSegmentsQuery";
 
 // Competitors
 export * from "./useCompetitorsQuery";
+
+// Plans/Campaigns
+export * from "./usePlansQuery";

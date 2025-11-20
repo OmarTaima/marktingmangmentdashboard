@@ -195,7 +195,7 @@ const OnboardingPage: FC = () => {
                         clientId = newClient?._id || newClient?.id || null;
                     }
 
-                    // Submit all segments in one request to /clients/:clientId/segments
+                    // Submit all segments in one request to /clients/:clientId/segments/bulk
                     if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
                         try {
                             await createSegmentsMutation.mutateAsync({ clientId, data: updatedFormData.segments });
@@ -210,7 +210,7 @@ const OnboardingPage: FC = () => {
                         });
                     }
 
-                    // Submit all competitors in one request to /clients/:clientId/competitors
+                    // Submit all competitors in one request to /clients/:clientId/competitors/bulk
                     if (clientId && updatedFormData.competitors && updatedFormData.competitors.length > 0) {
                         try {
                             await createCompetitorsMutation.mutateAsync({ clientId, data: updatedFormData.competitors });
@@ -225,7 +225,7 @@ const OnboardingPage: FC = () => {
                         });
                     }
 
-                    // Submit all branches in one request to /clients/:clientId/branches
+                    // Submit all branches in one request to /clients/:clientId/branches/bulk
                     if (clientId && updatedFormData.branches && updatedFormData.branches.length > 0) {
                         try {
                             await createBranchesMutation.mutateAsync({ clientId, data: updatedFormData.branches });

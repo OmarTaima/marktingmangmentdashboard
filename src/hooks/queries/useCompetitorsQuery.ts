@@ -38,8 +38,14 @@ export const useCreateCompetitor = () => {
  * Hook to create multiple competitors at once
  */
 export const useCreateCompetitors = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, data }: { clientId: string; data: any[] }) => createCompetitors(clientId, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: competitorsKeys.byClient(variables.clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        },
     });
 };
 

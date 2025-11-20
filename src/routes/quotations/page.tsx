@@ -31,14 +31,18 @@ const QuotationsPage = () => {
     const services = servicesResponse?.data || [];
 
     const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations(
-        selectedClientId
+        selectedClientId && selectedClientId !== "global"
             ? {
                   clientId: selectedClientId,
                   page: currentPage,
                   limit: pageSize,
                   status: statusFilter || undefined,
               }
-            : undefined,
+            : {
+                  page: currentPage,
+                  limit: pageSize,
+                  status: statusFilter || undefined,
+              },
     );
     const quotations = quotationsResponse?.data || [];
     const totalQuotations = quotationsResponse?.meta?.total || 0;
@@ -198,7 +202,6 @@ const QuotationsPage = () => {
             const serviceIds = selectedServices.map((s) => (typeof s === "string" ? s : (s as any)._id || s));
 
             const payload: CreateQuotationPayload = {
-                clientId: selectedClientId === "global" ? undefined : selectedClientId,
                 services: serviceIds.length > 0 ? serviceIds : undefined,
                 customServices: customServices.length > 0 ? customServices : undefined,
                 discountValue: parseFloat(discountValue) || 0,
@@ -206,6 +209,11 @@ const QuotationsPage = () => {
                 note: quotationNote || undefined,
                 validUntil: validUntil || undefined,
             };
+
+            // Only include clientId if it's not "global"
+            if (selectedClientId && selectedClientId !== "global") {
+                payload.clientId = selectedClientId;
+            }
 
             console.log("Creating/Updating quotation with payload:", payload);
 

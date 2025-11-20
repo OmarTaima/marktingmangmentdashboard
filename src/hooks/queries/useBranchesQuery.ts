@@ -38,8 +38,14 @@ export const useCreateBranch = () => {
  * Hook to create multiple branches at once
  */
 export const useCreateBranches = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, data }: { clientId: string; data: any[] }) => createBranches(clientId, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: branchesKeys.byClient(variables.clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        },
     });
 };
 

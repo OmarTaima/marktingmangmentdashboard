@@ -5,6 +5,7 @@ export interface Branch {
     _id?: string;
     clientId?: string;
     name: string;
+    city?: string;
     address?: string;
     phone?: string;
     deleted?: boolean;
@@ -24,6 +25,10 @@ const transformBranchToBackendPayload = (branchData: any): any => {
         }
     }
 
+    if (branchData.city && typeof branchData.city === "string" && branchData.city.trim()) {
+        payload.city = branchData.city.trim();
+    }
+
     if (branchData.address && typeof branchData.address === "string" && branchData.address.trim()) {
         payload.address = branchData.address.trim();
     }
@@ -41,6 +46,7 @@ const transformBranchToFrontend = (backendData: any): Branch | null => {
         _id: backendData._id,
         clientId: backendData.clientId,
         name: backendData.name,
+        city: backendData.city,
         address: backendData.address,
         phone: backendData.phone,
         deleted: backendData.deleted || false,
@@ -83,21 +89,29 @@ export const createBranch = async (clientId: string, branchData: any): Promise<B
 
 export const createBranches = async (clientId: string, branchesData: any[]): Promise<Branch[]> => {
     try {
-        // Send all branch requests in parallel (simultaneous, not sequential)
-        const promises = branchesData.map(async (branchData) => {
-            const payload = transformBranchToBackendPayload(branchData);
-            const res = await axiosInstance.post(`/clients/${clientId}/branches`, payload);
-            const branch = res.data.data || res.data.branch || res.data;
-            return transformBranchToFrontend(branch);
-        });
+        // Transform all branches to backend payload format
+        const payloads = branchesData.map((branchData) => transformBranchToBackendPayload(branchData));
 
-        const branches = await Promise.all(promises);
+        // Send bulk request to create all branches at once
+        const res = await axiosInstance.post(`/clients/${clientId}/branches/bulk`, payloads);
+
+        // Handle different response structures
+        let branchesArray = [];
+        if (Array.isArray(res.data)) {
+            branchesArray = res.data;
+        } else if (Array.isArray(res.data.branches)) {
+            branchesArray = res.data.branches;
+        } else if (res.data.data && Array.isArray(res.data.data)) {
+            branchesArray = res.data.data;
+        }
+
+        const branches = branchesArray.map(transformBranchToFrontend).filter(Boolean) as Branch[];
 
         // Invalidate branches and client cache after creating all
         invalidateCachePattern(`/clients/${clientId}/branches`);
         invalidateCachePattern(`/clients/${clientId}`);
 
-        return branches.filter(Boolean) as Branch[];
+        return branches;
     } catch (err) {
         throw err;
     }

@@ -169,6 +169,13 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
         setEditing(false);
     };
 
+    // Helper function to deep compare two objects
+    const hasChanges = (obj1: any, obj2: any): boolean => {
+        const json1 = JSON.stringify(obj1);
+        const json2 = JSON.stringify(obj2);
+        return json1 !== json2;
+    };
+
     const saveEditing = async () => {
         if (!draft || !id || !fullPage) return;
 
@@ -247,11 +254,20 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
 
                 if (sanitized._id) {
-                    segmentOperations.push(
-                        updateSegmentMutation!
-                            .mutateAsync({ clientId: id, segmentId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error updating segment:", err)),
-                    );
+                    // Only update if the segment has actually changed
+                    const originalSegment = originalSegments.find((s: Segment) => s._id === sanitized._id);
+                    if (originalSegment) {
+                        const originalSanitized = JSON.parse(JSON.stringify(originalSegment));
+                        if (originalSanitized._interestsText !== undefined) delete originalSanitized._interestsText;
+                        
+                        if (hasChanges(originalSanitized, sanitized)) {
+                            segmentOperations.push(
+                                updateSegmentMutation!
+                                    .mutateAsync({ clientId: id, segmentId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                    .catch((err) => console.error("Error updating segment:", err)),
+                            );
+                        }
+                    }
                 } else {
                     segmentOperations.push(
                         createSegmentMutation!
@@ -283,11 +299,15 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 const sanitized = JSON.parse(JSON.stringify(competitor));
 
                 if (sanitized._id) {
-                    competitorOperations.push(
-                        updateCompetitorMutation!
-                            .mutateAsync({ clientId: id, competitorId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error updating competitor:", err)),
-                    );
+                    // Only update if the competitor has actually changed
+                    const originalCompetitor = originalCompetitors.find((c: any) => c._id === sanitized._id);
+                    if (originalCompetitor && hasChanges(originalCompetitor, sanitized)) {
+                        competitorOperations.push(
+                            updateCompetitorMutation!
+                                .mutateAsync({ clientId: id, competitorId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                .catch((err) => console.error("Error updating competitor:", err)),
+                        );
+                    }
                 } else {
                     competitorOperations.push(
                         createCompetitorMutation!
@@ -319,11 +339,15 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 const sanitized = JSON.parse(JSON.stringify(branch));
 
                 if (sanitized._id) {
-                    branchOperations.push(
-                        updateBranchMutation!
-                            .mutateAsync({ clientId: id, branchId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error updating branch:", err)),
-                    );
+                    // Only update if the branch has actually changed
+                    const originalBranch = originalBranches.find((b: any) => b._id === sanitized._id);
+                    if (originalBranch && hasChanges(originalBranch, sanitized)) {
+                        branchOperations.push(
+                            updateBranchMutation!
+                                .mutateAsync({ clientId: id, branchId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                .catch((err) => console.error("Error updating branch:", err)),
+                        );
+                    }
                 } else {
                     branchOperations.push(
                         createBranchMutation!
@@ -1587,6 +1611,12 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     />
                                                     <input
                                                         className={inputBaseClass}
+                                                        value={branch.city || ""}
+                                                        placeholder={t("city")}
+                                                        onChange={(e) => updateDraft(`branches.${idx}.city`, e.target.value)}
+                                                    />
+                                                    <input
+                                                        className={inputBaseClass}
                                                         value={branch.address || ""}
                                                         placeholder={t("branch_address")}
                                                         onChange={(e) => updateDraft(`branches.${idx}.address`, e.target.value)}
@@ -1620,7 +1650,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     setDraft((prev) => {
                                                         const next = JSON.parse(JSON.stringify(prev || {})) as any;
                                                         next.branches = next.branches || [];
-                                                        next.branches.push({ name: "", address: "", phone: "" });
+                                                        next.branches.push({ name: "", city: "", address: "", phone: "" });
                                                         return next;
                                                     });
                                                 }}
@@ -1636,6 +1666,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     className="text-sm"
                                                 >
                                                     <strong className="text-light-600 dark:text-dark-500">{b.name}</strong>
+                                                    {b.city && <div className="text-light-600 dark:text-dark-200">{b.city}</div>}
                                                     {b.address && <div className="text-light-600 dark:text-dark-200">{b.address}</div>}
                                                     {b.phone && <div className="text-light-600 dark:text-dark-200">{b.phone}</div>}
                                                 </div>

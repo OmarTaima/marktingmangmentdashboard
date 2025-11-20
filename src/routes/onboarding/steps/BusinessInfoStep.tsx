@@ -25,6 +25,7 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [categoryCustom, setCategoryCustom] = useState<string>("");
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -82,6 +83,9 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
     // Keep formData synced with parent data so values persist when navigating
     // Only sync when data.business changes externally (e.g., navigating steps)
     useEffect(() => {
+        // Only initialize once on mount or when navigating back to this step
+        if (isInitialized) return;
+
         const initial = (data?.business as BusinessForm) || {
             businessName: "",
             category: "",
@@ -101,8 +105,10 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
             setFormData(initial);
             setCategoryCustom("");
         }
+
+        setIsInitialized(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.business]);
+    }, []);
 
     return (
         <form

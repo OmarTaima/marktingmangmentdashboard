@@ -54,11 +54,8 @@ export const useClient = (id: string, enabled = true) => {
         queryKey: clientsKeys.detail(id),
         queryFn: () => getClientById(id),
         enabled: !!id && enabled,
-        staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
-        gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         refetchOnWindowFocus: false, // Don't refetch when window regains focus
-        refetchOnMount: false, // Don't refetch on mount if data exists
-        refetchOnReconnect: false, // Don't refetch on reconnect
     });
 };
 
@@ -122,7 +119,7 @@ export const useDeleteClient = () => {
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
             // Refetch inactive queries as well so the list is up-to-date when user
             // navigates back without needing a manual page refresh.
-            queryClient.refetchQueries({ queryKey: clientsKeys.lists(), active: false });
+            queryClient.refetchQueries({ queryKey: clientsKeys.lists(), type: "all" });
         },
     });
 };

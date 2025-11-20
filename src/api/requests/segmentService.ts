@@ -135,21 +135,29 @@ export const createSegment = async (clientId: string, segmentData: any): Promise
 
 export const createSegments = async (clientId: string, segmentsData: any[]): Promise<Segment[]> => {
     try {
-        // Send all segment requests in parallel (simultaneous, not sequential)
-        const promises = segmentsData.map(async (segmentData) => {
-            const payload = transformSegmentToBackendPayload(segmentData);
-            const response = await axiosInstance.post(`/clients/${clientId}/segments`, payload);
-            const segment = response.data.segment || response.data.data || response.data;
-            return transformSegmentToFrontendFormat(segment);
-        });
+        // Transform all segments to backend payload format
+        const payloads = segmentsData.map((segmentData) => transformSegmentToBackendPayload(segmentData));
 
-        const segments = await Promise.all(promises);
+        // Send bulk request to create all segments at once
+        const response = await axiosInstance.post(`/clients/${clientId}/segments/bulk`, payloads);
+
+        // Handle different response structures
+        let segmentsArray = [];
+        if (Array.isArray(response.data)) {
+            segmentsArray = response.data;
+        } else if (Array.isArray(response.data.segments)) {
+            segmentsArray = response.data.segments;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+            segmentsArray = response.data.data;
+        }
+
+        const segments = segmentsArray.map(transformSegmentToFrontendFormat).filter(Boolean) as Segment[];
 
         // Invalidate segments and client cache after creating all
         invalidateCachePattern(`/clients/${clientId}/segments`);
         invalidateCachePattern(`/clients/${clientId}`);
 
-        return segments.filter(Boolean) as Segment[];
+        return segments;
     } catch (error) {
         throw error;
     }

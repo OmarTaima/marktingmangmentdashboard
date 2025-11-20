@@ -38,9 +38,14 @@ export const useCreateSegment = () => {
  * Hook to create multiple segments at once
  */
 export const useCreateSegments = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, data }: { clientId: string; data: any[] }) => createSegments(clientId, data),
-        // No automatic invalidation - caller can handle it manually if needed
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: segmentsKeys.byClient(variables.clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
+        },
     });
 };
 
