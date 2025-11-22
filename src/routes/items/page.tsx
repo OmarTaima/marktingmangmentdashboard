@@ -30,7 +30,7 @@ const ItemsPage = () => {
 
     const isSaving = createItemMutation.isPending || updateItemMutation.isPending;
 
-    const handleAdd = async () => {
+    const handleAdd = () => {
         const name = (inputName || "").trim();
         const desc = (inputDescription || "").trim();
 
@@ -39,18 +39,25 @@ const ItemsPage = () => {
             return;
         }
 
-        try {
-            setError("");
-            await createItemMutation.mutateAsync({
-                name,
-                description: desc || undefined,
-            });
-            setInputName("");
-            setInputDescription("");
-        } catch (e: any) {
-            console.error("Error creating item:", e);
-            setError(e.response?.data?.message || "Failed to create item");
-        }
+        setError("");
+
+        const payload = {
+            name,
+            description: desc || undefined,
+        };
+
+        // Use mutate (not mutateAsync) so we don't await the server and the
+        // optimistic update in the hook can show the item immediately.
+        createItemMutation.mutate(payload, {
+            onError: (e: any) => {
+                console.error("Error creating item:", e);
+                setError(e?.response?.data?.message || "Failed to create item");
+            },
+        });
+
+        // Clear inputs immediately so the form feels responsive.
+        setInputName("");
+        setInputDescription("");
     };
 
     const startEdit = (item: Item) => {
@@ -147,80 +154,84 @@ const ItemsPage = () => {
                     <>
                         <div className="grid gap-3">
                             {filteredItems.length > 0 ? (
-                                filteredItems.map((item) => (
-                                    <div
-                                        key={item._id}
-                                        className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
-                                    >
-                                        <div className="flex w-full items-center gap-3">
-                                            {editingId === item._id ? (
-                                                <div className="flex w-full gap-2">
-                                                    <input
-                                                        value={editingName}
-                                                        onChange={(e) => setEditingName(e.target.value)}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("item_name") || "Item Name"}
-                                                    />
-                                                    <input
-                                                        value={editingDescription}
-                                                        onChange={(e) => setEditingDescription(e.target.value)}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("item_description") || "Description"}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="flex w-full">
-                                                    <div className="flex w-full items-center justify-between">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
-                                                                {item.name}
-                                                            </span>
-                                                            {item.description && (
-                                                                <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                    {item.description}
+                                filteredItems.map((item) => {
+                                    return (
+                                        <div
+                                            key={item._id}
+                                            className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                        >
+                                            <div className="flex w-full items-center gap-3">
+                                                {editingId === item._id ? (
+                                                    <div className="flex w-full gap-2">
+                                                        <input
+                                                            value={editingName}
+                                                            onChange={(e) => setEditingName(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("item_name") || "Item Name"}
+                                                        />
+                                                        <input
+                                                            value={editingDescription}
+                                                            onChange={(e) => setEditingDescription(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("item_description") || "Description"}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex w-full">
+                                                        <div className="flex w-full items-center justify-between">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                                    {item.name}
                                                                 </span>
-                                                            )}
+                                                                {item.description && (
+                                                                    <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                        {item.description}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {editingId === item._id ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => saveEdit(item._id)}
+                                                            disabled={isSaving}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <Check size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEdit}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <>
+                                                            <button
+                                                                onClick={() => startEdit(item)}
+                                                                className="btn-ghost flex items-center gap-2"
+                                                            >
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => remove(item)}
+                                                                className="btn-ghost text-danger-500 flex items-center gap-2"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {editingId === item._id ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => saveEdit(item._id)}
-                                                        disabled={isSaving}
-                                                        className="btn-ghost flex items-center gap-2"
-                                                    >
-                                                        <Check size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={cancelEdit}
-                                                        className="btn-ghost flex items-center gap-2"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => startEdit(item)}
-                                                        className="btn-ghost flex items-center gap-2"
-                                                    >
-                                                        <Edit2 size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => remove(item)}
-                                                        className="btn-ghost text-danger-500 flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <p className="text-light-600">{t("no_items_defined") || "No items defined yet."}</p>
                             )}

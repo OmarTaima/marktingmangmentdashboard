@@ -67,7 +67,64 @@ export const useCreateClient = () => {
 
     return useMutation({
         mutationFn: (data: Partial<Client>) => createClient(data),
-        onSuccess: () => {
+        onMutate: async (newClient) => {
+            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
+            const previous = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
+
+            const tempId = `temp-${Date.now()}`;
+            const optimisticClient: Client = {
+                _id: tempId,
+                ...newClient,
+            } as Client;
+
+            previous.forEach(([key]) => {
+                queryClient.setQueryData(key, (old: any) => {
+                    if (!old) return old;
+                    if (Array.isArray(old)) {
+                        return [optimisticClient, ...old];
+                    }
+                    if (old.data && Array.isArray(old.data)) {
+                        return {
+                            ...old,
+                            data: [optimisticClient, ...old.data],
+                            meta: old.meta ? { ...old.meta, total: (old.meta.total || 0) + 1 } : undefined,
+                        };
+                    }
+                    return old;
+                });
+            });
+
+            return { previous };
+        },
+        onError: (_err, _newClient, context: any) => {
+            if (context?.previous) {
+                context.previous.forEach(([key, data]: [any, any]) => {
+                    queryClient.setQueryData(key, data);
+                });
+            }
+        },
+        onSuccess: (createdClient) => {
+            const queries = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
+            queries.forEach(([key]) => {
+                queryClient.setQueryData(key, (old: any) => {
+                    if (!old) return old;
+                    if (Array.isArray(old)) {
+                        const idx = old.findIndex((c: Client) => c._id?.toString().startsWith("temp-"));
+                        if (idx === -1) return old;
+                        const newData = [...old];
+                        newData[idx] = createdClient;
+                        return newData;
+                    }
+                    if (old.data && Array.isArray(old.data)) {
+                        const idx = old.data.findIndex((c: Client) => c._id?.toString().startsWith("temp-"));
+                        if (idx === -1) return old;
+                        const newData = [...old.data];
+                        newData[idx] = createdClient;
+                        return { ...old, data: newData };
+                    }
+                    return old;
+                });
+            });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });
@@ -81,10 +138,47 @@ export const useUpdateClient = () => {
 
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: Partial<Client> }) => updateClient(id, data),
+        onMutate: async ({ id, data }) => {
+            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
+            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(id) });
+
+            const previousLists = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
+            const previousDetail = queryClient.getQueryData(clientsKeys.detail(id));
+
+            previousLists.forEach(([key]) => {
+                queryClient.setQueryData(key, (old: any) => {
+                    if (!old) return old;
+                    if (Array.isArray(old)) {
+                        return old.map((c: Client) => (c._id === id ? { ...c, ...data } : c));
+                    }
+                    if (old.data && Array.isArray(old.data)) {
+                        return {
+                            ...old,
+                            data: old.data.map((c: Client) => (c._id === id ? { ...c, ...data } : c)),
+                        };
+                    }
+                    return old;
+                });
+            });
+
+            if (previousDetail) {
+                queryClient.setQueryData(clientsKeys.detail(id), (old: any) => ({ ...old, ...data }));
+            }
+
+            return { previousLists, previousDetail };
+        },
+        onError: (_err, { id }, context: any) => {
+            if (context?.previousLists) {
+                context.previousLists.forEach(([key, data]: [any, any]) => {
+                    queryClient.setQueryData(key, data);
+                });
+            }
+            if (context?.previousDetail) {
+                queryClient.setQueryData(clientsKeys.detail(id), context.previousDetail);
+            }
+        },
         onSuccess: (_, variables) => {
-            // Ensure clients list is refreshed whenever a client is updated
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
-            // Also invalidate the detail for the updated client
             queryClient.invalidateQueries({ queryKey: clientsKeys.detail((variables as any).id) });
         },
     });
@@ -98,6 +192,45 @@ export const usePatchClient = () => {
 
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: Record<string, any> }) => patchClient(id, data),
+        onMutate: async ({ id, data }) => {
+            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
+            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(id) });
+
+            const previousLists = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
+            const previousDetail = queryClient.getQueryData(clientsKeys.detail(id));
+
+            previousLists.forEach(([key]) => {
+                queryClient.setQueryData(key, (old: any) => {
+                    if (!old) return old;
+                    if (Array.isArray(old)) {
+                        return old.map((c: Client) => (c._id === id ? { ...c, ...data } : c));
+                    }
+                    if (old.data && Array.isArray(old.data)) {
+                        return {
+                            ...old,
+                            data: old.data.map((c: Client) => (c._id === id ? { ...c, ...data } : c)),
+                        };
+                    }
+                    return old;
+                });
+            });
+
+            if (previousDetail) {
+                queryClient.setQueryData(clientsKeys.detail(id), (old: any) => ({ ...old, ...data }));
+            }
+
+            return { previousLists, previousDetail };
+        },
+        onError: (_err, { id }, context: any) => {
+            if (context?.previousLists) {
+                context.previousLists.forEach(([key, data]: [any, any]) => {
+                    queryClient.setQueryData(key, data);
+                });
+            }
+            if (context?.previousDetail) {
+                queryClient.setQueryData(clientsKeys.detail(id), context.previousDetail);
+            }
+        },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.id) });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
@@ -113,12 +246,38 @@ export const useDeleteClient = () => {
 
     return useMutation({
         mutationFn: deleteClient,
+        onMutate: async (id: string) => {
+            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
+            const previous = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
+
+            previous.forEach(([key]) => {
+                queryClient.setQueryData(key, (old: any) => {
+                    if (!old) return old;
+                    if (Array.isArray(old)) {
+                        return old.filter((c: Client) => c._id !== id);
+                    }
+                    if (old.data && Array.isArray(old.data)) {
+                        return {
+                            ...old,
+                            data: old.data.filter((c: Client) => c._id !== id),
+                            meta: old.meta ? { ...old.meta, total: Math.max(0, (old.meta.total || 0) - 1) } : undefined,
+                        };
+                    }
+                    return old;
+                });
+            });
+
+            return { previous };
+        },
+        onError: (_err, _id, context: any) => {
+            if (context?.previous) {
+                context.previous.forEach(([key, data]: [any, any]) => {
+                    queryClient.setQueryData(key, data);
+                });
+            }
+        },
         onSuccess: () => {
-            // Invalidate cached clients list and immediately refetch it even if the
-            // clients list query is not currently active (e.g. we're on the detail page).
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
-            // Refetch inactive queries as well so the list is up-to-date when user
-            // navigates back without needing a manual page refresh.
             queryClient.refetchQueries({ queryKey: clientsKeys.lists(), type: "all" });
         },
     });

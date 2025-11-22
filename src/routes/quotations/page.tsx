@@ -47,6 +47,29 @@ const QuotationsPage = () => {
     const quotations = quotationsResponse?.data || [];
     const totalQuotations = quotationsResponse?.meta?.total || 0;
 
+    // Also fetch all quotations (no filters) to detect whether a client already has quotations
+    const { data: allQuotationsResponse } = useQuotations();
+    const allQuotations: any[] = Array.isArray(allQuotationsResponse)
+        ? allQuotationsResponse
+        : allQuotationsResponse?.data && Array.isArray(allQuotationsResponse.data)
+          ? allQuotationsResponse.data
+          : [];
+
+    // Ensure we only display quotations for the selected client when a client is selected.
+    const displayedQuotations =
+        selectedClientId && selectedClientId !== "global"
+            ? quotations.filter((q: any) => {
+                  if (!q) return false;
+                  let qClientId: any = null;
+                  if (typeof q.clientId === "string") qClientId = q.clientId;
+                  else if (q.clientId && typeof q.clientId === "object") qClientId = q.clientId._id || q.clientId.id || q.clientId;
+                  else if (typeof q.client === "string") qClientId = q.client;
+                  else if (q.client && typeof q.client === "object") qClientId = q.client._id || q.client.id || q.client;
+
+                  return String(qClientId) === String(selectedClientId) || String(qClientId) === String(selectedClient?._id || selectedClientId);
+              })
+            : quotations;
+
     // React Query mutations
     const createQuotationMutation = useCreateQuotation();
     const updateQuotationMutation = useUpdateQuotation();
@@ -393,7 +416,31 @@ const QuotationsPage = () => {
                                             onClick={() => handleSelectClient(client)}
                                             className="btn-primary mt-4 w-full"
                                         >
-                                            {t("create_quotation") || "Create Quotation"}
+                                            {(() => {
+                                                try {
+                                                    const key = `quotations_${client.id}`;
+                                                    const hasLocal = typeof window !== "undefined" && !!localStorage.getItem(key);
+
+                                                    const hasServer = allQuotations.some((q: any) => {
+                                                        if (!q) return false;
+                                                        let qClientId: any = null;
+                                                        if (typeof q.clientId === "string") qClientId = q.clientId;
+                                                        else if (q.clientId && typeof q.clientId === "object")
+                                                            qClientId = q.clientId._id || q.clientId.id || q.clientId;
+                                                        else if (typeof q.client === "string") qClientId = q.client;
+                                                        else if (q.client && typeof q.client === "object")
+                                                            qClientId = q.client._id || q.client.id || q.client;
+
+                                                        return String(qClientId) === String(client.id) || String(qClientId) === String(client._id);
+                                                    });
+
+                                                    return hasLocal || hasServer
+                                                        ? t("show_quotation") || "Show Quotation"
+                                                        : t("create_quotation") || "Create Quotation";
+                                                } catch (e) {
+                                                    return t("create_quotation") || "Create Quotation";
+                                                }
+                                            })()}
                                         </button>
                                     </div>
                                 ))}
@@ -428,11 +475,25 @@ const QuotationsPage = () => {
                                 <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">{selectedClient.business?.businessName}</h2>
                                 <p className="text-light-600 dark:text-dark-50 text-sm">{selectedClient.business?.category}</p>
                             </div>
+                            {displayedQuotations.length > 0 && (
+                                <div className="ml-auto">
+                                    <button
+                                        onClick={() => {
+                                            // Keep the client selected and switch to the quotations list view
+                                            setIsEditing(false);
+                                            setCurrentPage(1);
+                                        }}
+                                        className="btn-ghost"
+                                    >
+                                        {t("quotations") || "Quotations"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Create/Edit Quotation Form */}
-                    {(isEditing || quotations.length === 0) && (
+                    {(isEditing || displayedQuotations.length === 0) && (
                         <div className="card">
                             <h3 className="card-title mb-4">
                                 {editingQuotationId ? t("edit_quotation") || "Edit Quotation" : t("create_new_quotation") || "Create New Quotation"}
@@ -684,7 +745,7 @@ const QuotationsPage = () => {
                     )}
 
                     {/* Quotations List */}
-                    {!isEditing && quotations.length > 0 && (
+                    {!isEditing && displayedQuotations.length > 0 && (
                         <div className="card">
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="card-title">{t("existing_quotations") || "Existing Quotations"}</h3>
@@ -720,7 +781,7 @@ const QuotationsPage = () => {
                             </div>
 
                             <div className="space-y-3">
-                                {quotations.map((quotation) => (
+                                {displayedQuotations.map((quotation) => (
                                     <div
                                         key={quotation._id}
                                         className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
@@ -850,23 +911,7 @@ const QuotationsPage = () => {
                         </div>
                     )}
 
-                    {!isEditing && quotations.length === 0 && !isLoading && (
-                        <div className="card">
-                            <div className="py-8 text-center">
-                                <p className="text-light-600 dark:text-dark-400 mb-4">{t("no_quotations_yet") || "No quotations yet"}</p>
-                                <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="btn-primary"
-                                >
-                                    <Plus
-                                        size={16}
-                                        className="mr-2"
-                                    />
-                                    {t("create_first_quotation") || "Create First Quotation"}
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    {/* 'No quotations' placeholder removed as requested */}
                 </>
             )}
 

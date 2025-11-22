@@ -28,7 +28,43 @@ export const useCreateBranch = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, data }: { clientId: string; data: any }) => createBranch(clientId, data),
-        onSuccess: () => {
+        onMutate: async ({ clientId, data }) => {
+            await queryClient.cancelQueries({ queryKey: branchesKeys.byClient(clientId) });
+            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(clientId) });
+
+            const previousBranches = queryClient.getQueryData(branchesKeys.byClient(clientId));
+            const previousClient = queryClient.getQueryData(clientsKeys.detail(clientId));
+
+            const tempId = `temp-${Date.now()}`;
+            const optimisticBranch = { _id: tempId, ...data };
+
+            queryClient.setQueryData(branchesKeys.byClient(clientId), (old: any) => {
+                if (!old) return [optimisticBranch];
+                if (Array.isArray(old)) return [optimisticBranch, ...old];
+                if (old.data) return { ...old, data: [optimisticBranch, ...old.data] };
+                return old;
+            });
+
+            if (previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), (old: any) => ({
+                    ...old,
+                    branches: old?.branches ? [optimisticBranch, ...old.branches] : [optimisticBranch],
+                }));
+            }
+
+            return { previousBranches, previousClient };
+        },
+        onError: (_err, { clientId }, context: any) => {
+            if (context?.previousBranches) {
+                queryClient.setQueryData(branchesKeys.byClient(clientId), context.previousBranches);
+            }
+            if (context?.previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), context.previousClient);
+            }
+        },
+        onSuccess: (_data, { clientId }) => {
+            queryClient.invalidateQueries({ queryKey: branchesKeys.byClient(clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(clientId) });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });
@@ -56,7 +92,44 @@ export const useUpdateBranch = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, branchId, data }: { clientId: string; branchId: string; data: any }) => updateBranch(clientId, branchId, data),
-        onSuccess: () => {
+        onMutate: async ({ clientId, branchId, data }) => {
+            await queryClient.cancelQueries({ queryKey: branchesKeys.byClient(clientId) });
+            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(clientId) });
+
+            const previousBranches = queryClient.getQueryData(branchesKeys.byClient(clientId));
+            const previousClient = queryClient.getQueryData(clientsKeys.detail(clientId));
+
+            queryClient.setQueryData(branchesKeys.byClient(clientId), (old: any) => {
+                if (!old) return old;
+                if (Array.isArray(old)) {
+                    return old.map((b: any) => (b._id === branchId ? { ...b, ...data } : b));
+                }
+                if (old.data) {
+                    return { ...old, data: old.data.map((b: any) => (b._id === branchId ? { ...b, ...data } : b)) };
+                }
+                return old;
+            });
+
+            if (previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), (old: any) => ({
+                    ...old,
+                    branches: old?.branches?.map((b: any) => (b._id === branchId ? { ...b, ...data } : b)),
+                }));
+            }
+
+            return { previousBranches, previousClient };
+        },
+        onError: (_err, { clientId }, context: any) => {
+            if (context?.previousBranches) {
+                queryClient.setQueryData(branchesKeys.byClient(clientId), context.previousBranches);
+            }
+            if (context?.previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), context.previousClient);
+            }
+        },
+        onSuccess: (_data, { clientId }) => {
+            queryClient.invalidateQueries({ queryKey: branchesKeys.byClient(clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(clientId) });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });
@@ -69,7 +142,44 @@ export const useDeleteBranch = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ clientId, branchId }: { clientId: string; branchId: string }) => deleteBranch(clientId, branchId),
-        onSuccess: () => {
+        onMutate: async ({ clientId, branchId }) => {
+            await queryClient.cancelQueries({ queryKey: branchesKeys.byClient(clientId) });
+            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(clientId) });
+
+            const previousBranches = queryClient.getQueryData(branchesKeys.byClient(clientId));
+            const previousClient = queryClient.getQueryData(clientsKeys.detail(clientId));
+
+            queryClient.setQueryData(branchesKeys.byClient(clientId), (old: any) => {
+                if (!old) return old;
+                if (Array.isArray(old)) {
+                    return old.filter((b: any) => b._id !== branchId);
+                }
+                if (old.data) {
+                    return { ...old, data: old.data.filter((b: any) => b._id !== branchId) };
+                }
+                return old;
+            });
+
+            if (previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), (old: any) => ({
+                    ...old,
+                    branches: old?.branches?.filter((b: any) => b._id !== branchId),
+                }));
+            }
+
+            return { previousBranches, previousClient };
+        },
+        onError: (_err, { clientId }, context: any) => {
+            if (context?.previousBranches) {
+                queryClient.setQueryData(branchesKeys.byClient(clientId), context.previousBranches);
+            }
+            if (context?.previousClient) {
+                queryClient.setQueryData(clientsKeys.detail(clientId), context.previousClient);
+            }
+        },
+        onSuccess: (_data, { clientId }) => {
+            queryClient.invalidateQueries({ queryKey: branchesKeys.byClient(clientId) });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(clientId) });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
         },
     });

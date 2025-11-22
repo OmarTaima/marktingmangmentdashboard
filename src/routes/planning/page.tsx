@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Save, Edit2, FileText, Plus, Trash2, Calendar } from "lucide-react";
+import { Save, Edit2, FileText, Plus, Trash2, Calendar, Loader2 } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { useClients } from "@/hooks/queries/useClientsQuery";
-import { useCampaignsByClient, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from "@/hooks/queries/usePlansQuery";
+import { useCampaignsByClient, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, useAllCampaigns } from "@/hooks/queries/usePlansQuery";
 import type { CampaignObjective } from "@/api/requests/planService";
 
 const PlanningPage = () => {
@@ -14,6 +14,7 @@ const PlanningPage = () => {
     // React Query hooks for clients and campaigns
     const { data: clients = [] } = useClients();
     const { data: campaignsByClient } = useCampaignsByClient(selectedClientId, !!selectedClientId);
+    const { data: allCampaigns } = useAllCampaigns();
     const createCampaignMutation = useCreateCampaign();
     const updateCampaignMutation = useUpdateCampaign();
     const deleteCampaignMutation = useDeleteCampaign();
@@ -54,6 +55,7 @@ const PlanningPage = () => {
     const [strategyInputEn, setStrategyInputEn] = useState<string>("");
     const [strategyInputAr, setStrategyInputAr] = useState<string>("");
     const [editingStrategyIndex, setEditingStrategyIndex] = useState<number>(-1);
+    const [showExistingStrategies, setShowExistingStrategies] = useState<boolean>(false);
 
     // Objectives handlers
     const handleAddObjective = () => {
@@ -555,25 +557,12 @@ const PlanningPage = () => {
                     )}
                 </div>
 
-                {/* Loading skeleton for client list */}
+                {/* Loading loader for client list */}
                 {!selectedClientId && isLoading && (
-                    <div>
-                        <div className="bg-light-200 dark:bg-dark-700 mb-4 h-7 w-64 animate-pulse rounded"></div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div
-                                    key={i}
-                                    className="card"
-                                >
-                                    <div className="bg-light-200 dark:bg-dark-700 mb-2 h-6 w-3/4 animate-pulse rounded"></div>
-                                    <div className="bg-light-200 dark:bg-dark-700 mb-3 h-4 w-1/2 animate-pulse rounded"></div>
-                                    <div className="space-y-2">
-                                        <div className="bg-light-200 dark:bg-dark-700 h-4 w-full animate-pulse rounded"></div>
-                                        <div className="bg-light-200 dark:bg-dark-700 h-4 w-5/6 animate-pulse rounded"></div>
-                                    </div>
-                                    <div className="bg-light-200 dark:bg-dark-700 mt-4 h-10 w-full animate-pulse rounded"></div>
-                                </div>
-                            ))}
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <Loader2 className="text-light-500 dark:text-dark-400 mx-auto h-12 w-12 animate-spin" />
+                            <p className="text-light-600 dark:text-dark-400 mt-3">{t("loading_clients") || t("loading") || "Loading clients..."}</p>
                         </div>
                     </div>
                 )}
@@ -620,7 +609,47 @@ const PlanningPage = () => {
                                                 }}
                                                 className="btn-primary mt-4 w-full"
                                             >
-                                                {t("plan_button")}
+                                                {(() => {
+                                                    // If we have local plans saved for this client, show 'Show Strategy' instead of 'Create Strategy'
+                                                    try {
+                                                        const key = `plans_${client.id}`;
+                                                        const hasLocalPlans = typeof window !== "undefined" && !!localStorage.getItem(key);
+
+                                                        // `allCampaigns` may be an array or an object like { data: [] } depending on API.
+                                                        const campaignsArray: any[] = Array.isArray(allCampaigns)
+                                                            ? allCampaigns
+                                                            : allCampaigns && Array.isArray((allCampaigns as any).data)
+                                                              ? (allCampaigns as any).data
+                                                              : [];
+
+                                                        const hasServerPlans = campaignsArray.some((c: any) => {
+                                                            if (!c) return false;
+                                                            let campaignClientId: any = null;
+                                                            if (typeof c.clientId === "string") campaignClientId = c.clientId;
+                                                            else if (c.clientId && typeof c.clientId === "object")
+                                                                campaignClientId = c.clientId._id || c.clientId.id || c.clientId;
+                                                            else if (typeof c.client === "string") campaignClientId = c.client;
+                                                            else if (c.client && typeof c.client === "object")
+                                                                campaignClientId = c.client._id || c.client.id || c.client;
+
+                                                            try {
+                                                                return (
+                                                                    String(campaignClientId) === String(client.id) ||
+                                                                    String(campaignClientId) === String(client._id) ||
+                                                                    String(campaignClientId) === String(client._id || client.id)
+                                                                );
+                                                            } catch (err) {
+                                                                return false;
+                                                            }
+                                                        });
+
+                                                        return hasLocalPlans || hasServerPlans
+                                                            ? t("show_strategy") || "Show Strategy"
+                                                            : t("plan_button");
+                                                    } catch (e) {
+                                                        return t("plan_button");
+                                                    }
+                                                })()}
                                             </button>
                                         </div>
                                     ))}
@@ -630,59 +659,12 @@ const PlanningPage = () => {
                     </div>
                 ) : null}
 
-                {/* Loading skeleton for planning form */}
+                {/* Loading loader for planning form */}
                 {selectedClientId && (isLoading || isTransitioning) && (
-                    <div>
-                        {/* Client Info Skeleton */}
-                        <div className="card bg-dark-50 dark:bg-dark-800/50 mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-light-200 dark:bg-dark-700 h-16 w-16 animate-pulse rounded-full"></div>
-                                <div className="flex-1 space-y-2">
-                                    <div className="bg-light-200 dark:bg-dark-700 h-6 w-48 animate-pulse rounded"></div>
-                                    <div className="bg-light-200 dark:bg-dark-700 h-4 w-32 animate-pulse rounded"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Form Skeleton */}
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            {/* Objectives Skeleton */}
-                            <div className="card lg:col-span-2">
-                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-48 animate-pulse rounded"></div>
-                                <div className="space-y-3">
-                                    {[1, 2].map((i) => (
-                                        <div
-                                            key={i}
-                                            className="bg-light-200 dark:bg-dark-700 h-16 w-full animate-pulse rounded-lg"
-                                        ></div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Strategies Skeleton */}
-                            <div className="card lg:col-span-2">
-                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-48 animate-pulse rounded"></div>
-                                <div className="space-y-3">
-                                    {[1, 2].map((i) => (
-                                        <div
-                                            key={i}
-                                            className="bg-light-200 dark:bg-dark-700 h-16 w-full animate-pulse rounded-lg"
-                                        ></div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Budget Skeleton */}
-                            <div className="card">
-                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-32 animate-pulse rounded"></div>
-                                <div className="bg-light-200 dark:bg-dark-700 h-12 w-full animate-pulse rounded-lg"></div>
-                            </div>
-
-                            {/* Timeline Skeleton */}
-                            <div className="card">
-                                <div className="bg-light-200 dark:bg-dark-700 mb-4 h-6 w-32 animate-pulse rounded"></div>
-                                <div className="bg-light-200 dark:bg-dark-700 h-12 w-full animate-pulse rounded-lg"></div>
-                            </div>
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <Loader2 className="text-light-500 dark:text-dark-400 mx-auto h-12 w-12 animate-spin" />
+                            <p className="text-light-600 dark:text-dark-400 mt-3">{t("loading_client") || t("loading") || "Loading client..."}</p>
                         </div>
                     </div>
                 )}
@@ -818,15 +800,86 @@ const PlanningPage = () => {
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={editingStrategyIndex === -1 ? handleAddStrategy : () => saveEditStrategy(editingStrategyIndex)}
-                                            className="btn-ghost mt-2 flex items-center gap-2 px-3 py-2"
-                                            disabled={!strategyInputEn.trim() && !strategyInputAr.trim()}
-                                        >
-                                            <Plus size={14} />
-                                            {editingStrategyIndex === -1 ? t("add") || "Add" : t("save") || "Save"}
-                                        </button>
+                                        {/* If the client already has strategies available from API, show a toggle instead of the simple Add button */}
+                                        {plans &&
+                                        plans.length > 0 &&
+                                        plans.some((p: any) => Array.isArray(p.strategies) && p.strategies.length > 0) &&
+                                        strategies.length === 0 ? (
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowExistingStrategies((s) => !s)}
+                                                    className="btn-ghost flex items-center gap-2 px-3 py-2"
+                                                >
+                                                    <Plus size={14} />
+                                                    {showExistingStrategies
+                                                        ? t("hide_strategies") || "Hide Strategies"
+                                                        : t("show_strategies") || "Show Strategies"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        editingStrategyIndex === -1 ? handleAddStrategy : () => saveEditStrategy(editingStrategyIndex)
+                                                    }
+                                                    className="btn-ghost flex items-center gap-2 px-3 py-2"
+                                                    disabled={!strategyInputEn.trim() && !strategyInputAr.trim()}
+                                                >
+                                                    <Plus size={14} />
+                                                    {editingStrategyIndex === -1 ? t("add") || "Add" : t("save") || "Save"}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={
+                                                    editingStrategyIndex === -1 ? handleAddStrategy : () => saveEditStrategy(editingStrategyIndex)
+                                                }
+                                                className="btn-ghost mt-2 flex items-center gap-2 px-3 py-2"
+                                                disabled={!strategyInputEn.trim() && !strategyInputAr.trim()}
+                                            >
+                                                <Plus size={14} />
+                                                {editingStrategyIndex === -1 ? t("add") || "Add" : t("save") || "Save"}
+                                            </button>
+                                        )}
+
+                                        {/* Render existing strategies list when toggled */}
+                                        {showExistingStrategies && (
+                                            <div className="bg-light-50 dark:bg-dark-900 mt-3 space-y-2 rounded p-3">
+                                                <p className="text-light-900 dark:text-dark-50 text-sm font-medium">
+                                                    {t("existing_strategies") || "Existing strategies"}
+                                                </p>
+                                                {plans
+                                                    .flatMap((p: any) => p.strategies || [])
+                                                    .filter(Boolean)
+                                                    .map((s: any, idx: number) => (
+                                                        <div
+                                                            key={idx}
+                                                            className="text-light-900 dark:text-dark-50 text-sm"
+                                                        >
+                                                            {lang === "ar" ? s.ar || s.en : s.en || s.ar}
+                                                        </div>
+                                                    ))}
+                                                <div className="mt-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const existing = plans.flatMap((p: any) => p.strategies || []);
+                                                            // normalize to Bilingual shape
+                                                            const normalized = existing.map((ex: any, i: number) => ({
+                                                                id: `imported_${i}_${Date.now()}`,
+                                                                en: ex.en || ex,
+                                                                ar: ex.ar || ex,
+                                                            }));
+                                                            setStrategies(normalized);
+                                                            setShowExistingStrategies(false);
+                                                        }}
+                                                        className="btn-ghost flex items-center gap-2 px-3 py-2"
+                                                    >
+                                                        {t("use_these") || "Use these"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
