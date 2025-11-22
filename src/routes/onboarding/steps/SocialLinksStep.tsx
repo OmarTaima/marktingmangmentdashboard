@@ -93,8 +93,8 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
             const updated = [...prevLinks];
             // Ensure platform is preserved from mainPlatforms if missing
             const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
-            // Normalize stored URL by removing leading protocol so it's saved like `trello.com/...`
-            const storedUrl = value.replace(/^https?:\/\//i, "");
+            // Preserve user-entered URL (keep protocol if provided); trim surrounding whitespace
+            const storedUrl = value.trim();
             updated[index] = { platform, url: storedUrl };
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
             return updated;
@@ -121,8 +121,8 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
 
     const handleAddCustom = () => {
         if (newCustom.platform && newCustom.url) {
-            // Normalize custom URL by removing leading protocol
-            const normalized = { ...newCustom, url: newCustom.url.replace(/^https?:\/\//i, "") };
+            // Preserve custom URL as entered (trim whitespace)
+            const normalized = { ...newCustom, url: newCustom.url.trim() };
             const next = [...customLinks, normalized];
             setCustomLinks(next);
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });

@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
+import fieldValidations from "@/constants/validations";
 
 type Branch = {
     name?: string;
@@ -31,7 +32,14 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
 
         const nextErrors: Record<string, string> = {};
 
-        // Conditional validation: only validate fields that have values
+        // Require name when trying to add a branch (backend requires name)
+        if (!name || !name.trim()) {
+            nextErrors.name = (t(fieldValidations.branchName.messageKey) as string) || "Branch name is required";
+            setErrors(nextErrors);
+            return;
+        }
+
+        // Conditional validation for contentful fields
         if (name && name.trim().length < 2) {
             nextErrors.name = (t("name_too_short") as string) || t("invalid_name");
         }
@@ -82,8 +90,15 @@ export const BranchesStep: FC<BranchesStepProps> = ({ data = {}, onNext, onPrevi
         let finalBranches = [...branches];
         const { name, city, address, phone } = currentBranch || {};
         if (name?.trim() || city?.trim() || address?.trim() || phone?.trim()) {
-            // Validate before adding
+            // Require name when auto-adding draft branch
             const nextErrors: Record<string, string> = {};
+            if (!name || !name.trim()) {
+                nextErrors.name = (t(fieldValidations.branchName.messageKey) as string) || "Branch name is required";
+                setErrors(nextErrors);
+                return;
+            }
+
+            // Validate before adding
             if (name && name.trim().length < 2) {
                 nextErrors.name = (t("name_too_short") as string) || t("invalid_name");
             }

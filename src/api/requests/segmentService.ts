@@ -24,40 +24,66 @@ const transformSegmentToBackendPayload = (segmentData: any): any => {
         payload.description = segmentData.description.trim();
     }
 
-    if (segmentData.ageRange && segmentData.ageRange.trim()) {
-        payload.ageRange = segmentData.ageRange.trim();
+    // ageRange: accept array or single string
+    if (segmentData.ageRange) {
+        if (Array.isArray(segmentData.ageRange)) {
+            const arr = segmentData.ageRange.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            if (arr.length > 0) payload.ageRange = arr;
+        } else if (typeof segmentData.ageRange === "string" && segmentData.ageRange.trim()) {
+            payload.ageRange = [segmentData.ageRange.trim()];
+        }
     }
 
-    // Gender - include if it's not the default "all" or if explicitly set
-    const gender = segmentData.gender || "all";
-    if (gender && gender !== "all") {
-        payload.gender = gender;
+    // Gender: accept array or single value. Backend expects array (default ['all']).
+    if (segmentData.gender) {
+        if (Array.isArray(segmentData.gender)) {
+            const g = segmentData.gender.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            if (g.length > 0) payload.gender = g;
+        } else if (typeof segmentData.gender === "string" && segmentData.gender.trim()) {
+            payload.gender = [segmentData.gender.trim()];
+        }
     } else {
-        payload.gender = "all";
+        payload.gender = ["all"];
     }
 
-    // Handle interests - only include if array has items
-    if (segmentData.interests) {
-        let interestsArray: string[] = [];
+    // interests removed — we no longer send `interests` from the frontend
 
-        if (typeof segmentData.interests === "string" && segmentData.interests.trim()) {
-            interestsArray = segmentData.interests
-                .split(",")
-                .map((i: string) => i.trim())
-                .filter((i: string) => i.length > 0);
-        } else if (Array.isArray(segmentData.interests) && segmentData.interests.length > 0) {
-            interestsArray = segmentData.interests.filter((i: string) => i && i.trim());
-        }
-
-        if (interestsArray.length > 0) {
-            payload.interests = interestsArray;
+    // area and governorate - accept arrays or comma-separated strings
+    if (segmentData.area) {
+        if (Array.isArray(segmentData.area)) {
+            const arr = segmentData.area.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            if (arr.length > 0) payload.area = arr;
+        } else if (typeof segmentData.area === "string" && segmentData.area.trim()) {
+            payload.area = segmentData.area
+                .split(/[,;\n]+/)
+                .map((s: string) => s.trim())
+                .filter(Boolean);
         }
     }
 
-    // Income level - only include if set
-    if (segmentData.incomeLevel) {
-        payload.incomeLevel = segmentData.incomeLevel;
+    if (segmentData.governorate) {
+        if (Array.isArray(segmentData.governorate)) {
+            const arr = segmentData.governorate.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            if (arr.length > 0) payload.governorate = arr;
+        } else if (typeof segmentData.governorate === "string" && segmentData.governorate.trim()) {
+            payload.governorate = segmentData.governorate
+                .split(/[,;\n]+/)
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+        }
     }
+
+    // note
+    if (segmentData.note && typeof segmentData.note === "string" && segmentData.note.trim()) {
+        payload.note = segmentData.note.trim();
+    }
+
+    // productName: optional string
+    if (segmentData.productName && typeof segmentData.productName === "string" && segmentData.productName.trim()) {
+        payload.productName = segmentData.productName.trim();
+    }
+
+    // incomeLevel removed — do not include it in payloads
 
     return payload;
 };
@@ -65,7 +91,7 @@ const transformSegmentToBackendPayload = (segmentData: any): any => {
 /**
  * Transform backend segment data to frontend format
  */
-const transformSegmentToFrontendFormat = (backendData: any): Segment | null => {
+const transformSegmentToFrontendFormat = (backendData: any): any => {
     if (!backendData) return null;
 
     return {
@@ -76,7 +102,7 @@ const transformSegmentToFrontendFormat = (backendData: any): Segment | null => {
         ageRange: backendData.ageRange,
         gender: backendData.gender || "all",
         interests: backendData.interests || [],
-        incomeLevel: backendData.incomeLevel,
+        productName: backendData.productName,
         deleted: backendData.deleted || false,
         createdAt: backendData.createdAt,
         updatedAt: backendData.updatedAt,

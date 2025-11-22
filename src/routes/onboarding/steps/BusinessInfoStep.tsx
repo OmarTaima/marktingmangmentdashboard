@@ -31,9 +31,11 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
         e.preventDefault();
         const newErrors: Record<string, string> = {};
 
-        // Keep validations informative but non-blocking. Only validate formats or presence when user provided values.
-        if (formData.businessName && !formData.businessName.trim()) {
-            newErrors.businessName = t(fieldValidations.businessName.messageKey || "");
+        // businessName: required by backend and must not exceed 255 chars
+        if (!formData.businessName || !formData.businessName.toString().trim()) {
+            newErrors.businessName = (t(fieldValidations.businessName.messageKey) as string) || "Business name is required";
+        } else if (formData.businessName.toString().trim().length > 255) {
+            newErrors.businessName = (t("business_name_too_long") as string) || "Business name must be 255 characters or less";
         }
         if (formData.category && !formData.category) {
             newErrors.category = t(fieldValidations.category.messageKey || "");
@@ -45,7 +47,13 @@ export const BusinessInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
             newErrors.mainOfficeAddress = t(fieldValidations.mainOfficeAddress.messageKey || "");
         }
 
-        setErrors(newErrors);
+        // If there are blocking validation errors, prevent navigation
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
 
         // If user selected "other" and provided a custom category, use that
         const businessPayload = { ...formData } as BusinessForm;

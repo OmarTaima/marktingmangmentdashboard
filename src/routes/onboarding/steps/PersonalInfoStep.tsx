@@ -29,9 +29,11 @@ export const PersonalInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
 
         const newErrors: Record<string, string> = {};
 
-        // fullName: optional — don't block progression; only warn when empty based on previous rules (kept permissive)
-        if (formData.fullName && !formData.fullName.trim()) {
-            newErrors.fullName = t(fieldValidations.fullName.messageKey);
+        // fullName: required by backend and must not exceed 255 chars
+        if (!formData.fullName || !formData.fullName.trim()) {
+            newErrors.fullName = (t(fieldValidations.fullName.messageKey) as string) || "Full name is required";
+        } else if ((formData.fullName || "").trim().length > 255) {
+            newErrors.fullName = (t("full_name_too_long") as string) || "Full name must be 255 characters or less";
         }
 
         // email validation: only when provided
@@ -44,8 +46,14 @@ export const PersonalInfoStep: FC<OnboardingStepProps> = ({ data, onNext, onPrev
             newErrors.phone = t(fieldValidations.phone.messageKey);
         }
 
-        // Show non-blocking errors but allow navigation
-        setErrors(newErrors);
+        // If there are blocking validation errors, prevent navigation
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        // No blocking errors — proceed
+        setErrors({});
         onNext({ personal: formData });
     };
 

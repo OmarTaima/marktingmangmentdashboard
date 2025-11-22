@@ -1110,6 +1110,17 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         onChange={(e) => updateDraft(`segments.${idx}.description`, e.target.value)}
                                                     />
                                                 </div>
+                                                <div>
+                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                        {t("product_name") || "Product Name"}
+                                                    </label>
+                                                    <input
+                                                        className={inputBaseClass}
+                                                        value={(segment as any).productName || ""}
+                                                        placeholder={t("product_name_placeholder") || "Optional product name"}
+                                                        onChange={(e) => updateDraft(`segments.${idx}.productName`, e.target.value)}
+                                                    />
+                                                </div>
                                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
@@ -1117,7 +1128,9 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         </label>
                                                         <input
                                                             className={inputBaseClass}
-                                                            value={segment.ageRange || ""}
+                                                            value={
+                                                                Array.isArray(segment.ageRange) ? segment.ageRange[0] || "" : segment.ageRange || ""
+                                                            }
                                                             placeholder={t("age_range_placeholder") || "e.g., 25-35"}
                                                             onChange={(e) => updateDraft(`segments.${idx}.ageRange`, e.target.value)}
                                                         />
@@ -1128,8 +1141,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         </label>
                                                         <select
                                                             className={inputBaseClass}
-                                                            value={segment.gender || "all"}
-                                                            onChange={(e) => updateDraft(`segments.${idx}.gender`, e.target.value)}
+                                                            value={
+                                                                Array.isArray(segment.gender) ? segment.gender[0] || "all" : segment.gender || "all"
+                                                            }
+                                                            onChange={(e) => updateDraft(`segments.${idx}.gender`, [e.target.value])}
                                                         >
                                                             <option value="all">{t("all_genders") || "All"}</option>
                                                             <option value="male">{t("male") || "Male"}</option>
@@ -1210,17 +1225,31 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                 <div className="flex flex-wrap gap-2">
                                                     {segment.ageRange && (
                                                         <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
-                                                            Age: {segment.ageRange}
+                                                            Age: {Array.isArray(segment.ageRange) ? segment.ageRange.join(", ") : segment.ageRange}
                                                         </span>
                                                     )}
-                                                    {segment.gender && segment.gender !== "all" && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
-                                                            {segment.gender.charAt(0).toUpperCase() + segment.gender.slice(1)}
-                                                        </span>
-                                                    )}
+                                                    {segment.gender &&
+                                                        (Array.isArray(segment.gender)
+                                                            ? !segment.gender.includes("all") && (
+                                                                  <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                                      {segment.gender
+                                                                          .map((g: string) => g.charAt(0).toUpperCase() + g.slice(1))
+                                                                          .join(", ")}
+                                                                  </span>
+                                                              )
+                                                            : segment.gender !== "all" && (
+                                                                  <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                                      {segment.gender.charAt(0).toUpperCase() + segment.gender.slice(1)}
+                                                                  </span>
+                                                              ))}
                                                     {segment.incomeLevel && (
                                                         <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
                                                             {segment.incomeLevel.charAt(0).toUpperCase() + segment.incomeLevel.slice(1)} Income
+                                                        </span>
+                                                    )}
+                                                    {(segment as any).productName && (
+                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                            {(segment as any).productName}
                                                         </span>
                                                     )}
                                                     {segment.interests && segment.interests.length > 0 && (

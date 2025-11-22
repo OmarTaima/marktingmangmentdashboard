@@ -53,7 +53,8 @@ export function isValidURL(value: unknown, { allowProtocolLess = false }: { allo
 
     if (allowProtocolLess) {
         // Require a dot and a top-level domain of 2-63 letters/digits/hyphen (basic check)
-        const protoLessRe = /^[^\s\/]+\.[A-Za-z0-9-]{2,63}(?:\.|$)/;
+        // Accept protocol-less URLs that may include a path after the TLD, e.g. `facebook.com/username`
+        const protoLessRe = /^[^\s\/]+\.[A-Za-z0-9-]{2,63}(?:[\.\/]|$)/;
         if (protoLessRe.test(v)) return true;
     }
 

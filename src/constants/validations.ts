@@ -79,6 +79,11 @@ export const fieldValidations: Record<string, FieldValidation> = {
         required: false,
         messageKey: "please_fill_required_fields",
     },
+    // Branches
+    branchName: {
+        required: false,
+        messageKey: "please_fill_required_fields",
+    },
 };
 
 export default fieldValidations;

@@ -51,9 +51,8 @@ export const ContactInfoStep: FC<ContactInfoStepProps> = ({ data = {}, onNext, o
             newErrors.businessEmail = (t(fieldValidations.businessEmail.messageKey || "invalid_email") as string) || "";
         }
 
-        // Normalize website by removing leading protocol so we store `example.com/...`
-        const normalizedWebsite = formData.website ? formData.website.replace(/^https?:\/\//i, "") : "";
-        const submitData = { ...formData, website: normalizedWebsite };
+        // Keep website as entered (do not strip leading protocol)
+        const submitData = { ...formData };
 
         // Validate website (optional)
         if (submitData.website && !validators.isValidURL(submitData.website, { allowProtocolLess: true })) {
@@ -67,8 +66,8 @@ export const ContactInfoStep: FC<ContactInfoStepProps> = ({ data = {}, onNext, o
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.name;
         const value = e.target.value;
-        // If editing website, normalize by stripping leading protocol for storage
-        const storedValue = name === "website" ? value.replace(/^https?:\/\//i, "") : value;
+        // Preserve user-entered website value (trim whitespace only)
+        const storedValue = name === "website" ? value.trim() : value;
         const next = { ...formData, [name]: storedValue } as Contact;
         setFormData(next);
         if (errors[name]) {

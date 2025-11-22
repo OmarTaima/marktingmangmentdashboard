@@ -5,6 +5,7 @@ import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
+import fieldValidations from "@/constants/validations";
 
 type CompetitorSwot = {
     strengths: string[];
@@ -65,22 +66,28 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
     const handleAddCompetitor = () => {
         const newErrors: Record<string, string> = {};
 
-        // Only validate website format if provided. Name/description are optional now.
-        // Normalize URLs by stripping leading protocol
+        // Require competitor name (backend requires `name`)
+        if (!currentCompetitor.name || !currentCompetitor.name.trim()) {
+            newErrors.name = (t(fieldValidations.competitorName.messageKey) as string) || "Competitor name is required";
+            setErrors(newErrors);
+            return;
+        }
+
+        // Preserve URLs as entered (do not remove leading protocol)
         const normalizedCompetitor = {
             ...currentCompetitor,
-            website: currentCompetitor.website ? currentCompetitor.website.replace(/^https?:\/\//i, "") : "",
-            facebook: currentCompetitor.facebook ? currentCompetitor.facebook.replace(/^https?:\/\//i, "") : "",
-            instagram: currentCompetitor.instagram ? currentCompetitor.instagram.replace(/^https?:\/\//i, "") : "",
-            tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.replace(/^https?:\/\//i, "") : "",
-            twitter: currentCompetitor.twitter ? currentCompetitor.twitter.replace(/^https?:\/\//i, "") : "",
+            website: currentCompetitor.website ? currentCompetitor.website.trim() : "",
+            facebook: currentCompetitor.facebook ? currentCompetitor.facebook.trim() : "",
+            instagram: currentCompetitor.instagram ? currentCompetitor.instagram.trim() : "",
+            tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.trim() : "",
+            twitter: currentCompetitor.twitter ? currentCompetitor.twitter.trim() : "",
         };
 
         if (normalizedCompetitor.website && !validators.isValidURL(normalizedCompetitor.website, { allowProtocolLess: true })) {
             newErrors.website = (t("invalid_website") as string) || "";
         }
 
-        // Persist the competitor even if name/description empty; show non-blocking errors.
+        // Persist the competitor; show non-blocking errors for URLs
         setErrors(newErrors);
         const next = [...competitors, normalizedCompetitor];
         setCompetitors(next);
@@ -143,15 +150,21 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
         });
 
         if (hasContent) {
+            // Require name when adding draft competitor
+            if (!currentCompetitor.name || !currentCompetitor.name.trim()) {
+                setErrors({ name: (t(fieldValidations.competitorName.messageKey) as string) || "Competitor name is required" });
+                return;
+            }
+
             // Validate website if provided
-            // Normalize URLs before validating/saving
+            // Preserve URLs as entered before validating/saving
             const normalized = {
                 ...currentCompetitor,
-                website: currentCompetitor.website ? currentCompetitor.website.replace(/^https?:\/\//i, "") : "",
-                facebook: currentCompetitor.facebook ? currentCompetitor.facebook.replace(/^https?:\/\//i, "") : "",
-                instagram: currentCompetitor.instagram ? currentCompetitor.instagram.replace(/^https?:\/\//i, "") : "",
-                tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.replace(/^https?:\/\//i, "") : "",
-                twitter: currentCompetitor.twitter ? currentCompetitor.twitter.replace(/^https?:\/\//i, "") : "",
+                website: currentCompetitor.website ? currentCompetitor.website.trim() : "",
+                facebook: currentCompetitor.facebook ? currentCompetitor.facebook.trim() : "",
+                instagram: currentCompetitor.instagram ? currentCompetitor.instagram.trim() : "",
+                tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.trim() : "",
+                twitter: currentCompetitor.twitter ? currentCompetitor.twitter.trim() : "",
             };
 
             if (normalized.website && !validators.isValidURL(normalized.website, { allowProtocolLess: true })) {
@@ -236,7 +249,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     type="text"
                                     value={currentCompetitor.website}
                                     onChange={(e) => {
-                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, website: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
@@ -278,7 +291,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     type="text"
                                     value={currentCompetitor.facebook}
                                     onChange={(e) => {
-                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, facebook: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
@@ -299,7 +312,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     type="text"
                                     value={currentCompetitor.instagram}
                                     onChange={(e) => {
-                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, instagram: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
