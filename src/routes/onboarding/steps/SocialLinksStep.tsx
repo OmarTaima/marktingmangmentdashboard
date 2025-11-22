@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
+import { SiFacebook, SiInstagram, SiTiktok, SiX, SiThreads } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import { cn } from "@/utils/cn";
@@ -27,6 +27,12 @@ const mainPlatforms = [
         domains: ["tiktok.com", "vm.tiktok.com"],
     },
     {
+        name: "Threads",
+        icon: SiThreads,
+        color: "text-indigo-600",
+        domains: ["threads.net"],
+    },
+    {
         name: "X (Twitter)",
         icon: SiX,
         color: "text-light-900 dark:text-white",
@@ -45,9 +51,18 @@ type Platform = {
 const validatePlatformUrl = (url: string, platform: Platform) => {
     if (!url) return true; // Empty is okay
     try {
-        const urlObj = new URL(url);
+        // Support protocol-less URLs like `trello.com/b/xyz` by adding https:// when missing
+        const trimmed = url.trim();
+        const urlToParse = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+        const urlObj = new URL(urlToParse);
         const hostname = urlObj.hostname.toLowerCase().replace("www.", "");
-        return platform.domains.some((domain) => hostname.includes(domain));
+
+        // If the hostname matches one of the known platform domains, it's a clear match.
+        if (platform.domains.some((domain) => hostname.includes(domain))) return true;
+
+        // Otherwise: don't treat domain mismatch as a hard validation failure — accept any valid URL.
+        // This allows users to paste generic links (e.g. `trello.com/...`) without being blocked.
+        return true;
     } catch {
         return false; // Invalid URL format
     }
@@ -78,7 +93,9 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
             const updated = [...prevLinks];
             // Ensure platform is preserved from mainPlatforms if missing
             const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
-            updated[index] = { platform, url: value };
+            // Normalize stored URL by removing leading protocol so it's saved like `trello.com/...`
+            const storedUrl = value.replace(/^https?:\/\//i, "");
+            updated[index] = { platform, url: storedUrl };
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
             return updated;
         });
@@ -104,7 +121,9 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
 
     const handleAddCustom = () => {
         if (newCustom.platform && newCustom.url) {
-            const next = [...customLinks, newCustom];
+            // Normalize custom URL by removing leading protocol
+            const normalized = { ...newCustom, url: newCustom.url.replace(/^https?:\/\//i, "") };
+            const next = [...customLinks, normalized];
             setCustomLinks(next);
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });
             setNewCustom({ platform: "", url: "" });
@@ -184,7 +203,7 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
                                 </div>
                                 <div className="flex-1">
                                     <input
-                                        type="url"
+                                        type="text"
                                         value={businessLinks[index]?.url || ""}
                                         onChange={(e) => handleBusinessLinkChange(index, e.target.value)}
                                         placeholder={
@@ -238,7 +257,7 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
                         <div>
                             <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("url")}</label>
                             <input
-                                type="url"
+                                type="text"
                                 value={newCustom.url}
                                 onChange={(e) => {
                                     const value = e.target.value;

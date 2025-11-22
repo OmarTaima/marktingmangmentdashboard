@@ -51,19 +51,25 @@ export const ContactInfoStep: FC<ContactInfoStepProps> = ({ data = {}, onNext, o
             newErrors.businessEmail = (t(fieldValidations.businessEmail.messageKey || "invalid_email") as string) || "";
         }
 
+        // Normalize website by removing leading protocol so we store `example.com/...`
+        const normalizedWebsite = formData.website ? formData.website.replace(/^https?:\/\//i, "") : "";
+        const submitData = { ...formData, website: normalizedWebsite };
+
         // Validate website (optional)
-        if (formData.website && !validators.isValidURL(formData.website, { allowProtocolLess: true })) {
+        if (submitData.website && !validators.isValidURL(submitData.website, { allowProtocolLess: true })) {
             newErrors.website = (t(fieldValidations.website.messageKey || "invalid_website") as string) || "";
         }
         // Non-blocking: show errors but allow moving forward
         setErrors(newErrors);
-        onNext({ contact: formData });
+        onNext({ contact: submitData });
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.name;
         const value = e.target.value;
-        const next = { ...formData, [name]: value } as Contact;
+        // If editing website, normalize by stripping leading protocol for storage
+        const storedValue = name === "website" ? value.replace(/^https?:\/\//i, "") : value;
+        const next = { ...formData, [name]: storedValue } as Contact;
         setFormData(next);
         if (errors[name]) {
             setErrors({ ...errors, [name]: "" });
@@ -133,7 +139,7 @@ export const ContactInfoStep: FC<ContactInfoStepProps> = ({ data = {}, onNext, o
             <div>
                 <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("website_url")}</label>
                 <input
-                    type="url"
+                    type="text"
                     name="website"
                     value={formData.website}
                     onChange={handleChange}

@@ -80,6 +80,7 @@ const ReportsPage = () => {
             { name: "Facebook", reach: 18500, engagement: 3200, color: "bg-light-500" },
             { name: "Instagram", reach: 21000, engagement: 4100, color: "bg-pink-500" },
             { name: "TikTok", reach: 15200, engagement: 2800, color: "bg-purple-500" },
+            { name: "Threads", reach: 11000, engagement: 1500, color: "bg-indigo-500" },
             { name: "X (Twitter)", reach: 8900, engagement: 1400, color: "bg-sky-500" },
         ],
         topPosts: [

@@ -66,13 +66,23 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
         const newErrors: Record<string, string> = {};
 
         // Only validate website format if provided. Name/description are optional now.
-        if (currentCompetitor.website && !validators.isValidURL(currentCompetitor.website, { allowProtocolLess: true })) {
+        // Normalize URLs by stripping leading protocol
+        const normalizedCompetitor = {
+            ...currentCompetitor,
+            website: currentCompetitor.website ? currentCompetitor.website.replace(/^https?:\/\//i, "") : "",
+            facebook: currentCompetitor.facebook ? currentCompetitor.facebook.replace(/^https?:\/\//i, "") : "",
+            instagram: currentCompetitor.instagram ? currentCompetitor.instagram.replace(/^https?:\/\//i, "") : "",
+            tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.replace(/^https?:\/\//i, "") : "",
+            twitter: currentCompetitor.twitter ? currentCompetitor.twitter.replace(/^https?:\/\//i, "") : "",
+        };
+
+        if (normalizedCompetitor.website && !validators.isValidURL(normalizedCompetitor.website, { allowProtocolLess: true })) {
             newErrors.website = (t("invalid_website") as string) || "";
         }
 
         // Persist the competitor even if name/description empty; show non-blocking errors.
         setErrors(newErrors);
-        const next = [...competitors, currentCompetitor];
+        const next = [...competitors, normalizedCompetitor];
         setCompetitors(next);
         if (typeof onUpdate === "function") onUpdate({ competitors: next });
         setCurrentCompetitor({
@@ -134,11 +144,21 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
 
         if (hasContent) {
             // Validate website if provided
-            if (currentCompetitor.website && !validators.isValidURL(currentCompetitor.website, { allowProtocolLess: true })) {
+            // Normalize URLs before validating/saving
+            const normalized = {
+                ...currentCompetitor,
+                website: currentCompetitor.website ? currentCompetitor.website.replace(/^https?:\/\//i, "") : "",
+                facebook: currentCompetitor.facebook ? currentCompetitor.facebook.replace(/^https?:\/\//i, "") : "",
+                instagram: currentCompetitor.instagram ? currentCompetitor.instagram.replace(/^https?:\/\//i, "") : "",
+                tiktok: currentCompetitor.tiktok ? currentCompetitor.tiktok.replace(/^https?:\/\//i, "") : "",
+                twitter: currentCompetitor.twitter ? currentCompetitor.twitter.replace(/^https?:\/\//i, "") : "",
+            };
+
+            if (normalized.website && !validators.isValidURL(normalized.website, { allowProtocolLess: true })) {
                 setErrors({ website: (t("invalid_website") as string) || "" });
                 return;
             }
-            finalCompetitors = [...competitors, currentCompetitor];
+            finalCompetitors = [...competitors, normalized];
         }
 
         onNext({
@@ -213,10 +233,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                             <div>
                                 <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("website_url")}</label>
                                 <input
-                                    type="url"
+                                    type="text"
                                     value={currentCompetitor.website}
                                     onChange={(e) => {
-                                        const updated = { ...currentCompetitor, website: e.target.value };
+                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const updated = { ...currentCompetitor, website: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                         if (errors.website) setErrors({ ...errors, website: "" });
@@ -254,10 +275,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     {t("facebook_label")}
                                 </label>
                                 <input
-                                    type="url"
+                                    type="text"
                                     value={currentCompetitor.facebook}
                                     onChange={(e) => {
-                                        const updated = { ...currentCompetitor, facebook: e.target.value };
+                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const updated = { ...currentCompetitor, facebook: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     }}
@@ -274,10 +296,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     {t("instagram_label")}
                                 </label>
                                 <input
-                                    type="url"
+                                    type="text"
                                     value={currentCompetitor.instagram}
                                     onChange={(e) => {
-                                        const updated = { ...currentCompetitor, instagram: e.target.value };
+                                        const stored = e.target.value ? e.target.value.replace(/^https?:\/\//i, "") : "";
+                                        const updated = { ...currentCompetitor, instagram: stored };
                                         setCurrentCompetitor(updated);
                                         if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     }}

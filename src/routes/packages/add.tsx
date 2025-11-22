@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Check, Loader2 } from "lucide-react";
+import { Plus, Check, Loader2, Minus } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { getItems, type Item } from "@/api/requests/itemsService";
 import { createPackage } from "@/api/requests/packagesService";
@@ -15,6 +15,7 @@ const AddPackagePage = () => {
     const [price, setPrice] = useState<string>("");
     const [availableItems, setAvailableItems] = useState<Item[]>([]);
     const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+    const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
@@ -41,10 +42,42 @@ const AddPackagePage = () => {
     const toggleItemSelection = (itemId: string) => {
         setSelectedItemIds((prev) => {
             if (prev.includes(itemId)) {
+                setItemQuantities((q) => {
+                    const copy = { ...q };
+                    delete copy[itemId];
+                    return copy;
+                });
                 return prev.filter((id) => id !== itemId);
             }
+            setItemQuantities((q) => ({ ...q, [itemId]: q[itemId] || 1 }));
             return [...prev, itemId];
         });
+    };
+
+    const incrementQuantity = (itemId: string) => {
+        setItemQuantities((q) => ({ ...q, [itemId]: (q[itemId] || 0) + 1 }));
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
+    };
+
+    const decrementQuantity = (itemId: string) => {
+        setItemQuantities((q) => {
+            const current = q[itemId] || 0;
+            const next = Math.max(1, current - 1);
+            return { ...q, [itemId]: next };
+        });
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
+    };
+
+    const setQuantity = (itemId: string, value: number) => {
+        const next = Math.max(1, Math.floor(Number(value) || 1));
+        setItemQuantities((q) => ({ ...q, [itemId]: next }));
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
     };
 
     const handleSubmit = async () => {
@@ -92,6 +125,7 @@ const AddPackagePage = () => {
                 price: Number(p),
                 description: description.trim() || undefined,
                 items: selectedItemIds,
+                quantities: itemQuantities,
             });
 
             // Navigate back to packages page
@@ -185,23 +219,63 @@ const AddPackagePage = () => {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {availableItems.map((item) => {
                             const isSelected = selectedItemIds.includes(item._id);
+                            const qty = itemQuantities[item._id] || 1;
                             return (
                                 <div
                                     key={item._id}
                                     onClick={() => toggleItemSelection(item._id)}
-                                    className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-4 py-3 text-sm transition-all ${
+                                    className={`flex cursor-pointer flex-col items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm transition-all sm:flex-row sm:items-center ${
                                         isSelected
                                             ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
                                             : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
                                     }`}
                                 >
-                                    <span className="truncate">{item.name}</span>
-                                    {isSelected && (
-                                        <Check
-                                            size={16}
-                                            className="flex-shrink-0"
-                                        />
-                                    )}
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <span className="truncate">{item.name}</span>
+                                    </div>
+
+                                    <div
+                                        className="mt-2 flex items-center gap-2 sm:mt-0"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => decrementQuantity(item._id)}
+                                                aria-label={t("decrease_quantity") || "Decrease quantity"}
+                                                className="hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:hover:bg-dark-700 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-xs"
+                                            >
+                                                <Minus size={12} />
+                                            </button>
+
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                value={qty}
+                                                onChange={(e) => setQuantity(item._id, Number(e.target.value))}
+                                                aria-label={t("item_quantity") || "Item quantity"}
+                                                className="dark:bg-dark-800 dark:border-dark-700 w-12 rounded-md border bg-white px-1.5 py-0.5 text-center text-sm sm:w-12"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={() => incrementQuantity(item._id)}
+                                                aria-label={t("increase_quantity") || "Increase quantity"}
+                                                className="hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:hover:bg-dark-700 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-xs"
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+
+                                            <div className="ml-2 flex items-center gap-2">
+                                                {isSelected && (
+                                                    <span className="bg-light-700 dark:bg-dark-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-white">
+                                                        <Check size={12} />
+                                                        <span>{qty}</span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })}

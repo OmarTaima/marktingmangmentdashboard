@@ -82,6 +82,7 @@ export const createPackage = async (packageData: {
     price: number;
     description?: string;
     items?: string[];
+    quantities?: Record<string, number>;
 }): Promise<Package> => {
     try {
         const response = await api.post("/packages", packageData);
@@ -105,6 +106,7 @@ export const updatePackage = async (
         price?: number;
         description?: string;
         items?: string[];
+        quantities?: Record<string, number>;
     },
 ): Promise<Package> => {
     try {
