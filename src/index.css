@@ -178,3 +178,39 @@ input[type="number"] {
         display: none; /* WebKit browsers */
     }
 }
+
+/* Ensure select and option text remains readable in both themes */
+@layer components {
+    select,
+    select option {
+        color: var(--color-light-900);
+        background-color: var(--color-light-50);
+        border-color: var(--color-light-600);
+    }
+
+    .dark select,
+    .dark select option {
+        color: var(--color-dark-50);
+        background-color: var(--color-dark-800);
+        border-color: var(--color-dark-700);
+    }
+
+    /* Improve cross-browser appearance where possible */
+    select {
+        -webkit-appearance: menulist-button;
+        appearance: menulist-button;
+    }
+
+    /* Ensure focused select has a visible ring */
+    select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    /* Try to avoid white-on-white in some native UAs by setting option colors
+       (many browsers limit styling of native option elements; this helps where supported) */
+    select option:checked,
+    select option:focus {
+        color: var(--color-dark-50);
+    }
+}
