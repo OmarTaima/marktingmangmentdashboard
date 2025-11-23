@@ -94,38 +94,45 @@ const PackagesPage = () => {
 
                                     {pkg.items && pkg.items.length > 0 && (
                                         <ul className="mt-4 space-y-2 sm:space-y-3">
-                                            {pkg.items.map((item) => (
-                                                <li
-                                                    key={item._id}
-                                                    className="flex items-start gap-2"
-                                                >
-                                                    <Check
-                                                        size={18}
-                                                        className="mt-0.5 flex-shrink-0 text-green-500"
-                                                    />
-                                                    <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
-                                                        {item.name}
-                                                        {item.description && (
-                                                            <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">
-                                                                - {item.description}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </li>
-                                            ))}
+                                            {pkg.items.map((pkgItem, idx) => {
+                                                // pkgItem may come in different shapes:
+                                                // - { _id, name, description }
+                                                // - { item: { _id, name, description }, quantity }
+                                                // - legacy: { quantity, buffer: { ... } }
+                                                const inner = (pkgItem as any).item || (pkgItem as any);
+                                                const id = (inner && (inner._id || inner.id)) || `${pkg._id}-${idx}`;
+                                                const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
+                                                const description = inner?.description || inner?.desc || null;
+                                                const quantity = (pkgItem as any).quantity;
+
+                                                return (
+                                                    <li
+                                                        key={id}
+                                                        className="flex items-start gap-2"
+                                                    >
+                                                        <Check
+                                                            size={18}
+                                                            className="mt-0.5 flex-shrink-0 text-green-500"
+                                                        />
+                                                        <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
+                                                            {name}
+                                                            {description && (
+                                                                <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">
+                                                                    - {description}
+                                                                </span>
+                                                            )}
+                                                            {typeof quantity !== "undefined" && (
+                                                                <span className="bg-light-100 dark:bg-dark-700 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                    x{quantity}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     )}
                                 </div>
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSelectPackage(pkg);
-                                    }}
-                                    className="btn-primary btn-sm mt-6 w-full"
-                                >
-                                    {t("select_package")}
-                                </button>
                             </div>
                         ))}
                     </div>

@@ -114,11 +114,11 @@ export interface ConvertToContractPayload {
 /**
  * Get paginated list of quotations
  */
-export const getQuotations = async (params?: QuotationQueryParams): Promise<QuotationListResponse> => {
+export const getQuotations = async (params?: QuotationQueryParams, signal?: AbortSignal): Promise<QuotationListResponse> => {
     return withCache(
         "/quotations",
         async () => {
-            const response = await api.get("/quotations", { params });
+            const response = await api.get("/quotations", { params, signal });
             return response.data;
         },
         params,

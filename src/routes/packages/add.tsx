@@ -4,7 +4,9 @@ import { useLang } from "@/hooks/useLang";
 import { getItems, type Item } from "@/api/requests/itemsService";
 import { createPackage } from "@/api/requests/packagesService";
 import type { Package } from "@/api/requests/packagesService";
-import { usePackages, useDeletePackage } from "@/hooks/queries/usePackagesQuery";
+import { usePackages, useDeletePackage, useUpdatePackage } from "@/hooks/queries/usePackagesQuery";
+import { useQueryClient } from "@tanstack/react-query";
+import { packagesKeys } from "@/hooks/queries/usePackagesQuery";
 import { useNavigate } from "react-router-dom";
 
 const AddPackagePage = () => {
@@ -32,6 +34,9 @@ const AddPackagePage = () => {
     const { data: packagesData, isLoading: packagesLoading } = usePackages({ page: 1, limit: 100 });
     const packagesList: Package[] = packagesData?.data || [];
     const deleteMutation = useDeletePackage();
+    const updatePackageMutation = useUpdatePackage();
+    const queryClient = useQueryClient();
+    const [editPackageId, setEditPackageId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const loadItems = async () => {
@@ -127,24 +132,67 @@ const AddPackagePage = () => {
         setError("");
 
         try {
-            await createPackage({
-                nameEn: en,
-                nameAr: ar,
-                price: Number(p),
-                description: description.trim() || undefined,
-                items: selectedItemIds.map((itemId) => ({
-                    item: itemId,
-                    quantity: itemQuantities[itemId] || 1,
-                })),
-            });
+            if (editPackageId) {
+                await updatePackageMutation.mutateAsync({
+                    id: editPackageId,
+                    data: {
+                        nameEn: en,
+                        nameAr: ar,
+                        price: Number(p),
+                        description: description.trim() || undefined,
+                        items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
+                    },
+                });
+                // reset edit state
+                setEditPackageId(null);
+            } else {
+                await createPackage({
+                    nameEn: en,
+                    nameAr: ar,
+                    price: Number(p),
+                    description: description.trim() || undefined,
+                    items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
+                });
+            }
 
-            // Navigate back to packages page
+            // ensure packages list is refetched so other pages show fresh data
+            try {
+                queryClient.invalidateQueries({ queryKey: packagesKeys.lists() });
+            } catch (e) {
+                // ignore
+            }
+
+            // Navigate back to packages list
             navigate("/packages");
         } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to create package");
+            setError(err.response?.data?.message || (editPackageId ? "Failed to update package" : "Failed to create package"));
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const startEditPackage = (pkg: Package) => {
+        setEditPackageId(pkg._id);
+        setNameEn(pkg.nameEn || "");
+        setNameAr(pkg.nameAr || "");
+        setDescription(pkg.description || "");
+        setPrice(pkg.price?.toString() || "");
+
+        // normalize items: pkg.items may contain { item: { _id } , quantity }
+        const ids: string[] = [];
+        const quantities: Record<string, number> = {};
+        (pkg.items || []).forEach((it: any) => {
+            const itemObj = it.item || it;
+            const id = typeof itemObj === "string" ? itemObj : itemObj?._id || itemObj?.id;
+            if (id) {
+                ids.push(id);
+                quantities[id] = it.quantity || 1;
+            }
+        });
+        setSelectedItemIds(ids);
+        setItemQuantities(quantities);
+        // scroll to form
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     if (isLoading) {
@@ -181,11 +229,57 @@ const AddPackagePage = () => {
                                     <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">{pkg.nameEn || pkg.nameAr}</div>
                                     <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description || ""}</div>
                                 </div>
+                                {pkg.items && pkg.items.length > 0 && (
+                                    <ul className="mt-3 space-y-2">
+                                        {pkg.items.map((pkgItem, idx) => {
+                                            const inner = (pkgItem as any).item || (pkgItem as any);
+                                            const id = (inner && (inner._id || inner.id)) || `${pkg._id}-${idx}`;
+                                            const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
+                                            const descriptionInner = inner?.description || inner?.desc || null;
+                                            const quantity = (pkgItem as any).quantity;
 
-                                <div className="flex items-center justify-between">
+                                            return (
+                                                <li
+                                                    key={id}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <Check
+                                                        size={14}
+                                                        className="text-green-500"
+                                                    />
+                                                    <div className="text-sm">
+                                                        <div className="text-light-900 dark:text-dark-50 font-medium">{name}</div>
+                                                        {descriptionInner && (
+                                                            <div className="text-light-600 dark:text-dark-400 text-xs">{descriptionInner}</div>
+                                                        )}
+                                                    </div>
+                                                    {typeof quantity !== "undefined" && (
+                                                        <span className="bg-light-100 dark:bg-dark-700 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
+                                                            x{quantity}
+                                                        </span>
+                                                    )}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+
+                                <div className="mt-3 flex items-center justify-between">
                                     <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">{pkg.price ? `${pkg.price}` : "-"}</div>
 
                                     <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                startEditPackage(pkg);
+                                            }}
+                                            className="bg-light-50 hover:bg-light-100 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                        >
+                                            <Check size={14} />
+                                            <span>{t("edit") || "Edit"}</span>
+                                        </button>
+
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -341,15 +435,6 @@ const AddPackagePage = () => {
                                             >
                                                 <Plus size={12} />
                                             </button>
-
-                                            <div className="ml-2 flex items-center gap-2">
-                                                {isSelected && (
-                                                    <span className="bg-light-700 dark:bg-dark-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-white">
-                                                        <Check size={12} />
-                                                        <span>{qty}</span>
-                                                    </span>
-                                                )}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -366,7 +451,23 @@ const AddPackagePage = () => {
                 <div className="mt-6 flex justify-end gap-3">
                     <button
                         type="button"
-                        onClick={() => navigate("/packages")}
+                        onClick={() => {
+                            if (editPackageId) {
+                                // cancel edit: clear form fields
+                                setEditPackageId(null);
+                                setNameEn("");
+                                setNameAr("");
+                                setDescription("");
+                                setPrice("");
+                                setSelectedItemIds([]);
+                                setItemQuantities({});
+                                setError("");
+                                setNameError("");
+                                setPriceError("");
+                                return;
+                            }
+                            navigate("/packages");
+                        }}
                         className="btn-ghost"
                     >
                         {t("cancel") || "Cancel"}
@@ -383,12 +484,12 @@ const AddPackagePage = () => {
                                     size={16}
                                     className="text-light-500 animate-spin"
                                 />
-                                {t("creating") || "Creating..."}
+                                {editPackageId ? t("updating") || "Updating..." : t("creating") || "Creating..."}
                             </>
                         ) : (
                             <>
-                                <Plus size={16} />
-                                {t("create_package") || "Create Package"}
+                                {editPackageId ? <Check size={16} /> : <Plus size={16} />}
+                                {editPackageId ? t("update_package") || "Update Package" : t("create_package") || "Create Package"}
                             </>
                         )}
                     </button>

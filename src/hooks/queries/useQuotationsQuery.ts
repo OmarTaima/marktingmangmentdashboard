@@ -29,7 +29,8 @@ export const quotationsKeys = {
 export const useQuotations = (params?: QuotationQueryParams) => {
     return useQuery({
         queryKey: quotationsKeys.list(params),
-        queryFn: () => getQuotations(params),
+        queryFn: ({ signal }) => getQuotations(params, signal),
+        staleTime: 5 * 60 * 1000, // 5 minutes
     });
 };
 

@@ -80,7 +80,9 @@ const ServicesPage = () => {
         setEditingValueAr(service.ar || "");
         setEditingDescription(service.description || "");
         setEditingPrice(service.price?.toString() || "");
-        setEditingPackages((service as any).packages || []);
+        // Extract package IDs from package objects
+        const packageIds = service.packages?.map((pkg) => (typeof pkg === "string" ? pkg : pkg._id)) || [];
+        setEditingPackages(packageIds);
     };
 
     const saveEdit = async (id: string) => {
@@ -96,6 +98,8 @@ const ServicesPage = () => {
 
         try {
             setError("");
+            // Ensure packages are string IDs only
+            const packageIds = editingPackages.map((pkg) => (typeof pkg === "string" ? pkg : (pkg as any)?._id)).filter(Boolean);
             await updateServiceMutation.mutateAsync({
                 id,
                 data: {
@@ -103,7 +107,7 @@ const ServicesPage = () => {
                     ar,
                     description: desc || undefined,
                     price,
-                    packages: editingPackages.length > 0 ? editingPackages : undefined,
+                    packages: packageIds.length > 0 ? packageIds : undefined,
                 },
             });
             setEditingId("");
@@ -233,7 +237,11 @@ const ServicesPage = () => {
                                                                 {packages && packages.length > 0 ? (
                                                                     <div className="flex flex-wrap gap-2">
                                                                         {packages.map((pkg) => {
-                                                                            const isSelected = editingPackages.includes(pkg._id);
+                                                                            const isSelected = editingPackages.some((id) =>
+                                                                                typeof id === "string"
+                                                                                    ? id === pkg._id
+                                                                                    : (id as any)?._id === pkg._id,
+                                                                            );
                                                                             return (
                                                                                 <button
                                                                                     key={pkg._id}

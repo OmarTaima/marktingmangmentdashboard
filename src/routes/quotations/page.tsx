@@ -12,7 +12,7 @@ import {
     useConvertQuotationToContract,
 } from "@/hooks/queries";
 import type { Client } from "@/api/interfaces/clientinterface";
-import type { Quotation, CustomService, CreateQuotationPayload } from "@/api/requests/quotationsService";
+import type { Quotation, CustomService, CreateQuotationPayload, QuotationQueryParams } from "@/api/requests/quotationsService";
 import { printQuotation } from "@/utils/quotationPdfGenerator";
 
 const QuotationsPage = () => {
@@ -30,25 +30,19 @@ const QuotationsPage = () => {
     const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
     const services = servicesResponse?.data || [];
 
-    const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations(
-        selectedClientId && selectedClientId !== "global"
-            ? {
-                  clientId: selectedClientId,
-                  page: currentPage,
-                  limit: pageSize,
-                  status: statusFilter || undefined,
-              }
-            : {
-                  page: currentPage,
-                  limit: pageSize,
-                  status: statusFilter || undefined,
-              },
-    );
+    const quotationsParams: QuotationQueryParams = {
+        page: currentPage,
+        limit: pageSize,
+        status: statusFilter || undefined,
+        ...(selectedClientId && selectedClientId !== "global" ? { clientId: selectedClientId } : {}),
+    };
+
+    const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations(quotationsParams);
     const quotations = quotationsResponse?.data || [];
     const totalQuotations = quotationsResponse?.meta?.total || 0;
 
     // Also fetch all quotations (no filters) to detect whether a client already has quotations
-    const { data: allQuotationsResponse } = useQuotations();
+    const { data: allQuotationsResponse } = useQuotations({ page: 1, limit: 1000 });
     const allQuotations: any[] = Array.isArray(allQuotationsResponse)
         ? allQuotationsResponse
         : allQuotationsResponse?.data && Array.isArray(allQuotationsResponse.data)
@@ -112,6 +106,7 @@ const QuotationsPage = () => {
         setSelectedClient(client);
         setSelectedClientId(client.id || "");
         setCurrentPage(1);
+        setIsEditing(true);
         resetForm();
     };
 
@@ -119,11 +114,30 @@ const QuotationsPage = () => {
         setSelectedClient({ business: { businessName: t("global_quotation") || "Global Quotation" } } as Client);
         setSelectedClientId("global");
         setCurrentPage(1);
+        setIsEditing(true);
         resetForm();
     };
 
+    // Start creating a new quotation from the existing list
+    const startCreateNew = () => {
+        // Debug: log current selection state
+        try {
+            // eslint-disable-next-line no-console
+            console.log("Start create new quotation", {
+                selectedClientId,
+                selectedClient,
+                isEditing,
+                displayedQuotationsLength: displayedQuotations?.length,
+            });
+        } catch (e) {
+            // ignore
+        }
+        setIsEditing(true);
+        // clear any previous editing id so a fresh form shows
+        setEditingQuotationId(null);
+    };
+
     const resetForm = () => {
-        setIsEditing(false);
         setEditingQuotationId(null);
         setSelectedPackages([]);
         setCustomServices([]);
@@ -595,6 +609,14 @@ const QuotationsPage = () => {
 
     const totalPages = Math.ceil(totalQuotations / pageSize);
 
+    // Debug render state
+    try {
+        // eslint-disable-next-line no-console
+        console.log("QuotationsPage render", { selectedClientId, selectedClient, isEditing, displayedQuotationsLength: displayedQuotations?.length });
+    } catch (e) {
+        // ignore
+    }
+
     return (
         <div className="space-y-6 px-4 sm:px-6">
             <div className="flex items-center justify-between">
@@ -711,7 +733,7 @@ const QuotationsPage = () => {
                     </div>
 
                     {/* Create/Edit Quotation Form */}
-                    {((isEditing && displayedQuotations.length === 0) || (isEditing && editingQuotationId)) && (
+                    {(isEditing || displayedQuotations.length === 0) && (
                         <div className="card">
                             <h3 className="card-title mb-4">
                                 {editingQuotationId ? t("edit_quotation") || "Edit Quotation" : t("create_new_quotation") || "Create New Quotation"}
@@ -949,18 +971,6 @@ const QuotationsPage = () => {
                                         className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                                        {t("override_total") || "Override Total"} ({t("optional") || "optional"})
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={overriddenTotal}
-                                        onChange={(e) => setOverriddenTotal(e.target.value)}
-                                        placeholder={t("manual_total") || "Manual total"}
-                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
-                                    />
-                                </div>
                             </div>
 
                             {/* Summary and Actions */}
@@ -1023,7 +1033,7 @@ const QuotationsPage = () => {
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="card-title">{t("existing_quotations") || "Existing Quotations"}</h3>
                                 <button
-                                    onClick={() => setIsEditing(true)}
+                                    onClick={startCreateNew}
                                     className="btn-primary"
                                 >
                                     <Plus
@@ -1183,8 +1193,6 @@ const QuotationsPage = () => {
                             )}
                         </div>
                     )}
-
-                    {/* 'No quotations' placeholder removed as requested */}
                 </>
             )}
 
