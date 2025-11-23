@@ -138,7 +138,7 @@ const ClientsPage = () => {
             {/* Loading State */}
             {loading ? (
                 <div className="border-light-600 dark:border-dark-700 flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed text-center">
-                    <div className="border-light-300 border-t-light-600 dark:border-dark-700 dark:border-t-dark-400 h-12 w-12 animate-spin rounded-full border-4"></div>
+                    <div className="border-light-500 border-t-light-500 dark:border-light-500 dark:border-t-light-500 h-12 w-12 animate-spin rounded-full border-4"></div>
                     <p className="text-light-600 dark:text-dark-400">{t("loading_clients") || "Loading clients..."}</p>
                 </div>
             ) : error ? (

@@ -40,17 +40,17 @@ export interface CustomService {
     en: string;
     ar: string;
     price: number;
-    discount?: number;
-    discountType?: "percentage" | "fixed";
 }
 
 export interface Quotation {
     _id: string;
     quotationNumber: string;
     clientId?: string;
-    services: string[];
+    services?: string[]; // kept for backward compatibility
+    packages?: string[]; // preferred: list of selected package IDs
     servicesPricing: ServicePricing[];
     customServices: CustomService[];
+    customName?: string;
     subtotal: number;
     discountValue: number;
     discountType: "percentage" | "fixed";
@@ -88,8 +88,12 @@ export interface QuotationQueryParams {
 
 export interface CreateQuotationPayload {
     clientId?: string;
+    // Use `packages` to submit package ids for the quotation. `services` is kept
+    // as an optional deprecated field for backward compatibility if needed.
+    packages?: string[];
     services?: string[];
     customServices?: CustomService[];
+    customName?: string;
     overriddenTotal?: number;
     discountValue?: number;
     discountType?: "percentage" | "fixed";

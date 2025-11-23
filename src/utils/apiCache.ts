@@ -160,12 +160,10 @@ class ApiCache {
         // Try to get from cache first
         const cached = this.get<T>(endpoint, params);
         if (cached !== null) {
-            console.log(`✅ Cache HIT: ${endpoint}`);
             return cached;
         }
 
         // Cache miss - fetch from API
-        console.log(`⬇️ Cache MISS: ${endpoint}`);
         try {
             const data = await apiCall();
             this.set(endpoint, data, params, options?.ttl);

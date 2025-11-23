@@ -185,9 +185,6 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         return null;
     }
 
-    // Debug: Log raw backend data
-    console.log("[Transform] Raw backend data:", JSON.stringify(backendData, null, 2));
-
     const normalizeSocialLinks = (raw: any): any => {
         // Expected frontend shape: { business: [], personal: [], custom: [] }
         if (!raw) return { business: [], personal: [], custom: [] };
@@ -232,9 +229,6 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         segments: backendData.segments || [],
         competitors: backendData.competitors || [],
     };
-
-    // Debug: Log transformed data
-    console.log("[Transform] Transformed frontend data:", JSON.stringify(transformed, null, 2));
 
     return transformed;
 };

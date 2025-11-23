@@ -148,7 +148,7 @@ const ItemsPage = () => {
 
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="text-light-500 dark:text-dark-400 h-8 w-8 animate-spin" />
+                        <Loader2 className="text-light-500 dark:text-light-500 h-8 w-8 animate-spin" />
                     </div>
                 ) : (
                     <>
@@ -285,7 +285,7 @@ const ItemsPage = () => {
                         {isSaving ? (
                             <Loader2
                                 size={14}
-                                className="animate-spin"
+                                className="text-light-500 animate-spin"
                             />
                         ) : (
                             <Plus size={14} />

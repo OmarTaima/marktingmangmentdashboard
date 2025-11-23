@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, FileText, Loader2, Check, Trash2, Edit2, Download, FileCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Plus, FileText, Loader2, Trash2, Edit2, Download, FileCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import {
@@ -85,8 +85,9 @@ const QuotationsPage = () => {
     // Form state
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
-    const [selectedServices, setSelectedServices] = useState<string[]>([]);
+    const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
     const [customServices, setCustomServices] = useState<CustomService[]>([]);
+    const [customQuotationName, setCustomQuotationName] = useState<string>("");
     const [quotationNote, setQuotationNote] = useState<string>("");
     const [discountValue, setDiscountValue] = useState<string>("");
     const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
@@ -97,8 +98,6 @@ const QuotationsPage = () => {
     const [customName, setCustomName] = useState<string>("");
     const [customNameAr, setCustomNameAr] = useState<string>("");
     const [customPrice, setCustomPrice] = useState<string>("");
-    const [customDiscount, setCustomDiscount] = useState<string>("");
-    const [customDiscountType, setCustomDiscountType] = useState<"percentage" | "fixed">("percentage");
 
     // Contract conversion modal
     const [showConvertModal, setShowConvertModal] = useState<boolean>(false);
@@ -126,8 +125,9 @@ const QuotationsPage = () => {
     const resetForm = () => {
         setIsEditing(false);
         setEditingQuotationId(null);
-        setSelectedServices([]);
+        setSelectedPackages([]);
         setCustomServices([]);
+        setCustomQuotationName("");
         setQuotationNote("");
         setDiscountValue("");
         setDiscountType("percentage");
@@ -135,11 +135,17 @@ const QuotationsPage = () => {
         setValidUntil("");
     };
 
-    const toggleService = (serviceId: string) => {
-        if (selectedServices.includes(serviceId)) {
-            setSelectedServices(selectedServices.filter((id) => id !== serviceId));
+    const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+
+    const toggleExpandService = (serviceId: string) => {
+        setExpandedServiceId((prev) => (prev === serviceId ? null : serviceId));
+    };
+
+    const togglePackage = (packageId: string) => {
+        if (selectedPackages.includes(packageId)) {
+            setSelectedPackages(selectedPackages.filter((id) => id !== packageId));
         } else {
-            setSelectedServices([...selectedServices, serviceId]);
+            setSelectedPackages([...selectedPackages, packageId]);
         }
     };
 
@@ -151,28 +157,17 @@ const QuotationsPage = () => {
         if (!name && !nameAr) return;
         if (isNaN(price) || price <= 0) return;
 
-        const discount = customDiscount ? parseFloat(customDiscount) : undefined;
-        if (discount !== undefined) {
-            if (isNaN(discount)) return;
-            if (customDiscountType === "percentage" && (discount < 0 || discount > 100)) return;
-            if (customDiscountType === "fixed" && discount < 0) return;
-        }
-
         const newCustomService: CustomService = {
             id: `custom_${Date.now()}`,
             en: name || nameAr,
             ar: nameAr || name,
             price,
-            discount,
-            discountType: customDiscountType,
         };
 
         setCustomServices([...customServices, newCustomService]);
         setCustomName("");
         setCustomNameAr("");
         setCustomPrice("");
-        setCustomDiscount("");
-        setCustomDiscountType("percentage");
     };
 
     const removeCustomService = (id: string) => {
@@ -180,21 +175,15 @@ const QuotationsPage = () => {
     };
 
     const calculateSubtotal = () => {
-        const servicesTotal = selectedServices.reduce((sum, serviceId) => {
-            const service = services.find((s) => s._id === serviceId);
-            return sum + (service?.price || 0);
+        // Sum prices of selected packages (packages belong to services)
+        const allPackages = services.flatMap((s: any) => s.packages || []);
+        const servicesTotal = selectedPackages.reduce((sum, pkgId) => {
+            const pkg = allPackages.find((p: any) => p._id === pkgId);
+            return sum + (pkg?.price || 0);
         }, 0);
 
         const customServicesTotal = customServices.reduce((sum, customService) => {
-            let price = customService.price;
-            if (customService.discount) {
-                if (customService.discountType === "percentage") {
-                    price = price * (1 - customService.discount / 100);
-                } else {
-                    price = Math.max(0, price - customService.discount);
-                }
-            }
-            return sum + price;
+            return sum + customService.price;
         }, 0);
 
         return servicesTotal + customServicesTotal;
@@ -215,18 +204,19 @@ const QuotationsPage = () => {
     };
 
     const handleCreateOrUpdateQuotation = async () => {
-        if (selectedServices.length === 0 && customServices.length === 0) {
+        if (selectedPackages.length === 0 && customServices.length === 0) {
             alert(t("please_select_services") || "Please select at least one service");
             return;
         }
 
         try {
-            // Ensure services are strings (IDs only)
-            const serviceIds = selectedServices.map((s) => (typeof s === "string" ? s : (s as any)._id || s));
+            // Ensure packages are strings (IDs only)
+            const packageIds = selectedPackages.map((s) => (typeof s === "string" ? s : (s as any)._id || s));
 
             const payload: CreateQuotationPayload = {
-                services: serviceIds.length > 0 ? serviceIds : undefined,
+                packages: packageIds.length > 0 ? packageIds : undefined,
                 customServices: customServices.length > 0 ? customServices : undefined,
+                customName: customQuotationName || undefined,
                 discountValue: parseFloat(discountValue) || 0,
                 discountType,
                 note: quotationNote || undefined,
@@ -237,8 +227,6 @@ const QuotationsPage = () => {
             if (selectedClientId && selectedClientId !== "global") {
                 payload.clientId = selectedClientId;
             }
-
-            console.log("Creating/Updating quotation with payload:", payload);
 
             if (overriddenTotal) {
                 payload.overriddenTotal = parseFloat(overriddenTotal);
@@ -261,11 +249,18 @@ const QuotationsPage = () => {
         setIsEditing(true);
         setEditingQuotationId(quotation._id);
 
-        // Ensure we only store service IDs (strings)
-        const serviceIds = quotation.services.map((s) => (typeof s === "string" ? s : (s as any)._id || s));
-        setSelectedServices(serviceIds);
+        // Prefer `packages` on the quotation; fall back to `services` for older data
+        const packageIds =
+            quotation.packages && Array.isArray(quotation.packages)
+                ? quotation.packages.map((p) => (typeof p === "string" ? p : (p as any)._id || p))
+                : quotation.services && Array.isArray(quotation.services)
+                  ? quotation.services.map((s) => (typeof s === "string" ? s : (s as any)._id || s))
+                  : [];
+
+        setSelectedPackages(packageIds);
 
         setCustomServices(quotation.customServices || []);
+        setCustomQuotationName(quotation.customName || "");
         setQuotationNote(quotation.note || "");
         setDiscountValue(quotation.discountValue?.toString() || "");
         setDiscountType(quotation.discountType);
@@ -319,19 +314,242 @@ const QuotationsPage = () => {
             const client = clients.find((c) => c.id === quotation.clientId);
             const clientName = client?.business?.businessName || "";
 
-            // Use browser's Print to PDF feature
-            printQuotation({
-                quotation,
-                clientName,
-                companyInfo: {
-                    name: "Your Company Name",
-                    address: "123 Business St, City, Country",
-                    phone: "+20 123 456 7890",
-                    email: "info@yourcompany.com",
-                    website: "www.yourcompany.com",
+            // Dynamic import of jsPDF for better code splitting
+            const jsPDF = (await import("jspdf")).default;
+            const autoTable = (await import("jspdf-autotable")).default;
+
+            // Create PDF
+            const doc = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4",
+            }) as any;
+
+            const currency = lang === "ar" ? "ج.م" : "EGP";
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            // Colors
+            const primaryColor: [number, number, number] = [102, 126, 234];
+            const darkGray: [number, number, number] = [74, 85, 104];
+            const lightGray: [number, number, number] = [237, 242, 247];
+
+            // Header with gradient effect
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, pageWidth, 60, "F");
+
+            // Company info
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("Your Company Name", 20, 25);
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("123 Business St, City, Country", 20, 32);
+            doc.text("+20 123 456 7890 | info@yourcompany.com", 20, 38);
+
+            // Quotation number
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text(lang === "ar" ? "عرض سعر" : "QUOTATION", pageWidth - 20, 25, { align: "right" });
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(quotation.quotationNumber, pageWidth - 20, 32, { align: "right" });
+
+            // Date
+            const dateStr = new Date(quotation.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US");
+            doc.text((lang === "ar" ? "التاريخ: " : "Date: ") + dateStr, pageWidth - 20, 38, { align: "right" });
+
+            // Client info
+            let yPos = 75;
+            if (clientName) {
+                doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(lang === "ar" ? "العميل:" : "Client:", 20, yPos);
+                doc.setFont("helvetica", "normal");
+                doc.text(clientName, 20, yPos + 6);
+                yPos += 20;
+            }
+
+            // Prepare table data
+            const tableData: any[] = [];
+            let itemNumber = 1;
+
+            // Get all packages from services
+            const allPackages = services.flatMap((s: any) =>
+                (s.packages || []).map((p: any) => ({ ...p, serviceName: lang === "ar" ? s.ar : s.en })),
+            );
+
+            // Add packages from quotation
+            if (quotation.packages && quotation.packages.length > 0) {
+                quotation.packages.forEach((pkgId: any) => {
+                    const pkgIdStr = typeof pkgId === "string" ? pkgId : pkgId._id || pkgId.id;
+                    const pkg = allPackages.find((p: any) => p._id === pkgIdStr);
+                    if (pkg) {
+                        const packageName = (lang === "ar" ? pkg.nameAr : pkg.nameEn) || "Package";
+                        const serviceName = pkg.serviceName || "Service";
+                        const packagePrice = pkg.price || 0;
+
+                        tableData.push([
+                            itemNumber++,
+                            `${packageName}\n(${serviceName})`,
+                            `${packagePrice.toFixed(2)} ${currency}`,
+                            "-",
+                            `${packagePrice.toFixed(2)} ${currency}`,
+                        ]);
+                    }
+                });
+            }
+
+            // Add services from servicesPricing (backward compatibility)
+            if (quotation.servicesPricing && quotation.servicesPricing.length > 0) {
+                quotation.servicesPricing.forEach((sp: any) => {
+                    const service = sp.service;
+                    if (!service) return; // Skip if service is undefined
+
+                    const serviceName = (lang === "ar" ? service.ar : service.en) || "Service";
+                    const price = sp.customPrice || service.price || 0;
+                    tableData.push([itemNumber++, serviceName, `${price.toFixed(2)} ${currency}`, "-", `${price.toFixed(2)} ${currency}`]);
+                });
+            }
+
+            // Add custom services
+            if (quotation.customServices && quotation.customServices.length > 0) {
+                quotation.customServices.forEach((cs: any) => {
+                    let finalPrice = cs.price;
+                    let discountText = "-";
+
+                    if (cs.discount && cs.discount > 0) {
+                        if (cs.discountType === "percentage") {
+                            const discountAmt = (cs.price * cs.discount) / 100;
+                            finalPrice = cs.price - discountAmt;
+                            discountText = `${cs.discount}% (${discountAmt.toFixed(2)} ${currency})`;
+                        } else {
+                            finalPrice = cs.price - cs.discount;
+                            discountText = `${cs.discount.toFixed(2)} ${currency}`;
+                        }
+                    }
+
+                    tableData.push([
+                        itemNumber++,
+                        `${lang === "ar" ? cs.ar : cs.en}\n${lang === "ar" ? "(خدمة مخصصة)" : "(Custom)"}`,
+                        `${cs.price.toFixed(2)} ${currency}`,
+                        discountText,
+                        `${finalPrice.toFixed(2)} ${currency}`,
+                    ]);
+                });
+            }
+
+            // Ensure we have at least one item
+            if (tableData.length === 0) {
+                tableData.push([1, lang === "ar" ? "لا توجد خدمات" : "No services", `0.00 ${currency}`, "-", `0.00 ${currency}`]);
+            }
+
+            // Create table
+            autoTable(doc, {
+                startY: yPos,
+                head: [
+                    [
+                        "#",
+                        lang === "ar" ? "الخدمة" : "Service",
+                        lang === "ar" ? "السعر" : "Price",
+                        lang === "ar" ? "الخصم" : "Discount",
+                        lang === "ar" ? "المجموع" : "Total",
+                    ],
+                ],
+                body: tableData,
+                theme: "striped",
+                headStyles: {
+                    fillColor: primaryColor,
+                    textColor: [255, 255, 255],
+                    fontSize: 11,
+                    fontStyle: "bold",
                 },
-                lang: lang as "en" | "ar",
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 5,
+                },
+                columnStyles: {
+                    0: { cellWidth: 15, halign: "center" },
+                    1: { cellWidth: "auto" },
+                    2: { cellWidth: 35, halign: "right" },
+                    3: { cellWidth: 35, halign: "right" },
+                    4: { cellWidth: 35, halign: "right" },
+                },
             });
+
+            // Summary section
+            const finalY = doc.lastAutoTable.finalY + 10;
+            const summaryX = pageWidth - 80;
+
+            doc.setFontSize(10);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+
+            // Subtotal
+            doc.text(lang === "ar" ? "المجموع الفرعي:" : "Subtotal:", summaryX, finalY);
+            doc.text(`${quotation.subtotal.toFixed(2)} ${currency}`, pageWidth - 20, finalY, { align: "right" });
+
+            // Discount
+            if (quotation.discountValue > 0) {
+                let discountAmount = 0;
+                if (quotation.discountType === "percentage") {
+                    discountAmount = (quotation.subtotal * quotation.discountValue) / 100;
+                } else {
+                    discountAmount = quotation.discountValue;
+                }
+
+                doc.text(
+                    `${lang === "ar" ? "الخصم" : "Discount"} (${quotation.discountType === "percentage" ? quotation.discountValue + "%" : currency}):`,
+                    summaryX,
+                    finalY + 7,
+                );
+                doc.text(`-${discountAmount.toFixed(2)} ${currency}`, pageWidth - 20, finalY + 7, { align: "right" });
+            }
+
+            // Total
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            const totalY = quotation.discountValue > 0 ? finalY + 14 : finalY + 7;
+            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+            doc.rect(summaryX - 5, totalY - 5, 75, 10, "F");
+            doc.text(lang === "ar" ? "الإجمالي:" : "Total:", summaryX, totalY + 2);
+            doc.text(`${quotation.total.toFixed(2)} ${currency}`, pageWidth - 20, totalY + 2, { align: "right" });
+
+            // Notes
+            if (quotation.note) {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text(lang === "ar" ? "ملاحظات:" : "Notes:", 20, totalY + 15);
+                doc.setFont("helvetica", "normal");
+                const splitNote = doc.splitTextToSize(quotation.note, pageWidth - 40);
+                doc.text(splitNote, 20, totalY + 21);
+            }
+
+            // Footer
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            const footerText = lang === "ar" ? "شكراً لثقتكم بنا" : "Thank you for your business";
+            doc.text(footerText, pageWidth / 2, pageHeight - 20, { align: "center" });
+
+            // Status
+            const statusText =
+                lang === "ar"
+                    ? quotation.status === "draft"
+                        ? "مسودة"
+                        : quotation.status === "sent"
+                          ? "مرسل"
+                          : quotation.status === "approved"
+                            ? "موافق عليه"
+                            : quotation.status === "rejected"
+                              ? "مرفوض"
+                              : quotation.status
+                    : quotation.status.toUpperCase();
+            doc.text(`${lang === "ar" ? "الحالة" : "Status"}: ${statusText}`, pageWidth / 2, pageHeight - 15, { align: "center" });
+
+            // Save PDF
+            doc.save(`quotation-${quotation.quotationNumber}.pdf`);
         } catch (error) {
             console.error("Failed to generate PDF:", error);
             alert(t("failed_to_generate_pdf") || "Failed to generate PDF. Please try again.");
@@ -493,43 +711,107 @@ const QuotationsPage = () => {
                     </div>
 
                     {/* Create/Edit Quotation Form */}
-                    {(isEditing || displayedQuotations.length === 0) && (
+                    {((isEditing && displayedQuotations.length === 0) || (isEditing && editingQuotationId)) && (
                         <div className="card">
                             <h3 className="card-title mb-4">
                                 {editingQuotationId ? t("edit_quotation") || "Edit Quotation" : t("create_new_quotation") || "Create New Quotation"}
                             </h3>
 
-                            {/* Services Selection */}
+                            {/* Services & Packages Selection */}
                             <div className="mb-6">
                                 <h4 className="text-light-900 dark:text-dark-50 mb-3 font-semibold">{t("select_services") || "Select Services"}</h4>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                                <div className="space-y-3">
                                     {services.map((service) => {
-                                        const isSelected = selectedServices.includes(service._id);
+                                        const isExpanded = expandedServiceId === service._id;
+                                        const hasPackages = service.packages && service.packages.length > 0;
+                                        const selectedCount = hasPackages
+                                            ? (service.packages ?? []).filter((pkg: any) => selectedPackages.includes(pkg._id)).length
+                                            : 0;
+
                                         return (
                                             <div
                                                 key={service._id}
-                                                onClick={() => toggleService(service._id)}
-                                                className={`cursor-pointer rounded-lg border px-4 py-3 transition-all ${
-                                                    isSelected
-                                                        ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
-                                                        : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50"
-                                                }`}
+                                                className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-800 overflow-hidden rounded-lg border"
                                             >
-                                                <div className="flex items-center gap-2">
-                                                    {isSelected && (
-                                                        <Check
-                                                            size={16}
-                                                            className="flex-shrink-0"
-                                                        />
-                                                    )}
+                                                <div className="flex items-center justify-between px-4 py-3">
                                                     <div className="flex-1">
-                                                        <div className="font-medium">{lang === "ar" ? service.ar : service.en}</div>
-                                                        {service.description && <div className="mt-1 text-xs opacity-75">{service.description}</div>}
-                                                        <div className="mt-1 text-sm">
-                                                            {service.price} {lang === "ar" ? "ج.م" : "EGP"}
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="text-light-900 dark:text-dark-50 text-base font-semibold">
+                                                                {lang === "ar" ? service.ar : service.en}
+                                                            </div>
+                                                            {selectedCount > 0 && (
+                                                                <span className="bg-light-500 dark:bg-secdark-700 rounded-full px-2 py-0.5 text-xs font-medium text-white">
+                                                                    {selectedCount} {t("selected") || "selected"}
+                                                                </span>
+                                                            )}
                                                         </div>
+                                                        {service.description && (
+                                                            <div className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                                                {service.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {service.price != null && (
+                                                            <div className="text-light-900 dark:text-dark-50 text-sm font-medium">
+                                                                {service.price} {lang === "ar" ? "ج.م" : "EGP"}
+                                                            </div>
+                                                        )}
+                                                        {hasPackages && (
+                                                            <button
+                                                                onClick={() => toggleExpandService(service._id)}
+                                                                className="btn-primary text-sm"
+                                                            >
+                                                                {isExpanded
+                                                                    ? t("hide_packages") || "Hide"
+                                                                    : `${t("view") || "View"} ${service.packages?.length || 0} ${t("packages") || "packages"}`}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
+
+                                                {isExpanded && hasPackages && (
+                                                    <div className="dark:bg-dark-900 border-light-600 dark:border-dark-700 border-t bg-white px-4 py-3">
+                                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                                            {(service.packages || []).map((pkg: any) => {
+                                                                const isSelected = selectedPackages.includes(pkg._id);
+                                                                return (
+                                                                    <div
+                                                                        key={pkg._id}
+                                                                        onClick={() => togglePackage(pkg._id)}
+                                                                        className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
+                                                                            isSelected
+                                                                                ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
+                                                                                : "border-light-600 dark:border-dark-700 dark:bg-dark-800 text-light-900 dark:text-dark-50 hover:border-light-500 dark:hover:border-secdark-700 bg-white"
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-start justify-between gap-3">
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div
+                                                                                    className={`mb-1 text-sm font-medium ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                                                                >
+                                                                                    {lang === "ar" ? pkg.nameAr : pkg.nameEn}
+                                                                                </div>
+                                                                                {pkg.description && (
+                                                                                    <div
+                                                                                        className={`line-clamp-2 text-xs ${isSelected ? "text-white opacity-90" : "text-light-600 dark:text-dark-400"}`}
+                                                                                    >
+                                                                                        {pkg.description}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div
+                                                                                className={`text-sm font-semibold whitespace-nowrap ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                                                            >
+                                                                                {pkg.price} {lang === "ar" ? "ج.م" : "EGP"}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -553,8 +835,6 @@ const QuotationsPage = () => {
                                                     </div>
                                                     <div className="text-light-600 dark:text-dark-400 text-sm">
                                                         {customService.price} {lang === "ar" ? "ج.م" : "EGP"}
-                                                        {customService.discount &&
-                                                            ` - ${customService.discount}${customService.discountType === "percentage" ? "%" : " EGP"} ${t("discount") || "discount"}`}
                                                     </div>
                                                 </div>
                                                 <button
@@ -597,25 +877,6 @@ const QuotationsPage = () => {
                                             className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                                         />
                                     </div>
-                                    <div className="w-28">
-                                        <select
-                                            value={customDiscountType}
-                                            onChange={(e) => setCustomDiscountType(e.target.value as "percentage" | "fixed")}
-                                            className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-2 py-2 text-sm"
-                                        >
-                                            <option value="percentage">{t("percentage") || "%"}</option>
-                                            <option value="fixed">{t("fixed") || "Fixed"}</option>
-                                        </select>
-                                    </div>
-                                    <div className="w-24">
-                                        <input
-                                            type="number"
-                                            value={customDiscount}
-                                            onChange={(e) => setCustomDiscount(e.target.value)}
-                                            placeholder={t("discount") || "Discount"}
-                                            className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-2 py-2 text-sm"
-                                        />
-                                    </div>
                                     <button
                                         onClick={addCustomService}
                                         className="btn-ghost flex items-center gap-2 px-3 py-2"
@@ -629,12 +890,14 @@ const QuotationsPage = () => {
                             {/* Quotation Details */}
                             <div className="mb-6 grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("note") || "Note"}</label>
-                                    <textarea
-                                        value={quotationNote}
-                                        onChange={(e) => setQuotationNote(e.target.value)}
-                                        placeholder={t("quotation_note_placeholder") || "Add any additional notes..."}
-                                        rows={3}
+                                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
+                                        {t("custom_name") || "Custom Quotation Name"} ({t("optional") || "optional"})
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={customQuotationName}
+                                        onChange={(e) => setCustomQuotationName(e.target.value)}
+                                        placeholder={t("custom_quotation_name_placeholder") || "Enter custom name for this quotation..."}
                                         className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                                     />
                                 </div>
@@ -644,6 +907,16 @@ const QuotationsPage = () => {
                                         type="date"
                                         value={validUntil}
                                         onChange={(e) => setValidUntil(e.target.value)}
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("note") || "Note"}</label>
+                                    <textarea
+                                        value={quotationNote}
+                                        onChange={(e) => setQuotationNote(e.target.value)}
+                                        placeholder={t("quotation_note_placeholder") || "Add any additional notes..."}
+                                        rows={3}
                                         className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                                     />
                                 </div>
@@ -724,13 +997,13 @@ const QuotationsPage = () => {
                                     )}
                                     <button
                                         onClick={handleCreateOrUpdateQuotation}
-                                        disabled={isSaving || (selectedServices.length === 0 && customServices.length === 0)}
+                                        disabled={isSaving || (selectedPackages.length === 0 && customServices.length === 0)}
                                         className="btn-primary flex items-center gap-2"
                                     >
                                         {isSaving ? (
                                             <Loader2
                                                 size={16}
-                                                className="animate-spin"
+                                                className="text-light-500 animate-spin"
                                             />
                                         ) : (
                                             <FileText size={16} />
@@ -844,7 +1117,7 @@ const QuotationsPage = () => {
                                                     {isDownloading === quotation._id ? (
                                                         <Loader2
                                                             size={16}
-                                                            className="animate-spin"
+                                                            className="text-light-500 animate-spin"
                                                         />
                                                     ) : (
                                                         <Download size={16} />
@@ -868,7 +1141,7 @@ const QuotationsPage = () => {
                                                     {isDeleting === quotation._id ? (
                                                         <Loader2
                                                             size={16}
-                                                            className="animate-spin"
+                                                            className="text-light-500 animate-spin"
                                                         />
                                                     ) : (
                                                         <Trash2 size={16} />
@@ -976,7 +1249,7 @@ const QuotationsPage = () => {
                                 {isConverting ? (
                                     <Loader2
                                         size={16}
-                                        className="animate-spin"
+                                        className="text-light-500 animate-spin"
                                     />
                                 ) : (
                                     <FileCheck size={16} />
@@ -992,7 +1265,7 @@ const QuotationsPage = () => {
             {isLoading && (
                 <div className="flex items-center justify-center py-12">
                     <Loader2
-                        className="animate-spin"
+                        className="text-light-500 animate-spin"
                         size={32}
                     />
                 </div>

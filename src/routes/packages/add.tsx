@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Plus, Check, Loader2, Minus } from "lucide-react";
+import { Plus, Check, Loader2, Minus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { getItems, type Item } from "@/api/requests/itemsService";
 import { createPackage } from "@/api/requests/packagesService";
+import type { Package } from "@/api/requests/packagesService";
+import { usePackages, useDeletePackage } from "@/hooks/queries/usePackagesQuery";
 import { useNavigate } from "react-router-dom";
 
 const AddPackagePage = () => {
@@ -25,6 +27,12 @@ const AddPackagePage = () => {
     useEffect(() => {
         loadItems();
     }, []);
+
+    // Fetch existing packages
+    const { data: packagesData, isLoading: packagesLoading } = usePackages({ page: 1, limit: 100 });
+    const packagesList: Package[] = packagesData?.data || [];
+    const deleteMutation = useDeletePackage();
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const loadItems = async () => {
         setIsLoading(true);
@@ -124,8 +132,10 @@ const AddPackagePage = () => {
                 nameAr: ar,
                 price: Number(p),
                 description: description.trim() || undefined,
-                items: selectedItemIds,
-                quantities: itemQuantities,
+                items: selectedItemIds.map((itemId) => ({
+                    item: itemId,
+                    quantity: itemQuantities[itemId] || 1,
+                })),
             });
 
             // Navigate back to packages page
@@ -140,7 +150,7 @@ const AddPackagePage = () => {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="text-light-500 dark:text-dark-400 h-8 w-8 animate-spin" />
+                <Loader2 className="text-light-500 dark:text-light-500 h-8 w-8 animate-spin" />
             </div>
         );
     }
@@ -152,6 +162,72 @@ const AddPackagePage = () => {
                     <h1 className="title">{t("create_package") || "Create Package"}</h1>
                     <p className="text-light-600 dark:text-dark-400">{t("create_package_subtitle") || "Create a new package with selected items"}</p>
                 </div>
+            </div>
+            <div className="card space-y-4">
+                <h2 className="card-title">{t("existing_packages") || "Existing Packages"}</h2>
+
+                {packagesLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                        <Loader2 className="text-light-500 dark:text-light-500 h-6 w-6 animate-spin" />
+                    </div>
+                ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {packagesList.map((pkg) => (
+                            <div
+                                key={pkg._id}
+                                className="dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors hover:shadow-sm"
+                            >
+                                <div className="min-w-0">
+                                    <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">{pkg.nameEn || pkg.nameAr}</div>
+                                    <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description || ""}</div>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">{pkg.price ? `${pkg.price}` : "-"}</div>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const ok = confirm(t("confirm_delete") || "Are you sure you want to delete this package?");
+                                                if (!ok) return;
+                                                setDeletingId(pkg._id);
+                                                deleteMutation.mutate(pkg._id, {
+                                                    onError: () => {
+                                                        setError(t("delete_failed") || "Failed to delete package");
+                                                        setDeletingId(null);
+                                                    },
+                                                    onSuccess: () => {
+                                                        setDeletingId(null);
+                                                    },
+                                                });
+                                            }}
+                                            className="text-danger-600 hover:bg-danger-50 dark:hover:bg-dark-700 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                        >
+                                            {deletingId === pkg._id ? (
+                                                <Loader2
+                                                    size={14}
+                                                    className="text-light-500 animate-spin"
+                                                />
+                                            ) : (
+                                                <Trash2
+                                                    size={14}
+                                                    className="text-danger-600"
+                                                />
+                                            )}
+                                            <span className="text-danger-600">{t("delete") || "Delete"}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {packagesList.length === 0 && (
+                            <p className="text-light-600 dark:text-dark-400 text-sm">{t("no_packages") || "No packages found."}</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {error && (
@@ -305,7 +381,7 @@ const AddPackagePage = () => {
                             <>
                                 <Loader2
                                     size={16}
-                                    className="animate-spin"
+                                    className="text-light-500 animate-spin"
                                 />
                                 {t("creating") || "Creating..."}
                             </>

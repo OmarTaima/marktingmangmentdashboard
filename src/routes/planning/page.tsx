@@ -175,10 +175,6 @@ const PlanningPage = () => {
 
         if (campaignsByClient !== undefined && selectedClientId && clients.length > 0) {
             const client = clients.find((c: any) => c.id === selectedClientId || c._id === selectedClientId);
-            console.log("Found client:", client);
-            console.log("campaignsByClient type:", typeof campaignsByClient);
-            console.log("campaignsByClient is array?", Array.isArray(campaignsByClient));
-            console.log("campaignsByClient full data:", campaignsByClient);
 
             if (client) {
                 setSelectedClient(client);
@@ -192,12 +188,8 @@ const PlanningPage = () => {
                     campaignsArray = (campaignsByClient as any).data || [];
                 }
 
-                console.log("Campaigns array:", campaignsArray);
-
                 // Transform API campaigns to local plan format
                 if (campaignsArray.length > 0) {
-                    console.log("Raw campaign data from API:", campaignsArray[0]);
-
                     const transformedPlans = campaignsArray.map((campaign: any) => {
                         const plan = {
                             id: `campaign_${campaign._id}`,
@@ -219,16 +211,12 @@ const PlanningPage = () => {
                                     ar: s,
                                 })),
                         };
-                        console.log("Transformed plan:", plan);
                         return plan;
                     });
 
                     setPlans(transformedPlans);
                     // Select first plan by default
                     const firstPlan = transformedPlans[0];
-                    console.log("Setting first plan data:", firstPlan);
-                    console.log("Objectives to set:", firstPlan.objectives);
-                    console.log("Strategies to set:", firstPlan.strategies);
 
                     setSelectedPlanId(firstPlan.id);
                     setPlanData(firstPlan);
@@ -237,7 +225,6 @@ const PlanningPage = () => {
                     setIsEditing(false);
                 } else {
                     // No campaigns found, start with empty plan
-                    console.log("No campaigns found for client");
                     setPlans([]);
                     setSelectedPlanId("");
                     setPlanData({ objective: "", strategy: "", budget: "", timeline: "" });
@@ -246,7 +233,6 @@ const PlanningPage = () => {
                     setIsEditing(true);
                 }
             } else {
-                console.log("Client not found in clients list");
             }
         }
     }, [campaignsByClient, selectedClientId, clients]);
@@ -561,7 +547,7 @@ const PlanningPage = () => {
                 {!selectedClientId && isLoading && (
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
-                            <Loader2 className="text-light-500 dark:text-dark-400 mx-auto h-12 w-12 animate-spin" />
+                            <Loader2 className="text-light-500 dark:text-light-500 mx-auto h-12 w-12 animate-spin" />
                             <p className="text-light-600 dark:text-dark-400 mt-3">{t("loading_clients") || t("loading") || "Loading clients..."}</p>
                         </div>
                     </div>
@@ -663,7 +649,7 @@ const PlanningPage = () => {
                 {selectedClientId && (isLoading || isTransitioning) && (
                     <div className="flex items-center justify-center py-12">
                         <div className="text-center">
-                            <Loader2 className="text-light-500 dark:text-dark-400 mx-auto h-12 w-12 animate-spin" />
+                            <Loader2 className="text-light-500 dark:text-light-500 mx-auto h-12 w-12 animate-spin" />
                             <p className="text-light-600 dark:text-dark-400 mt-3">{t("loading_client") || t("loading") || "Loading client..."}</p>
                         </div>
                     </div>

@@ -97,7 +97,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             return (
                 <div className="flex min-h-[400px] items-center justify-center">
                     <div className="text-center">
-                        <div className="border-light-300 border-t-light-600 dark:border-dark-700 dark:border-t-dark-400 mx-auto h-12 w-12 animate-spin rounded-full border-4"></div>
+                        <div className="border-light-500 border-t-light-500 dark:border-light-500 dark:border-t-light-500 mx-auto h-12 w-12 animate-spin rounded-full border-4"></div>
                         <p className="text-dark-500 mt-4">{t("loading") || "Loading..."}</p>
                     </div>
                 </div>
