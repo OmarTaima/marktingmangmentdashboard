@@ -204,7 +204,7 @@ input[type="number"] {
     /* Ensure focused select has a visible ring */
     select:focus {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
 
     /* Try to avoid white-on-white in some native UAs by setting option colors

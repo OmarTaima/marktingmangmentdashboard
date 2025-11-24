@@ -51,6 +51,7 @@ export interface Quotation {
     servicesPricing: ServicePricing[];
     customServices: CustomService[];
     customName?: string;
+    clientName?: string;
     subtotal: number;
     discountValue: number;
     discountType: "percentage" | "fixed";
@@ -94,6 +95,7 @@ export interface CreateQuotationPayload {
     services?: string[];
     customServices?: CustomService[];
     customName?: string;
+    clientName?: string;
     overriddenTotal?: number;
     discountValue?: number;
     discountType?: "percentage" | "fixed";

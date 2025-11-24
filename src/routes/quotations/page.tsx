@@ -89,7 +89,7 @@ const QuotationsPage = () => {
     const [validUntil, setValidUntil] = useState<string>("");
 
     // Custom service form
-    const [customName, setCustomName] = useState<string>("");
+    const [clientName, setClientName] = useState<string>("");
     const [customNameAr, setCustomNameAr] = useState<string>("");
     const [customPrice, setCustomPrice] = useState<string>("");
 
@@ -101,6 +101,36 @@ const QuotationsPage = () => {
     const [contractTerms, setContractTerms] = useState<string>("");
 
     // React Query handles all data loading automatically
+
+    const resolveClientName = (quotation: any) => {
+        try {
+            // If API returned a client object on the quotation
+            if (quotation.client && typeof quotation.client === "object") {
+                return quotation.client.business?.businessName || quotation.client.personal?.fullName || "";
+            }
+
+            // If API returned a clientId as an object
+            if (quotation.clientId && typeof quotation.clientId === "object") {
+                const cid = quotation.clientId._id || quotation.clientId.id || quotation.clientId;
+                const client = clients.find((c) => String(c.id) === String(cid) || String(c._id) === String(cid));
+                if (client) return client.business?.businessName || client.personal?.fullName || "";
+            }
+
+            // If clientId is a string, try to find it in the clients list
+            if (quotation.clientId && typeof quotation.clientId === "string") {
+                const client = clients.find((c) => String(c.id) === String(quotation.clientId) || String(c._id) === String(quotation.clientId));
+                if (client) return client.business?.businessName || client.personal?.fullName || "";
+            }
+
+            // Some APIs include a clientName/customName directly on the quotation
+            if (quotation.clientName) return quotation.clientName;
+            if (quotation.customName) return quotation.customName;
+
+            return "";
+        } catch (e) {
+            return "";
+        }
+    };
 
     const handleSelectClient = (client: Client) => {
         setSelectedClient(client);
@@ -164,7 +194,7 @@ const QuotationsPage = () => {
     };
 
     const addCustomService = () => {
-        const name = customName.trim();
+        const name = clientName.trim();
         const nameAr = customNameAr.trim();
         const price = parseFloat(customPrice);
 
@@ -179,7 +209,7 @@ const QuotationsPage = () => {
         };
 
         setCustomServices([...customServices, newCustomService]);
-        setCustomName("");
+        setClientName("");
         setCustomNameAr("");
         setCustomPrice("");
     };
@@ -230,7 +260,7 @@ const QuotationsPage = () => {
             const payload: CreateQuotationPayload = {
                 packages: packageIds.length > 0 ? packageIds : undefined,
                 customServices: customServices.length > 0 ? customServices : undefined,
-                customName: customQuotationName || undefined,
+                clientName: customQuotationName || undefined,
                 discountValue: parseFloat(discountValue) || 0,
                 discountType,
                 note: quotationNote || undefined,
@@ -274,7 +304,14 @@ const QuotationsPage = () => {
         setSelectedPackages(packageIds);
 
         setCustomServices(quotation.customServices || []);
-        setCustomQuotationName(quotation.customName || "");
+        // Prefer client name as the custom quotation name when available
+        try {
+            const client = clients.find((c) => c.id === quotation.clientId);
+            const clientName = client?.business?.businessName || client?.personal?.fullName || "";
+            setCustomQuotationName(clientName || quotation.customName || "");
+        } catch (e) {
+            setCustomQuotationName(quotation.customName || "");
+        }
         setQuotationNote(quotation.note || "");
         setDiscountValue(quotation.discountValue?.toString() || "");
         setDiscountType(quotation.discountType);
@@ -875,8 +912,8 @@ const QuotationsPage = () => {
                                     <div className="min-w-[150px] flex-1">
                                         <input
                                             type="text"
-                                            value={customName}
-                                            onChange={(e) => setCustomName(e.target.value)}
+                                            value={clientName}
+                                            onChange={(e) => setClientName(e.target.value)}
                                             placeholder={t("service_name_en") || "Service name (English)"}
                                             className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
                                         />
@@ -1072,7 +1109,9 @@ const QuotationsPage = () => {
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="mb-2 flex items-center gap-3">
-                                                    <h4 className="text-light-900 dark:text-dark-50 font-semibold">{quotation.quotationNumber}</h4>
+                                                    <h4 className="text-light-900 dark:text-dark-50 font-semibold">
+                                                        {resolveClientName(quotation) || quotation.quotationNumber}
+                                                    </h4>
                                                     <span
                                                         className={`rounded px-2 py-1 text-xs ${
                                                             quotation.status === "approved"
