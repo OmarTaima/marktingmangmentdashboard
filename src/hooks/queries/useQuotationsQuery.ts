@@ -26,11 +26,12 @@ export const quotationsKeys = {
 /**
  * Hook to fetch quotations list
  */
-export const useQuotations = (params?: QuotationQueryParams) => {
+export const useQuotations = (params?: QuotationQueryParams, options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: quotationsKeys.list(params),
         queryFn: ({ signal }) => getQuotations(params, signal),
         staleTime: 5 * 60 * 1000, // 5 minutes
+        enabled: options?.enabled ?? true,
     });
 };
 

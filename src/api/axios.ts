@@ -188,7 +188,13 @@ axiosInstance.interceptors.response.use(
                 }
             }
         } else if (error.request && process.env.NODE_ENV === "development") {
-            console.error("❌ Network Error:", error.message);
+            // Ignore and do not log canceled/aborted requests to reduce console noise
+            // Axios emits a CanceledError with code 'ERR_CANCELED' and message 'canceled'
+            if (error.code === "ERR_CANCELED" || error?.name === "CanceledError" || error?.message === "canceled") {
+                // silently ignore
+            } else {
+                console.error("❌ Network Error:", error.message);
+            }
         }
         return Promise.reject(error);
     },

@@ -5,6 +5,7 @@ import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useQueryClient } from "@tanstack/react-query";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
+import { showAlert, showConfirm } from "@/utils/swal";
 import validators from "@/constants/validators";
 import type { Client, Segment } from "@/api/interfaces/clientinterface";
 import {
@@ -391,28 +392,33 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             setEditing(false);
             setDraft(null);
 
-            alert("Client updated successfully!");
+            showAlert("Client updated successfully!", "success");
         } catch (err: any) {
             console.error("Error updating client:", err);
             const errorMessage = err?.response?.data?.message || err?.message || "Failed to update client";
-            alert(`Error: ${errorMessage}. Please try again.`);
+            showAlert(`Error: ${errorMessage}. Please try again.`, "error");
         }
     };
 
     const handleDeleteClient = async () => {
         if (!fullPage || !id) return;
-        if (!window.confirm(t("confirm_delete_client") || "Are you sure you want to delete this client?")) {
+        const confirmed = await showConfirm(
+            t("confirm_delete_client") || "Are you sure you want to delete this client?",
+            t("yes") || "Yes",
+            t("no") || "No",
+        );
+        if (!confirmed) {
             return;
         }
 
         try {
             await deleteClientMutation!.mutateAsync(id);
-            alert("Client deleted successfully!");
+            showAlert("Client deleted successfully!", "success");
             navigate("/clients");
         } catch (err: any) {
             console.error("Error deleting client:", err);
             const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete client";
-            alert(`Error: ${errorMessage}. Please try again.`);
+            showAlert(`Error: ${errorMessage}. Please try again.`, "error");
         }
     };
 

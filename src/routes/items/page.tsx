@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, KeyboardEvent } from "react";
 import { Plus, Edit2, Trash2, Check, X, Loader2, Search } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import { showConfirm } from "@/utils/swal";
 import { useItems, useCreateItem, useUpdateItem, useDeleteItem } from "@/hooks/queries";
 import type { Item } from "@/api/requests/itemsService";
 
@@ -60,6 +61,20 @@ const ItemsPage = () => {
         setInputDescription("");
     };
 
+    const handleCreateKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleAdd();
+        }
+    };
+
+    const handleEditKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (editingId) saveEdit(editingId);
+        }
+    };
+
     const startEdit = (item: Item) => {
         setEditingId(item._id);
         setEditingName(item.name || "");
@@ -100,7 +115,8 @@ const ItemsPage = () => {
     };
 
     const remove = async (item: Item) => {
-        if (!confirm(t("confirm_delete_item") || "Delete this item?")) return;
+        const confirmed = await showConfirm(t("confirm_delete_item") || "Delete this item?", t("yes") || "Yes", t("no") || "No");
+        if (!confirmed) return;
 
         try {
             setError("");
@@ -166,12 +182,14 @@ const ItemsPage = () => {
                                                         <input
                                                             value={editingName}
                                                             onChange={(e) => setEditingName(e.target.value)}
+                                                            onKeyDown={handleEditKeyDown}
                                                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                             placeholder={t("item_name") || "Item Name"}
                                                         />
                                                         <input
                                                             value={editingDescription}
                                                             onChange={(e) => setEditingDescription(e.target.value)}
+                                                            onKeyDown={handleEditKeyDown}
                                                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                                             placeholder={t("item_description") || "Description"}
                                                         />
@@ -266,6 +284,7 @@ const ItemsPage = () => {
                     <input
                         value={inputName}
                         onChange={(e) => setInputName(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         placeholder={t("item_name") || "Item Name"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
@@ -273,6 +292,7 @@ const ItemsPage = () => {
                     <input
                         value={inputDescription}
                         onChange={(e) => setInputDescription(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         placeholder={t("item_description") || "Description"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"

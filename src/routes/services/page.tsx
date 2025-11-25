@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, KeyboardEvent, useRef } from "react";
 import { Plus, Edit2, Trash2, Check, X, Loader2, Search } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import { showConfirm } from "@/utils/swal";
 import { useServices, useCreateService, useUpdateService, useDeleteService, usePackages } from "@/hooks/queries";
 import type { Service } from "@/api/requests/servicesService";
 
@@ -74,6 +75,41 @@ const ServicesPage = () => {
         }
     };
 
+    const handleCreateKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            // If the package dropdown is open, don't treat Enter as "create" — it should operate on dropdown items
+            if (showPackageDropdown) return;
+            e.preventDefault();
+            e.stopPropagation();
+            ignorePackageToggleRef.current = true;
+            try {
+                handleAdd();
+            } finally {
+                setTimeout(() => (ignorePackageToggleRef.current = false), 50);
+            }
+        }
+    };
+
+    const handleEditKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            // If the edit-package dropdown is open, let Enter act on it instead of saving
+            if (showEditPackageDropdown) return;
+            e.preventDefault();
+            e.stopPropagation();
+            ignorePackageToggleRef.current = true;
+            try {
+                if (editingId) saveEdit(editingId);
+            } finally {
+                setTimeout(() => (ignorePackageToggleRef.current = false), 50);
+            }
+        }
+    };
+
+    // Prevent package buttons in dropdown from responding when Enter-triggered submit is happening
+    const ignorePackageToggleRef = useRef(false);
+    // Track if the last user action was selecting a package so Enter pressed immediately after will submit
+    const lastPackageSelectRef = useRef(false);
+
     const startEdit = (service: Service) => {
         setEditingId(service._id);
         setEditingValueEn(service.en || "");
@@ -134,7 +170,8 @@ const ServicesPage = () => {
     };
 
     const remove = async (service: Service) => {
-        if (!confirm(t("confirm_delete_service") || "Delete this service category?")) return;
+        const confirmed = await showConfirm(t("confirm_delete_service") || "Delete this service category?", t("yes") || "Yes", t("no") || "No");
+        if (!confirmed) return;
 
         try {
             setError("");
@@ -200,24 +237,28 @@ const ServicesPage = () => {
                                                     <input
                                                         value={editingValueEn}
                                                         onChange={(e) => setEditingValueEn(e.target.value)}
+                                                        onKeyDown={handleEditKeyDown}
                                                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                         placeholder={t("english_label") || "English"}
                                                     />
                                                     <input
                                                         value={editingValueAr}
                                                         onChange={(e) => setEditingValueAr(e.target.value)}
+                                                        onKeyDown={handleEditKeyDown}
                                                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                         placeholder={t("arabic_label") || "Arabic"}
                                                     />
                                                     <input
                                                         value={editingDescription}
                                                         onChange={(e) => setEditingDescription(e.target.value)}
+                                                        onKeyDown={handleEditKeyDown}
                                                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                                         placeholder={t("service_description") || "Description"}
                                                     />
                                                     <input
                                                         value={editingPrice}
                                                         onChange={(e) => setEditingPrice(e.target.value)}
+                                                        onKeyDown={handleEditKeyDown}
                                                         type="number"
                                                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                                         placeholder={t("price") || "Price"}
@@ -226,6 +267,12 @@ const ServicesPage = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowEditPackageDropdown(!showEditPackageDropdown)}
+                                                            onKeyDown={(e) => {
+                                                                if (showEditPackageDropdown && e.key === "Enter") {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }
+                                                            }}
                                                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-left text-sm transition-colors focus:outline-none"
                                                         >
                                                             {editingPackages.length > 0
@@ -369,10 +416,24 @@ const ServicesPage = () => {
                     </>
                 )}
 
-                <div className="mt-4 flex gap-2">
+                <div
+                    className="mt-4 flex gap-2"
+                    onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                        if (e.key === "Enter") {
+                            // if user just selected a package, submit the create form
+                            if (lastPackageSelectRef.current) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                lastPackageSelectRef.current = false;
+                                handleAdd();
+                            }
+                        }
+                    }}
+                >
                     <input
                         value={inputEn}
                         onChange={(e) => setInputEn(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         placeholder={t("add_service_placeholder") || "Service (English)"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
@@ -380,6 +441,7 @@ const ServicesPage = () => {
                     <input
                         value={inputAr}
                         onChange={(e) => setInputAr(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         placeholder={t("add_service_placeholder_arabic") || "الخدمة (بالعربية)"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
@@ -387,6 +449,7 @@ const ServicesPage = () => {
                     <input
                         value={inputDescription}
                         onChange={(e) => setInputDescription(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         placeholder={t("service_description") || "Description"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
@@ -394,6 +457,7 @@ const ServicesPage = () => {
                     <input
                         value={inputPrice}
                         onChange={(e) => setInputPrice(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
                         type="number"
                         placeholder={t("price") || "Price (optional)"}
                         disabled={isSaving}
@@ -403,6 +467,12 @@ const ServicesPage = () => {
                         <button
                             type="button"
                             onClick={() => setShowPackageDropdown(!showPackageDropdown)}
+                            onKeyDown={(e) => {
+                                if (showPackageDropdown && e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                            }}
                             disabled={isSaving}
                             className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-left text-sm transition-colors focus:outline-none disabled:opacity-50"
                         >
@@ -421,6 +491,10 @@ const ServicesPage = () => {
                                                     key={pkg._id}
                                                     type="button"
                                                     onClick={() => {
+                                                        if (ignorePackageToggleRef.current) return;
+                                                        // mark that the user just selected a package
+                                                        lastPackageSelectRef.current = true;
+                                                        setTimeout(() => (lastPackageSelectRef.current = false), 800);
                                                         if (isSelected) {
                                                             setInputPackages(inputPackages.filter((id) => id !== pkg._id));
                                                         } else {

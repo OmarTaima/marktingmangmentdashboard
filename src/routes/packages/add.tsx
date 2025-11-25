@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, KeyboardEvent, useRef } from "react";
 import { Plus, Check, Loader2, Minus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
+import { showConfirm, showAlert } from "@/utils/swal";
 import { getItems, type Item } from "@/api/requests/itemsService";
 import { createPackage } from "@/api/requests/packagesService";
 import type { Package } from "@/api/requests/packagesService";
-import { usePackages, useDeletePackage, useUpdatePackage } from "@/hooks/queries/usePackagesQuery";
+import { usePackages, useDeletePackage, useUpdatePackage, useCreatePackage } from "@/hooks/queries/usePackagesQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { packagesKeys } from "@/hooks/queries/usePackagesQuery";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +36,7 @@ const AddPackagePage = () => {
     const packagesList: Package[] = packagesData?.data || [];
     const deleteMutation = useDeletePackage();
     const updatePackageMutation = useUpdatePackage();
+    const createPackageMutation = useCreatePackage();
     const queryClient = useQueryClient();
     const [editPackageId, setEditPackageId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -66,6 +68,9 @@ const AddPackagePage = () => {
             return [...prev, itemId];
         });
     };
+
+    // Prevent package tiles from toggling when Enter-driven submit is happening
+    const ignorePackageToggleRef = useRef(false);
 
     const incrementQuantity = (itemId: string) => {
         setItemQuantities((q) => ({ ...q, [itemId]: (q[itemId] || 0) + 1 }));
@@ -146,7 +151,7 @@ const AddPackagePage = () => {
                 // reset edit state
                 setEditPackageId(null);
             } else {
-                await createPackage({
+                await createPackageMutation.mutateAsync({
                     nameEn: en,
                     nameAr: ar,
                     price: Number(p),
@@ -162,12 +167,39 @@ const AddPackagePage = () => {
                 // ignore
             }
 
-            // Navigate back to packages list
+            // show success alert, then navigate back to packages list
+            try {
+                if (editPackageId) {
+                    await showAlert(t("package_updated_success") || "Package updated successfully", "success");
+                } else {
+                    await showAlert(t("package_created_success") || "Package created successfully", "success");
+                }
+            } catch (e) {
+                // ignore swal errors and proceed
+            }
+
             navigate("/packages");
         } catch (err: any) {
             setError(err.response?.data?.message || (editPackageId ? "Failed to update package" : "Failed to create package"));
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handlePackageKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            // signal that package tiles should ignore clicks for a short moment
+            ignorePackageToggleRef.current = true;
+            try {
+                handleSubmit();
+            } finally {
+                // reset after a tick so any click events are ignored
+                setTimeout(() => {
+                    ignorePackageToggleRef.current = false;
+                }, 50);
+            }
         }
     };
 
@@ -282,9 +314,13 @@ const AddPackagePage = () => {
 
                                         <button
                                             type="button"
-                                            onClick={(e) => {
+                                            onClick={async (e) => {
                                                 e.stopPropagation();
-                                                const ok = confirm(t("confirm_delete") || "Are you sure you want to delete this package?");
+                                                const ok = await showConfirm(
+                                                    t("confirm_delete") || "Are you sure you want to delete this package?",
+                                                    t("yes") || "Yes",
+                                                    t("no") || "No",
+                                                );
                                                 if (!ok) return;
                                                 setDeletingId(pkg._id);
                                                 deleteMutation.mutate(pkg._id, {
@@ -393,7 +429,10 @@ const AddPackagePage = () => {
                             return (
                                 <div
                                     key={item._id}
-                                    onClick={() => toggleItemSelection(item._id)}
+                                    onClick={() => {
+                                        if (ignorePackageToggleRef.current) return;
+                                        toggleItemSelection(item._id);
+                                    }}
                                     className={`flex cursor-pointer flex-col items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm transition-all sm:flex-row sm:items-center ${
                                         isSelected
                                             ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"

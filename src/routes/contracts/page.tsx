@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Download, Edit2, Save } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import LocalizedArrow from "@/components/LocalizedArrow";
+import { showAlert } from "@/utils/swal";
 import { useNavigate } from "react-router-dom";
 import { useClients } from "@/hooks/queries";
 import type { Client } from "@/api/interfaces/clientinterface";
@@ -222,7 +223,7 @@ Agency's liability shall not exceed the total amount paid under this agreement.`
     const handleSave = () => {
         localStorage.setItem("contractTerms", contractTerms);
         setIsEditing(false);
-        alert(t("save_contract") || "Contract saved successfully!");
+        showAlert(t("save_contract") || "Contract saved successfully!", "success");
     };
 
     const handleDownload = () => {

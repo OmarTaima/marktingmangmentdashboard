@@ -168,7 +168,13 @@ class ApiCache {
             const data = await apiCall();
             this.set(endpoint, data, params, options?.ttl);
             return data;
-        } catch (error) {
+        } catch (error: any) {
+            // If the request was canceled (Axios CanceledError / Abort), don't log as an error.
+            if (error?.code === "ERR_CANCELED" || error?.name === "CanceledError" || error?.message === "canceled") {
+                // Let callers (react-query) handle cancellations; do not pollute console
+                throw error;
+            }
+
             console.error(`❌ API Error: ${endpoint}`, error);
             throw error;
         }

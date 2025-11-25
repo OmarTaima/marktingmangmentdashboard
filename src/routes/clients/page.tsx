@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { showAlert } from "@/utils/swal";
 import { useNavigate } from "react-router-dom";
 import { Plus, Building2, Target, TrendingUp, Search, Download, RefreshCw } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
@@ -55,7 +56,7 @@ const ClientsPage = () => {
             window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Export failed:", err);
-            alert("Failed to export clients. Please try again.");
+            showAlert("Failed to export clients. Please try again.", "error");
         } finally {
             setExporting(false);
         }

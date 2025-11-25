@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLang } from "@/hooks/useLang";
 import { Check, Loader2, Search } from "lucide-react";
+import { showAlert } from "@/utils/swal";
 import { usePackages } from "@/hooks/queries";
 import type { Package } from "@/api/requests/packagesService";
 
@@ -33,7 +34,7 @@ const PackagesPage = () => {
         try {
             localStorage.setItem("selectedPackage", JSON.stringify(pkg));
         } catch (e) {}
-        alert(`${pkg.name} ${t("package_selected_message")}`);
+        showAlert(`${pkg.name} ${t("package_selected_message")}`, "success");
     };
 
     return (

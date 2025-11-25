@@ -12,6 +12,7 @@ import { SegmentsStep } from "./steps/SegmentsStep";
 
 import { useLang } from "@/hooks/useLang";
 import { User, Briefcase, Phone, MapPin, Share2, BarChart2, Target, Users } from "lucide-react";
+import { showAlert } from "@/utils/swal";
 import { useClient, useCreateClient, useUpdateClient, useCreateSegments, useCreateCompetitors, useCreateBranches } from "@/hooks/queries";
 
 type Swot = { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
@@ -240,7 +241,7 @@ const OnboardingPage: FC = () => {
                         });
                     }
 
-                    alert(editId ? "Client updated successfully!" : "Client added successfully!");
+                    showAlert(editId ? "Client updated successfully!" : "Client added successfully!", "success");
 
                     // Clear draft
                     localStorage.removeItem("onboarding_draft");
@@ -251,7 +252,7 @@ const OnboardingPage: FC = () => {
                     const err = error as any;
                     console.error("Error saving client:", err);
                     const errorMessage = err?.response?.data?.message || err?.message || "Failed to save client";
-                    alert(`Error: ${errorMessage}. Please try again.`);
+                    showAlert(`Error: ${errorMessage}. Please try again.`, "error");
                 }
             };
 

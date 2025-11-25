@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Save, Edit2, FileText, Plus, Trash2, Calendar, Loader2 } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
+import { showAlert, showConfirm } from "@/utils/swal";
 import { useClients } from "@/hooks/queries/useClientsQuery";
 import { useCampaignsByClient, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, useAllCampaigns } from "@/hooks/queries/usePlansQuery";
 import type { CampaignObjective } from "@/api/requests/planService";
@@ -282,7 +283,7 @@ const PlanningPage = () => {
 
     const handleSavePlan = async () => {
         if (!selectedClientId) {
-            alert(t("please_select_client_first"));
+            showAlert(t("please_select_client_first"), "warning");
             console.warn("handleSavePlan: no selectedClientId");
             return;
         }
@@ -337,10 +338,10 @@ const PlanningPage = () => {
             try {
                 localStorage.removeItem(`plan_draft_${selectedClientId}`);
             } catch (e) {}
-            alert(t("plan_saved_success") || "Plan saved successfully!");
+            showAlert(t("plan_saved_success") || "Plan saved successfully!", "success");
         } catch (error) {
             console.error("Failed to save campaign:", error);
-            alert(t("save_failed") || "Failed to save plan.");
+            showAlert(t("save_failed") || "Failed to save plan.", "error");
         }
     };
 
@@ -406,7 +407,8 @@ const PlanningPage = () => {
         });
 
     const handleDeletePlan = async (planId: string) => {
-        if (!confirm(t("confirm_delete_plan") || "Delete this plan?")) return;
+        const confirmed = await showConfirm(t("confirm_delete_plan") || "Delete this plan?", t("yes") || "Yes", t("no") || "No");
+        if (!confirmed) return;
 
         try {
             if (planId.startsWith("campaign_") && selectedClientId) {
@@ -433,7 +435,7 @@ const PlanningPage = () => {
             }
         } catch (error) {
             console.error("Failed to delete campaign:", error);
-            alert(t("delete_failed") || "Failed to delete plan.");
+            showAlert(t("delete_failed") || "Failed to delete plan.", "error");
         }
     };
 
@@ -447,6 +449,31 @@ const PlanningPage = () => {
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
+    };
+
+    // Key handlers: press Enter in either input to trigger the same action as the Add/Save button
+    const handleObjectiveKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (editingObjectiveIndex === -1) {
+                if (!objectiveInputEn.trim() && !objectiveInputAr.trim()) return;
+                handleAddObjective();
+            } else {
+                saveEditObjective(editingObjectiveIndex);
+            }
+        }
+    };
+
+    const handleStrategyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (editingStrategyIndex === -1) {
+                if (!strategyInputEn.trim() && !strategyInputAr.trim()) return;
+                handleAddStrategy();
+            } else {
+                saveEditStrategy(editingStrategyIndex);
+            }
+        }
     };
 
     return (
@@ -703,12 +730,14 @@ const PlanningPage = () => {
                                             <input
                                                 value={objectiveInputEn}
                                                 onChange={(e) => setObjectiveInputEn(e.target.value)}
+                                                onKeyDown={handleObjectiveKeyDown}
                                                 placeholder={t("objective_en") || "Objective (English)"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
                                             <input
                                                 value={objectiveInputAr}
                                                 onChange={(e) => setObjectiveInputAr(e.target.value)}
+                                                onKeyDown={handleObjectiveKeyDown}
                                                 placeholder={t("objective_description") || "Description"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
@@ -776,12 +805,14 @@ const PlanningPage = () => {
                                             <input
                                                 value={strategyInputEn}
                                                 onChange={(e) => setStrategyInputEn(e.target.value)}
+                                                onKeyDown={handleStrategyKeyDown}
                                                 placeholder={t("strategy_en") || "Strategy (English)"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
                                             <input
                                                 value={strategyInputAr}
                                                 onChange={(e) => setStrategyInputAr(e.target.value)}
+                                                onKeyDown={handleStrategyKeyDown}
                                                 placeholder={t("strategy_description") || "Description"}
                                                 className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                             />
