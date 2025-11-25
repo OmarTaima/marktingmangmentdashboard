@@ -77,6 +77,17 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     const setEditing = fullPage ? setLocalEditing : () => {};
     const setDraft = fullPage ? setLocalDraft : propSetDraft || (() => {});
 
+    // Normalize user-provided URLs so clicking them opens external sites.
+    const normalizeUrl = (raw?: string) => {
+        if (!raw) return "";
+        const url = raw.toString().trim();
+        if (url === "") return "";
+        // If it already has a protocol or is protocol-relative, return as-is
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url) || url.startsWith("//")) return url;
+        // Otherwise assume https
+        return `https://${url}`;
+    };
+
     // Use fetched client if full page, otherwise use prop client
     const client = fullPage ? fetchedClient : propClient;
 
@@ -787,7 +798,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                 return (
                                                                     <a
                                                                         key={linkIdx}
-                                                                        href={link.url}
+                                                                        href={normalizeUrl(link.url)}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className={`${colorClass} transition-opacity hover:opacity-70`}
@@ -803,7 +814,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     {/* Website */}
                                                     {competitor.website && (
                                                         <a
-                                                            href={competitor.website}
+                                                            href={normalizeUrl(competitor.website)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-light-500 mt-2 block text-xs break-words hover:underline"
@@ -914,7 +925,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                                         >
                                                                                             {l.url ? (
                                                                                                 <a
-                                                                                                    href={l.url}
+                                                                                                    href={normalizeUrl(l.url)}
                                                                                                     target="_blank"
                                                                                                     rel="noopener noreferrer"
                                                                                                     className="text-primary-600 dark:text-primary-400 hover:underline"
@@ -1040,7 +1051,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                 <>
                                                     {Icon && <Icon className={`${colorClass} h-5 w-5`} />}
                                                     <a
-                                                        href={link.url}
+                                                        href={normalizeUrl(link.url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-blue-600 hover:underline dark:text-blue-400"
@@ -1110,7 +1121,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         onChange={(e) => updateDraft(`segments.${idx}.description`, e.target.value)}
                                                     />
                                                 </div>
-                                                
+
                                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
@@ -1620,7 +1631,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                     })()
                                 ) : data.contact?.website ? (
                                     <a
-                                        href={data.contact.website}
+                                        href={normalizeUrl(data.contact.website)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-dark-300 max-w-full break-words hover:underline"
