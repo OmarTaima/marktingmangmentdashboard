@@ -372,20 +372,32 @@ export const getClientByIdCached = async (clientId: string): Promise<Client | nu
  */
 export const getClientById = async (clientId: string): Promise<Client | null> => {
     try {
-        // Try to specify which fields to populate to avoid nested population errors
-        // If backend still has issues, we may need them to fix their model
-        const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, {
-            params: {
-                populate: "segments,competitors,branches", // Only populate these, not contracts
-            },
-        });
+        // Try to specify which fields to populate to avoid nested population errors.
+        // If the server has stale populate settings (e.g. trying to populate quotations.services)
+        // it may reject the request. In that case we retry the request without `populate` as a
+        // graceful fallback so the client page can still load.
+        try {
+            const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, {
+                params: {
+                    populate: "segments,competitors,branches",
+                },
+            });
 
-        // Handle nested data structure - backend can return:
-        // {client: {...}}, {data: {...}}, or {...}
-        const clientData = response.data.client || response.data.data || response.data;
-
-        const transformed = transformToFrontendFormat(clientData);
-        return transformed;
+            const clientData = response.data.client || response.data.data || response.data;
+            const transformed = transformToFrontendFormat(clientData);
+            return transformed;
+        } catch (err: any) {
+            // If the error is about strictPopulate or invalid populate path, retry without params.
+            const msg = err?.response?.data?.message || err?.message || "";
+            if (typeof msg === "string" && msg.includes("populate")) {
+                // Retry without populate param to avoid server-side nested population
+                const fallbackResp = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`);
+                const clientData = fallbackResp.data.client || fallbackResp.data.data || fallbackResp.data;
+                const transformed = transformToFrontendFormat(clientData);
+                return transformed;
+            }
+            throw err;
+        }
     } catch (error) {
         throw error;
     }

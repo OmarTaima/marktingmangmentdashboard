@@ -120,8 +120,20 @@ export const getQuotations = async (params?: QuotationQueryParams, signal?: Abor
     return withCache(
         "/quotations",
         async () => {
-            const response = await api.get("/quotations", { params, signal });
-            return response.data;
+            // Prefer to ask the backend to populate `packages` (current model) which
+            // avoids servers that still try to populate the removed `services` path.
+            try {
+                const response = await api.get("/quotations", { params: { ...params, populate: "packages" }, signal });
+                return response.data;
+            } catch (err: any) {
+                const msg = err?.response?.data?.message || err?.message || "";
+                if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
+                    // Retry without populate param as a fallback so the UI can still render data
+                    const fallback = await api.get("/quotations", { params, signal });
+                    return fallback.data;
+                }
+                throw err;
+            }
         },
         params,
     );
@@ -142,8 +154,20 @@ export const createQuotation = async (payload: CreateQuotationPayload): Promise<
  */
 export const getQuotationById = async (id: string): Promise<{ data: Quotation }> => {
     return withCache(`/quotations/${id}`, async () => {
-        const response = await api.get(`/quotations/${id}`);
-        return response.data;
+        // Try to explicitly request `packages` population (current model), which
+        // should avoid the backend attempting to populate the old `services` path.
+        try {
+            const response = await api.get(`/quotations/${id}`, { params: { populate: "packages" } });
+            return response.data;
+        } catch (err: any) {
+            // If server complains about populate/path, retry without params as a fallback.
+            const msg = err?.response?.data?.message || err?.message || "";
+            if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
+                const fallback = await api.get(`/quotations/${id}`);
+                return fallback.data;
+            }
+            throw err;
+        }
     });
 };
 

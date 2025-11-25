@@ -92,6 +92,24 @@ axiosInstance.interceptors.response.use(
                 console.error("❌ API Error:", error.response.status, error.config?.url);
             }
 
+            // Handle backend populate errors (e.g., "Cannot populate path `quotations.services`")
+            // This happens when the backend tries to populate a removed field
+            if (error.response.status === 500 && !originalRequest._retryWithoutPopulate) {
+                const errorMessage = error.response.data?.error?.message || error.response.data?.message || "";
+                if (typeof errorMessage === "string" && errorMessage.toLowerCase().includes("populate")) {
+                    console.warn("⚠️ Backend populate error detected, retrying without populate params:", errorMessage);
+                    originalRequest._retryWithoutPopulate = true;
+
+                    // Remove populate from query params
+                    if (originalRequest.params) {
+                        const { populate, ...restParams } = originalRequest.params;
+                        originalRequest.params = restParams;
+                    }
+
+                    return axiosInstance(originalRequest);
+                }
+            }
+
             // Handle 401 authentication errors
             if (error.response.status === 401 && !originalRequest._retry) {
                 const errorCode = error.response.data?.error?.code;

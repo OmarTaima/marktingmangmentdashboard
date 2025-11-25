@@ -73,8 +73,10 @@ export interface Segment {
     description?: string;
     ageRange?: string;
     gender?: "all" | "male" | "female" | "other";
-    interests?: string[];
-    incomeLevel?: "low" | "middle" | "high" | "varied";
+    area?: string[];
+    governorate?: string[];
+    productName?: string;
+    note?: string;
     deleted?: boolean;
     createdAt?: string;
     updatedAt?: string;

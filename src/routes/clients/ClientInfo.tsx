@@ -1110,17 +1110,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         onChange={(e) => updateDraft(`segments.${idx}.description`, e.target.value)}
                                                     />
                                                 </div>
-                                                <div>
-                                                    <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
-                                                        {t("product_name") || "Product Name"}
-                                                    </label>
-                                                    <input
-                                                        className={inputBaseClass}
-                                                        value={(segment as any).productName || ""}
-                                                        placeholder={t("product_name_placeholder") || "Optional product name"}
-                                                        onChange={(e) => updateDraft(`segments.${idx}.productName`, e.target.value)}
-                                                    />
-                                                </div>
+                                                
                                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
@@ -1154,51 +1144,67 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     </div>
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
-                                                            {t("income_level") || "Income Level"}
+                                                            {t("area") || "Area"}
                                                         </label>
-                                                        <select
+                                                        <input
+                                                            type="text"
                                                             className={inputBaseClass}
-                                                            value={segment.incomeLevel || ""}
-                                                            onChange={(e) => updateDraft(`segments.${idx}.incomeLevel`, e.target.value)}
-                                                        >
-                                                            <option value="">{t("select") || "Select..."}</option>
-                                                            <option value="low">{t("low") || "Low"}</option>
-                                                            <option value="middle">{t("middle") || "Middle"}</option>
-                                                            <option value="high">{t("high") || "High"}</option>
-                                                            <option value="varied">{t("varied") || "Varied"}</option>
-                                                        </select>
+                                                            value={Array.isArray(segment.area) ? segment.area.join(", ") : segment.area || ""}
+                                                            placeholder={t("area_placeholder") || "e.g., Nasr City, Maadi"}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                const areas = value
+                                                                    .split(/[,;]+/)
+                                                                    .map((s) => s.trim())
+                                                                    .filter(Boolean);
+                                                                updateDraft(`segments.${idx}.area`, areas);
+                                                            }}
+                                                        />
                                                     </div>
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
-                                                            {t("interests") || "Interests"}
+                                                            {t("governorate") || "Governorate"}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            className={inputBaseClass}
+                                                            value={
+                                                                Array.isArray(segment.governorate)
+                                                                    ? segment.governorate.join(", ")
+                                                                    : segment.governorate || ""
+                                                            }
+                                                            placeholder={t("governorate_placeholder") || "e.g., Cairo, Giza"}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                const governorates = value
+                                                                    .split(/[,;]+/)
+                                                                    .map((s) => s.trim())
+                                                                    .filter(Boolean);
+                                                                updateDraft(`segments.${idx}.governorate`, governorates);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                            {t("product_name") || "Product Name"}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            className={inputBaseClass}
+                                                            value={(segment as any).productName || ""}
+                                                            placeholder={t("product_name_placeholder") || "Product or service name"}
+                                                            onChange={(e) => updateDraft(`segments.${idx}.productName`, e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                            {t("note") || "Note"}
                                                         </label>
                                                         <textarea
                                                             className={`${inputBaseClass} min-h-[60px]`}
-                                                            value={
-                                                                (segment as any)._interestsText !== undefined
-                                                                    ? (segment as any)._interestsText
-                                                                    : Array.isArray(segment.interests)
-                                                                      ? segment.interests.join("\n")
-                                                                      : segment.interests || ""
-                                                            }
-                                                            placeholder={
-                                                                t("interests_placeholder") || "Enter interests (one per line or comma-separated)"
-                                                            }
-                                                            onChange={(e) => updateDraft(`segments.${idx}._interestsText`, e.target.value)}
-                                                            onBlur={() => {
-                                                                const raw =
-                                                                    (segment as any)._interestsText !== undefined
-                                                                        ? (segment as any)._interestsText
-                                                                        : Array.isArray(segment.interests)
-                                                                          ? segment.interests.join("\n")
-                                                                          : segment.interests || "";
-                                                                const interestsArray = raw
-                                                                    .split(/[,;\n]+/)
-                                                                    .map((i: string) => i.trim())
-                                                                    .filter((i: string) => i.length > 0);
-                                                                updateDraft(`segments.${idx}.interests`, interestsArray);
-                                                                updateDraft(`segments.${idx}._interestsText`, undefined);
-                                                            }}
+                                                            value={(segment as any).note || ""}
+                                                            placeholder={t("note_placeholder") || "Additional notes..."}
+                                                            onChange={(e) => updateDraft(`segments.${idx}.note`, e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
@@ -1242,9 +1248,20 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                       {segment.gender.charAt(0).toUpperCase() + segment.gender.slice(1)}
                                                                   </span>
                                                               ))}
-                                                    {segment.incomeLevel && (
+                                                    {(segment as any).area && (segment as any).area.length > 0 && (
                                                         <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
-                                                            {segment.incomeLevel.charAt(0).toUpperCase() + segment.incomeLevel.slice(1)} Income
+                                                            Area:{" "}
+                                                            {Array.isArray((segment as any).area)
+                                                                ? (segment as any).area.join(", ")
+                                                                : (segment as any).area}
+                                                        </span>
+                                                    )}
+                                                    {(segment as any).governorate && (segment as any).governorate.length > 0 && (
+                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                            Gov:{" "}
+                                                            {Array.isArray((segment as any).governorate)
+                                                                ? (segment as any).governorate.join(", ")
+                                                                : (segment as any).governorate}
                                                         </span>
                                                     )}
                                                     {(segment as any).productName && (
@@ -1252,19 +1269,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                             {(segment as any).productName}
                                                         </span>
                                                     )}
-                                                    {segment.interests && segment.interests.length > 0 && (
-                                                        <>
-                                                            {segment.interests.map((interest, iIdx) => (
-                                                                <span
-                                                                    key={iIdx}
-                                                                    className="bg-light-100 text-light-700 dark:bg-dark-900/30 dark:text-dark-300 rounded px-2 py-1 text-xs"
-                                                                >
-                                                                    {interest}
-                                                                </span>
-                                                            ))}
-                                                        </>
-                                                    )}
                                                 </div>
+                                                {(segment as any).note && (
+                                                    <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{(segment as any).note}</p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1286,8 +1294,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     description: "",
                                                     ageRange: "",
                                                     gender: "all",
-                                                    interests: [],
-                                                    incomeLevel: "",
+                                                    area: [],
+                                                    governorate: [],
+                                                    productName: "",
+                                                    note: "",
                                                 });
                                                 return next;
                                             });
