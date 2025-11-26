@@ -6,6 +6,9 @@ import { showAlert, showToast } from "@/utils/swal";
 import { useServices, useCreateQuotation, useUpdateQuotation } from "@/hooks/queries";
 import { getQuotationById } from "@/api/requests/quotationsService";
 import type { CustomService, CreateQuotationPayload } from "@/api/requests/quotationsService";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 interface CreateQuotationProps {
     clientId?: string;
@@ -437,12 +440,64 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                 <div className="mb-6 grid gap-4 md:grid-cols-2">
                     <div>
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("valid_until") || "Valid Until"}</label>
-                        <input
-                            type="date"
-                            value={validUntil}
-                            onChange={(e) => setValidUntil(e.target.value)}
-                            className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
-                        />
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                value={validUntil ? dayjs(validUntil) : null}
+                                onChange={(newVal: Dayjs | null) => setValidUntil(newVal ? newVal.format("YYYY-MM-DD") : "")}
+                                slotProps={{
+                                    textField: {
+                                        size: "small",
+                                        className:
+                                            "border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-white dark:bg-dark-800 px-3 py-2 text-sm",
+                                        sx: {
+                                            // explicit colors using project CSS variables
+                                            color: "var(--color-light-900)",
+                                            ".dark &": {
+                                                color: "var(--color-dark-50)",
+                                            },
+                                            "& .MuiInputBase-input": {
+                                                padding: "8px 12px",
+                                                fontSize: "0.875rem",
+                                                color: "var(--color-light-900)",
+                                                ".dark &": {
+                                                    color: "var(--color-dark-50)",
+                                                },
+                                            },
+                                            "& .MuiOutlinedInput-root": {
+                                                borderRadius: "0.5rem",
+                                                "& .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "var(--color-light-600)",
+                                                },
+                                                ".dark & .MuiOutlinedInput-notchedOutline": {
+                                                    borderColor: "var(--color-dark-700)",
+                                                },
+                                            },
+                                            "& .MuiInputBase-input::placeholder": {
+                                                color: "var(--color-light-900)",
+                                                opacity: 0.6,
+                                            },
+                                            ".dark & .MuiInputBase-input::placeholder": {
+                                                color: "var(--color-dark-50)",
+                                                opacity: 0.6,
+                                            },
+                                            // calendar icon / svg
+                                            "& .MuiSvgIcon-root": {
+                                                color: "var(--color-light-900)",
+                                            },
+                                            ".dark & .MuiSvgIcon-root": {
+                                                color: "var(--color-dark-50)",
+                                            },
+                                            "& .MuiInputAdornment-root svg": {
+                                                color: "var(--color-light-900)",
+                                            },
+                                            ".dark & .MuiInputAdornment-root svg": {
+                                                color: "var(--color-dark-50)",
+                                            },
+                                        },
+                                    },
+                                }}
+                            />
+                        </LocalizationProvider>
                     </div>
                     <div className="md:col-span-2">
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("note") || "Note"}</label>

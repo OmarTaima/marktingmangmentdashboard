@@ -872,7 +872,6 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                         </label>
                     </div>
 
-                    {/* Old selection UI removed - use the Client Selections panel above */}
                     <div className="flex flex-wrap gap-2">
                         <button
                             onClick={handleSavePlan}
