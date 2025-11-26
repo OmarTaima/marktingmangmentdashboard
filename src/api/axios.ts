@@ -1,4 +1,5 @@
 import axios from "axios";
+import { showToast } from "../utils/swal";
 
 // Helper to get cookie value
 const getCookie = (name: string): string | null => {
@@ -80,6 +81,33 @@ const processQueue = (error: any = null, token: string | null = null) => {
 // Response interceptor (for handling errors globally)
 axiosInstance.interceptors.response.use(
     (response) => {
+        try {
+            const method = (response.config?.method || "").toLowerCase();
+            // Only show success toast for mutating operations
+            if (["post", "put", "patch", "delete"].includes(method)) {
+                const url = response.config?.url || "";
+                const firstSegment = url.split("/").filter(Boolean)[0] || "item";
+                // Make a readable resource name: replace dashes/underscores, singularize simple plural
+                let resourceName = firstSegment.replace(/[-_]/g, " ");
+                if (resourceName.endsWith("s")) resourceName = resourceName.slice(0, -1);
+                resourceName = resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
+
+                let action = "updated";
+                if (method === "post") action = "added";
+                else if (method === "delete") action = "deleted";
+
+                try {
+                    showToast(`${resourceName} ${action} successfully`, "success");
+                } catch (err) {
+                    // swallow errors from UI helper to avoid breaking API flow
+                    // eslint-disable-next-line no-console
+                    console.warn("swal showToast failed:", err);
+                }
+            }
+        } catch (err) {
+            // ignore any parsing errors here
+        }
+
         return response;
     },
     async (error) => {
