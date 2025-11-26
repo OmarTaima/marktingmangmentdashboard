@@ -139,8 +139,6 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Non-blocking: show URL errors but allow moving forward
-        console.debug("[SocialLinksStep] Submitting businessLinks:", JSON.stringify(businessLinks));
-        console.debug("[SocialLinksStep] Submitting customLinks:", JSON.stringify(customLinks));
         onNext({
             socialLinks: {
                 business: businessLinks,
