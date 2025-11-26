@@ -1,4 +1,4 @@
-import { useEffect, useState, KeyboardEvent, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Plus, Check, Loader2, Minus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { showConfirm, showAlert } from "@/utils/swal";
@@ -188,23 +188,7 @@ const AddPackagePage = () => {
         }
     };
 
-    const handlePackageKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            // signal that package tiles should ignore clicks for a short moment
-            ignorePackageToggleRef.current = true;
-            try {
-                handleSubmit();
-            } finally {
-                // reset after a tick so any click events are ignored
-                setTimeout(() => {
-                    ignorePackageToggleRef.current = false;
-                }, 50);
-            }
-        }
-    };
-
+    // (removed unused keyboard handler)
     const startEditPackage = (pkg: Package) => {
         setEditPackageId(pkg._id);
         setNameEn(pkg.nameEn || "");

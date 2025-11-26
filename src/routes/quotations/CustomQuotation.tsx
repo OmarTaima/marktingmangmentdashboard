@@ -112,7 +112,6 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                 onBack();
             }
         } catch (error: any) {
-            console.error("Failed to create custom quotation:", error);
             showAlert(error.response?.data?.message || t("failed_to_save_quotation") || "Failed to save quotation", "error");
         }
     };

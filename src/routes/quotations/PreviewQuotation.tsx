@@ -127,17 +127,7 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
     useEffect(() => {
         // Only log when we actually attempted to fetch
         if (!shouldFetchQuotations) return;
-        // eslint-disable-next-line no-console
-        console.debug("[PreviewQuotation] quotationsResponse:", quotationsResponse);
-        // eslint-disable-next-line no-console
-        console.debug(
-            "[PreviewQuotation] quotations.length:",
-            quotations.length,
-            "displayedQuotations:",
-            displayedQuotations.length,
-            "totalQuotations:",
-            totalQuotations,
-        );
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [quotationsResponse, quotations.length, displayedQuotations.length, totalQuotations, shouldFetchQuotations]);
 
@@ -167,7 +157,6 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
         try {
             await deleteQuotationMutation.mutateAsync(id);
         } catch (error) {
-            console.error("Failed to delete quotation:", error);
             showAlert(t("failed_to_delete_quotation") || "Failed to delete quotation", "error");
         }
     };
@@ -435,7 +424,6 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
             const pdfUrl = URL.createObjectURL(pdfBlob);
             window.open(pdfUrl, "_blank");
         } catch (error: any) {
-            console.error("Failed to generate preview:", error);
             showAlert(`${t("failed_to_generate_preview") || "Failed to generate preview"}: ${error?.message || "Please try again."}`, "error");
         }
     };
@@ -691,7 +679,6 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
 
             doc.save(`quotation-${quotation.quotationNumber}.pdf`);
         } catch (error) {
-            console.error("Failed to generate PDF:", error);
             showAlert(t("failed_to_generate_pdf") || "Failed to generate PDF. Please try again.", "error");
         } finally {
             setIsDownloading(null);
@@ -723,7 +710,6 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
 
             showAlert(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
         } catch (error: any) {
-            console.error("Failed to convert quotation:", error);
             showAlert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract", "error");
         }
     };

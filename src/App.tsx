@@ -9,6 +9,8 @@ import OnboardingPage from "./routes/onboarding/page";
 import ClientsPage from "./routes/clients/page";
 import ClientInfo from "./routes/clients/ClientInfo";
 import PlanningPage from "./routes/planning/page";
+import PreviewCampaigns from "./routes/planning/PreviewStratigy";
+import ManageCampaignPage from "./routes/planning/manage";
 import ServicesPage from "./routes/services/page";
 import ItemsPage from "./routes/items/page";
 import QuotationsPage from "./routes/quotations/page";
@@ -34,6 +36,11 @@ function App() {
                     { path: "clients", element: <ClientsPage /> },
                     { path: "clients/:id", element: <ClientInfo fullPage={true} /> },
                     { path: "strategies", element: <PlanningPage /> },
+                    { path: "strategies/manage", element: <ManageCampaignPage /> },
+                    {
+                        path: "strategies/preview",
+                        element: <PreviewCampaigns clientName="" />,
+                    },
                     { path: "services", element: <ServicesPage /> },
                     { path: "items", element: <ItemsPage /> },
                     { path: "quotations", element: <QuotationsPage /> },
@@ -51,11 +58,6 @@ function App() {
             {
                 path: "users",
                 element: <h1 className="title">Users</h1>,
-            },
-
-            {
-                path: "strategies",
-                element: <h1 className="title">Strategies</h1>,
             },
         ],
         {

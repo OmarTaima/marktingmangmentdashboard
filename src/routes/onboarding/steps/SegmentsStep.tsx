@@ -27,6 +27,28 @@ type SegmentsStepProps = {
 
 export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
+    // helper to normalize population into a single number (first valid) or undefined
+    const normalizePopulation = (val: any): number | undefined => {
+        if (val === undefined || val === null || val === "") return undefined;
+        if (Array.isArray(val)) {
+            const first = val.length > 0 ? val[0] : undefined;
+            const n = first === undefined || first === null ? NaN : Number(first);
+            return Number.isNaN(n) ? undefined : n;
+        }
+        if (typeof val === "string") {
+            const parts = val
+                .toString()
+                .split(/[,;\n]+/)
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+            const n = parts.length > 0 ? Number(parts[0]) : NaN;
+            return Number.isNaN(n) ? undefined : n;
+        }
+        if (typeof val === "number") {
+            return Number.isNaN(val) ? undefined : val;
+        }
+        return undefined;
+    };
     const [segments, setSegments] = useState<Segment[]>(data.segments || []);
     const [currentSegment, setCurrentSegment] = useState<Segment>(
         data.segmentsDraft || {
@@ -90,8 +112,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             cleanedSegment.area = currentSegment.area.filter((i) => i.trim().length > 0);
         }
 
-        if (currentSegment.population && Array.isArray(currentSegment.population) && currentSegment.population.length > 0) {
-            cleanedSegment.population = currentSegment.population.map((n) => Number(n)).filter((n) => !Number.isNaN(n));
+        if (currentSegment.population !== undefined && currentSegment.population !== null) {
+            cleanedSegment.population = normalizePopulation(currentSegment.population) as any;
         }
 
         if (currentSegment.governorate && currentSegment.governorate.length > 0) {
@@ -171,8 +193,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 cleanedSegment.productName = currentSegment.productName.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
             }
 
-            if (currentSegment.population && Array.isArray(currentSegment.population) && currentSegment.population.length > 0) {
-                cleanedSegment.population = currentSegment.population.map((n) => Number(n)).filter((n) => !Number.isNaN(n));
+            if (currentSegment.population !== undefined && currentSegment.population !== null) {
+                cleanedSegment.population = normalizePopulation(currentSegment.population) as any;
             }
 
             if (currentSegment.area && currentSegment.area.length > 0) {

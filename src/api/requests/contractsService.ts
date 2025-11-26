@@ -87,7 +87,6 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
                 const response = await api.get("/contracts", { params });
                 return response.data;
             } catch (error) {
-                console.error("Error fetching contracts:", error);
                 throw error;
             }
         },
@@ -104,7 +103,6 @@ export const getContractById = async (id: string): Promise<Contract> => {
             const response = await api.get(`/contracts/${id}`);
             return response.data.data;
         } catch (error) {
-            console.error(`Error fetching contract ${id}:`, error);
             throw error;
         }
     });

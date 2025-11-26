@@ -70,7 +70,6 @@ const ServicesPage = () => {
             setShowPackageDropdown(false);
             setInputPackages([]);
         } catch (e: any) {
-            console.error("Error creating service:", e);
             setError(e.response?.data?.message || "Failed to create service");
         }
     };
@@ -154,7 +153,6 @@ const ServicesPage = () => {
             setEditingPackages([]);
             setShowEditPackageDropdown(false);
         } catch (e: any) {
-            console.error("Error updating service:", e);
             setError(e.response?.data?.message || "Failed to update service");
         }
     };
@@ -177,7 +175,6 @@ const ServicesPage = () => {
             setError("");
             await deleteServiceMutation.mutateAsync(service._id);
         } catch (e: any) {
-            console.error("Error deleting service:", e);
             setError(e.response?.data?.message || "Failed to delete service");
         }
     };

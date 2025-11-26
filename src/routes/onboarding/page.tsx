@@ -200,45 +200,24 @@ const OnboardingPage: FC = () => {
                     if (clientId && updatedFormData.segments && updatedFormData.segments.length > 0) {
                         try {
                             await createSegmentsMutation.mutateAsync({ clientId, data: updatedFormData.segments });
-                        } catch (segmentError: any) {
-                            console.error("Failed to create segments:", segmentError);
-                        }
+                        } catch (segmentError: any) {}
                     } else {
-                        console.warn("⚠️ Segments NOT submitted. Reasons:", {
-                            noClientId: !clientId,
-                            noSegments: !updatedFormData.segments,
-                            emptySegments: updatedFormData.segments?.length === 0,
-                        });
                     }
 
                     // Submit all competitors in one request to /clients/:clientId/competitors/bulk
                     if (clientId && updatedFormData.competitors && updatedFormData.competitors.length > 0) {
                         try {
                             await createCompetitorsMutation.mutateAsync({ clientId, data: updatedFormData.competitors });
-                        } catch (competitorError: any) {
-                            console.error("Failed to create competitors:", competitorError);
-                        }
+                        } catch (competitorError: any) {}
                     } else {
-                        console.warn("⚠️ Competitors NOT submitted. Reasons:", {
-                            noClientId: !clientId,
-                            noCompetitors: !updatedFormData.competitors,
-                            emptyCompetitors: updatedFormData.competitors?.length === 0,
-                        });
                     }
 
                     // Submit all branches in one request to /clients/:clientId/branches/bulk
                     if (clientId && updatedFormData.branches && updatedFormData.branches.length > 0) {
                         try {
                             await createBranchesMutation.mutateAsync({ clientId, data: updatedFormData.branches });
-                        } catch (branchErr: any) {
-                            console.error("Failed to create branches:", branchErr);
-                        }
+                        } catch (branchErr: any) {}
                     } else {
-                        console.warn("⚠️ Branches NOT submitted. Reasons:", {
-                            noClientId: !clientId,
-                            noBranches: !updatedFormData.branches,
-                            emptyBranches: updatedFormData.branches?.length === 0,
-                        });
                     }
 
                     showAlert(editId ? "Client updated successfully!" : "Client added successfully!", "success");
@@ -250,7 +229,6 @@ const OnboardingPage: FC = () => {
                     navigate("/clients");
                 } catch (error) {
                     const err = error as any;
-                    console.error("Error saving client:", err);
                     const errorMessage = err?.response?.data?.message || err?.message || "Failed to save client";
                     showAlert(`Error: ${errorMessage}. Please try again.`, "error");
                 }

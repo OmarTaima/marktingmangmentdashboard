@@ -92,18 +92,27 @@ const transformSegmentToBackendPayload = (segmentData: any): any => {
         }
     }
 
-    // population: accept array of numbers or comma separated string
-    if (segmentData.population) {
+    // population: accept array of numbers, comma-separated string, or single number
+    // Backend validation (and other code paths) expect a single number value for population,
+    // so convert to a single numeric value (use the first valid number when multiple provided).
+    if (segmentData.population !== undefined && segmentData.population !== null && segmentData.population !== "") {
+        let firstNum: number | undefined;
         if (Array.isArray(segmentData.population)) {
             const nums = segmentData.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n));
-            if (nums.length > 0) payload.population = nums;
-        } else if (typeof segmentData.population === "string" && segmentData.population.trim()) {
-            const nums = segmentData.population
+            if (nums.length > 0) firstNum = nums[0];
+        } else if (typeof segmentData.population === "string") {
+            const parts = segmentData.population
                 .split(/[,;\n]+/)
-                .map((s: string) => Number(s.trim()))
-                .filter((n: number) => !Number.isNaN(n));
-            if (nums.length > 0) payload.population = nums;
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+            const nums = parts.map((p: string) => Number(p)).filter((n: number) => !Number.isNaN(n));
+            if (nums.length > 0) firstNum = nums[0];
+        } else if (typeof segmentData.population === "number") {
+            const n = Number(segmentData.population);
+            if (!Number.isNaN(n)) firstNum = n;
         }
+
+        if (firstNum !== undefined) payload.population = firstNum;
     }
 
     // incomeLevel removed — do not include it in payloads
@@ -126,7 +135,9 @@ const transformSegmentToFrontendFormat = (backendData: any): any => {
         productName: Array.isArray(backendData.productName) ? backendData.productName : backendData.productName ? [backendData.productName] : [],
         population: Array.isArray(backendData.population)
             ? backendData.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n))
-            : [],
+            : typeof backendData.population === "number" && !Number.isNaN(Number(backendData.population))
+              ? [Number(backendData.population)]
+              : [],
         gender: Array.isArray(backendData.gender) ? backendData.gender : backendData.gender ? [backendData.gender] : ["all"],
         area: backendData.area || [],
         governorate: backendData.governorate || [],

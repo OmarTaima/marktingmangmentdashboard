@@ -46,7 +46,6 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
                 const response = await api.get("/items", { params });
                 return response.data;
             } catch (error) {
-                console.error("Error fetching items:", error);
                 throw error;
             }
         },
@@ -63,7 +62,6 @@ export const getItemById = async (id: string): Promise<Item> => {
             const response = await api.get(`/items/${id}`);
             return response.data.data;
         } catch (error) {
-            console.error(`Error fetching item ${id}:`, error);
             throw error;
         }
     });
@@ -79,7 +77,6 @@ export const createItem = async (itemData: { name: string; ar?: string; descript
         invalidateCachePattern("/items");
         return response.data.data;
     } catch (error) {
-        console.error("Error creating item:", error);
         throw error;
     }
 };
@@ -102,7 +99,6 @@ export const updateItem = async (
         invalidateCachePattern("/items");
         return response.data.data;
     } catch (error) {
-        console.error(`Error updating item ${id}:`, error);
         throw error;
     }
 };
@@ -116,7 +112,6 @@ export const deleteItem = async (id: string): Promise<void> => {
         // Invalidate items cache after deleting
         invalidateCachePattern("/items");
     } catch (error) {
-        console.error(`Error deleting item ${id}:`, error);
         throw error;
     }
 };
@@ -124,5 +119,4 @@ export const deleteItem = async (id: string): Promise<void> => {
 // Cache clearing utility
 export const clearItemsCache = () => {
     invalidateCachePattern("/items");
-    console.debug("Items cache cleared");
 };

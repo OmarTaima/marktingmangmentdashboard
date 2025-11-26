@@ -50,26 +50,27 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
 
-    // Full page state management
-    const {
-        data: fetchedClient,
-        isLoading: loading,
-        error: queryError,
-    } = fullPage ? useClient(id || "") : { data: null, isLoading: false, error: null };
+    // Full page state management - call hook unconditionally but enable only when fullPage
+    const { data: fetchedClient, isLoading: loading, error: queryError } = useClient(id || "", fullPage);
     const error = queryError?.message || null;
 
     // React Query mutations (initialize regardless so save works in nested mode)
     const updateClientMutation = useUpdateClient();
     const deleteClientMutation = useDeleteClient();
-    const createSegmentMutation = useCreateSegment();
+    const _createSegmentMutation = useCreateSegment();
     const updateSegmentMutation = useUpdateSegment();
     const deleteSegmentMutation = useDeleteSegment();
-    const createCompetitorMutation = useCreateCompetitor();
+    const _createCompetitorMutation = useCreateCompetitor();
     const updateCompetitorMutation = useUpdateCompetitor();
     const deleteCompetitorMutation = useDeleteCompetitor();
-    const createBranchMutation = useCreateBranch();
+    const _createBranchMutation = useCreateBranch();
     const updateBranchMutation = useUpdateBranch();
     const deleteBranchMutation = useDeleteBranch();
+
+    // touch unused mutation variables to satisfy TypeScript unused-variable checks
+    void _createSegmentMutation;
+    void _createCompetitorMutation;
+    void _createBranchMutation;
 
     const [localEditing, setLocalEditing] = useState<boolean>(propEditing);
     const [localDraft, setLocalDraft] = useState<Partial<Client> | null>(propDraft);
@@ -107,6 +108,15 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             setDraft(JSON.parse(JSON.stringify(client)) as Partial<Client>);
         }
     }, [fullPage, searchParams, client]);
+
+    // Local inputs for per-segment temporary values (used by chip-style inputs)
+    const [segmentInputs, setSegmentInputs] = useState<Record<number, { age?: string; area?: string; governorate?: string; productName?: string }>>(
+        {},
+    );
+
+    const setSegmentInput = (idx: number, field: string, value: string) => {
+        setSegmentInputs((prev) => ({ ...(prev || {}), [idx]: { ...(prev[idx] || {}), [field]: value } }));
+    };
 
     // Use segments from client object or fetch separately if needed
     if (!client && !draft) {
@@ -177,14 +187,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     };
 
     // Local inputs for per-segment temporary values (used by chip-style inputs)
-    const [segmentInputs, setSegmentInputs] = useState<Record<number, { age?: string; area?: string; governorate?: string; productName?: string }>>(
-        {},
-    );
-
-    const setSegmentInput = (idx: number, field: string, value: string) => {
-        setSegmentInputs((prev) => ({ ...(prev || {}), [idx]: { ...(prev[idx] || {}), [field]: value } }));
-    };
-
     const addSegmentChip = (idx: number, field: "ageRange" | "area" | "governorate" | "productName") => {
         const val = (
             (segmentInputs[idx] && (segmentInputs[idx] as any)[field.replace(/Range$/, "")]) ||
@@ -232,8 +234,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
         if (!draft || !id) return;
 
         try {
-            console.debug("[saveEditing] RAW DRAFT before processing:", JSON.stringify(draft));
-
             const draftCopy = JSON.parse(JSON.stringify(draft)) as Record<string, any>;
             const draftSegments = draftCopy.segments || [];
             const draftCompetitors = draftCopy.competitors || [];
@@ -294,38 +294,49 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 };
             }
 
-            console.debug("[saveEditing] sanitized client payload:", JSON.stringify(sanitizedForClient));
-
             await updateClientMutation!.mutateAsync({ id: clientId, data: sanitizedForClient });
 
             const originalSegments = client?.segments || [];
             try {
-                // eslint-disable-next-line no-console
-                console.debug("[saveEditing] draftSegments (before processing):", JSON.stringify(draftSegments));
             } catch (e) {}
             // Process segments: batch-create new segments using bulk endpoint, keep updates/deletes per-item
             const segmentCreatePayloads: any[] = [];
             const segmentUpdatePromises: Promise<any>[] = [];
             const segmentDeletePromises: Promise<any>[] = [];
 
+            // helper to normalize various population shapes into either a single number,
+            // an array of numbers, or undefined. If a single numeric value is provided
+            // we return a number (backend validation may expect a single number),
+            // while CSV/arrays with multiple values become arrays.
+            const normalizePopulation = (val: any): number | number[] | undefined => {
+                if (val === undefined || val === null) return undefined;
+                if (Array.isArray(val)) {
+                    const nums = val.map((v: any) => Number(v)).filter((n: number) => !Number.isNaN(n));
+                    if (nums.length === 0) return undefined;
+                    return nums.length === 1 ? nums[0] : nums;
+                }
+                if (typeof val === "string") {
+                    const parts = val
+                        .toString()
+                        .split(/[,;\n]+/)
+                        .map((s: string) => s.trim())
+                        .filter(Boolean);
+                    const nums = parts.map((p: string) => Number(p)).filter((n: number) => !Number.isNaN(n));
+                    if (nums.length === 0) return undefined;
+                    return nums.length === 1 ? nums[0] : nums;
+                }
+                if (typeof val === "number") {
+                    return Number.isNaN(val) ? undefined : val;
+                }
+                return undefined;
+            };
+
             for (const segment of draftSegments) {
                 const sanitized = JSON.parse(JSON.stringify(segment));
                 if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
-
-                // Normalize population: backend expects a single number
+                // Normalize population into either number or array depending on contents
                 if (sanitized.population !== undefined) {
-                    if (Array.isArray(sanitized.population)) {
-                        const n = sanitized.population.length > 0 ? Number(sanitized.population[0]) : undefined;
-                        sanitized.population = !Number.isNaN(n as number) ? n : undefined;
-                    } else if (typeof sanitized.population === "string") {
-                        const raw = (sanitized.population || "").toString().trim();
-                        const n = Number(raw);
-                        sanitized.population = !Number.isNaN(n) ? n : undefined;
-                    } else if (typeof sanitized.population === "number") {
-                        // keep as-is
-                    } else {
-                        sanitized.population = undefined;
-                    }
+                    sanitized.population = normalizePopulation(sanitized.population);
                 }
 
                 if (sanitized._id) {
@@ -334,6 +345,9 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         const originalSanitized = JSON.parse(JSON.stringify(originalSegment));
                         if (originalSanitized._interestsText !== undefined) delete originalSanitized._interestsText;
                         if (hasChanges(originalSanitized, sanitized)) {
+                            // log the payload being sent for update to inspect population
+                            try {
+                            } catch (e) {}
                             segmentUpdatePromises.push(
                                 updateSegmentMutation!
                                     .mutateAsync({ clientId: clientId, segmentId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
@@ -360,10 +374,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             // Batch create new segments if any
             if (segmentCreatePayloads.length > 0) {
                 try {
+                    try {
+                    } catch (e) {}
                     await apiCreateSegments(clientId, segmentCreatePayloads);
-                } catch (err) {
-                    console.error("Error creating segments (bulk):", err);
-                }
+                } catch (err) {}
             }
 
             // Run updates/deletes in parallel
@@ -454,9 +468,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             if (branchCreatePayloads.length > 0) {
                 try {
                     await apiCreateBranches(clientId, branchCreatePayloads);
-                } catch (err) {
-                    console.error("Error creating branches (bulk):", err);
-                }
+                } catch (err) {}
             }
 
             if (branchUpdatePromises.length > 0 || branchDeletePromises.length > 0) {
@@ -471,8 +483,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             try {
                 // Fetch fresh client from cache/server and log it for debugging
                 const fresh = await queryClient.fetchQuery({ queryKey: clientsKeys.detail(clientId) });
-                // eslint-disable-next-line no-console
-                console.debug("[saveEditing] fresh client after save:", fresh);
             } catch (e) {
                 // ignore
             }
@@ -482,7 +492,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
             showAlert("Client updated successfully!", "success");
         } catch (err: any) {
-            console.error("Error updating client:", err);
             const errorMessage = err?.response?.data?.message || err?.message || "Failed to update client";
             showAlert(`Error: ${errorMessage}. Please try again.`, "error");
         }
@@ -504,7 +513,6 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             showAlert("Client deleted successfully!", "success");
             navigate("/clients");
         } catch (err: any) {
-            console.error("Error deleting client:", err);
             const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete client";
             showAlert(`Error: ${errorMessage}. Please try again.`, "error");
         }

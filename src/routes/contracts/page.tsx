@@ -41,9 +41,7 @@ const ContractPage = () => {
             if (clientRaw) {
                 try {
                     resolvedClient = JSON.parse(clientRaw);
-                } catch (e) {
-                    console.error("Failed to parse clientData from localStorage:", e);
-                }
+                } catch (e) {}
             }
         }
 
@@ -54,8 +52,6 @@ const ContractPage = () => {
     // Fallback to localStorage if API fails
     useEffect(() => {
         if (clientsError && clients.length === 0) {
-            console.error("Failed to load clients from API, falling back to localStorage:", clientsError);
-
             const selectedId = localStorage.getItem("selectedClientId");
             let resolvedClient = null;
 
@@ -67,9 +63,7 @@ const ContractPage = () => {
                         resolvedClient = parsed.find((c: any) => String(c?.id) === String(selectedId)) || null;
                     }
                 }
-            } catch (e) {
-                console.error("Failed to parse clients from localStorage:", e);
-            }
+            } catch (e) {}
 
             // Fallback to single clientData in localStorage if not found
             if (!resolvedClient) {
@@ -78,7 +72,6 @@ const ContractPage = () => {
                     try {
                         resolvedClient = JSON.parse(clientRaw);
                     } catch (e) {
-                        console.error("Failed to parse clientData from localStorage:", e);
                     }
                 }
             }

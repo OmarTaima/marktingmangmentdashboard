@@ -213,16 +213,12 @@ export const downloadQuotationPDF = async (id: string): Promise<Blob> => {
     } catch (error: any) {
         // More detailed error logging
         if (error.response) {
-            console.error("PDF download failed with status:", error.response.status);
-            console.error("Error data:", error.response.data);
-
             if (error.response.status === 404) {
                 throw new Error("PDF endpoint not found. The backend may not support PDF generation yet.");
             } else if (error.response.status === 500) {
                 throw new Error("Server error while generating PDF");
             }
         } else if (error.request) {
-            console.error("No response received from server");
             throw new Error("Network error: Unable to reach the server");
         }
 
@@ -253,7 +249,6 @@ export const triggerPDFDownload = async (id: string, filename?: string): Promise
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     } catch (error) {
-        console.error("Failed to download PDF:", error);
         throw error;
     }
 };

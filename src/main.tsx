@@ -55,12 +55,7 @@ try {
             return undefined;
         };
     }
-} catch (err) {
-    // If overriding storage fails, just warn and continue — app will continue using localStorage
-    // which may not be desired; remove this block to re-enable storage behavior.
-    // eslint-disable-next-line no-console
-    console.warn("Could not disable localStorage:", err);
-}
+} catch (err) {}
 
 createRoot(rootElement).render(
     <QueryClientProvider client={queryClient}>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useLang } from "@/hooks/useLang";
 import { Check, Loader2, Search } from "lucide-react";
-import { showAlert } from "@/utils/swal";
 import { usePackages } from "@/hooks/queries";
 import type { Package } from "@/api/requests/packagesService";
 
@@ -18,7 +17,7 @@ const PackagesPage = () => {
     });
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [error, setError] = useState<string>("");
+    const [error, _setError] = useState<string>("");
 
     // React Query hook
     const { data: packagesResponse, isLoading } = usePackages({
@@ -29,13 +28,7 @@ const PackagesPage = () => {
     const packages = packagesResponse?.data || [];
     const totalPages = packagesResponse?.meta.totalPages || 1;
 
-    const handleSelectPackage = (pkg: any) => {
-        setSelectedPackage(pkg as any);
-        try {
-            localStorage.setItem("selectedPackage", JSON.stringify(pkg));
-        } catch (e) {}
-        showAlert(`${pkg.name} ${t("package_selected_message")}`, "success");
-    };
+    // handler intentionally removed (not used)
 
     return (
         <div className="space-y-6 px-4 sm:px-6 lg:px-8">

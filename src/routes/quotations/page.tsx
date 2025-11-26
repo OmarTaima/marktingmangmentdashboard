@@ -55,19 +55,6 @@ const QuotationsPage = () => {
         setCurrentView("create");
     };
 
-    const clientHasQuotations = (client: Client): boolean => {
-        return allQuotations.some((q: any) => {
-            if (!q) return false;
-            let qClientId: any = null;
-            if (typeof q.clientId === "string") qClientId = q.clientId;
-            else if (q.clientId && typeof q.clientId === "object") qClientId = q.clientId._id || q.clientId.id || q.clientId;
-            else if (typeof q.client === "string") qClientId = q.client;
-            else if (q.client && typeof q.client === "object") qClientId = q.client._id || q.client.id || q.client;
-
-            return String(qClientId) === String(client.id) || String(qClientId) === String(client._id);
-        });
-    };
-
     // Group custom quotations (those without clientId) by their clientName/customName
     const customQuotationsByName: { name: string; quotations: any[] }[] = (() => {
         const map = new Map<string, { name: string; quotations: any[] }>();
@@ -253,8 +240,7 @@ const QuotationsPage = () => {
                     <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">{t("select_a_client") || "Select a client"}</h2>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {clients.map((client) => {
-                            const hasQuotations = clientHasQuotations(client);
-
+                            // whether client has quotations is not needed here
                             return (
                                 <div
                                     key={client.id}

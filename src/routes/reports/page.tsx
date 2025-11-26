@@ -45,7 +45,6 @@ const ReportsPage = () => {
                     setClientData(null);
                 }
             } catch (e) {
-                console.error("Failed to load clients:", e);
                 // Fallback to localStorage on error
                 const singleRaw = localStorage.getItem("clientData");
                 if (singleRaw) {

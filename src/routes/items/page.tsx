@@ -59,7 +59,6 @@ const ItemsPage = () => {
         // optimistic update in the hook can show the item immediately.
         createItemMutation.mutate(payload, {
             onError: (e: any) => {
-                console.error("Error creating item:", e);
                 setError(e?.response?.data?.message || "Failed to create item");
             },
         });
@@ -121,7 +120,6 @@ const ItemsPage = () => {
             setEditingDescription("");
             setEditingDescriptionAr("");
         } catch (e: any) {
-            console.error("Error updating item:", e);
             setError(e.response?.data?.message || "Failed to update item");
         }
     };
@@ -142,7 +140,6 @@ const ItemsPage = () => {
             setError("");
             await deleteItemMutation.mutateAsync(item._id);
         } catch (e: any) {
-            console.error("Error deleting item:", e);
             setError(e.response?.data?.message || "Failed to delete item");
         }
     };

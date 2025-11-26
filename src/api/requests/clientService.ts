@@ -109,8 +109,6 @@ const transformToBackendPayload = (formData: Partial<Client>): any => {
         // Main platforms that should always be sent (even with empty URL)
         const mainPlatforms = ["Facebook", "Instagram", "TikTok", "X (Twitter)"];
 
-        console.debug("[transformToBackendPayload] RAW socialLinks:", JSON.stringify(formData.socialLinks));
-
         const normalizeEntry = (entry: any) => {
             if (!entry) return null;
             if (typeof entry === "string") {
@@ -131,7 +129,6 @@ const transformToBackendPayload = (formData: Partial<Client>): any => {
 
                 const url = (entry.url || entry.link || "").trim();
                 const isMainPlatform = mainPlatforms.includes(platform);
-                console.debug("[normalizeEntry]", { entry, extractedPlatform: platform, url, isMainPlatform });
                 // Keep entry if it's a main platform OR if it has a URL
                 if (!url && !isMainPlatform) return null;
                 return { platform, url };
@@ -150,7 +147,6 @@ const transformToBackendPayload = (formData: Partial<Client>): any => {
         }
 
         payload.socialLinks = flat.map(normalizeEntry).filter(Boolean);
-        console.debug("[transformToBackendPayload] FINAL payload.socialLinks:", JSON.stringify(payload.socialLinks));
     }
 
     // NOTE: Segments are NOT included in client payload
@@ -181,7 +177,6 @@ const transformToBackendPayload = (formData: Partial<Client>): any => {
  */
 const transformToFrontendFormat = (backendData: any): Client | null => {
     if (!backendData) {
-        console.warn("⚠️ [Transform] Backend data is null/undefined");
         return null;
     }
 
@@ -239,9 +234,7 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
 export const createClient = async (clientData: Partial<Client>): Promise<Client | null> => {
     try {
         const payload = transformToBackendPayload(clientData);
-        // Debug: log payload being sent when creating a client
-        // eslint-disable-next-line no-console
-        console.debug("[clientService] createClient payload:", JSON.stringify(payload));
+
         const response = await axiosInstance.post(CLIENTS_ENDPOINT, payload);
 
         // Handle nested data structure - backend returns {data: {actual client data}}
@@ -409,14 +402,11 @@ export const getClientById = async (clientId: string): Promise<Client | null> =>
 export const updateClient = async (clientId: string, clientData: Partial<Client>): Promise<Client | null> => {
     try {
         const payload = transformToBackendPayload(clientData);
-        // Debug: log payload being sent when updating a client
-        // eslint-disable-next-line no-console
-        console.debug("[clientService] updateClient payload:", JSON.stringify(payload));
+
         const response = await axiosInstance.put(`${CLIENTS_ENDPOINT}/${clientId}`, payload);
         const updated = transformToFrontendFormat(response.data);
         return updated;
     } catch (error) {
-        console.error("Error updating client:", error);
         throw error;
     }
 };
@@ -427,13 +417,10 @@ export const updateClient = async (clientId: string, clientData: Partial<Client>
  */
 export const patchClient = async (clientId: string, partialData: Record<string, any>): Promise<Client | null> => {
     try {
-        // eslint-disable-next-line no-console
-        console.debug("[clientService] patchClient payload:", JSON.stringify(partialData));
         const response = await axiosInstance.patch(`${CLIENTS_ENDPOINT}/${clientId}`, partialData);
         const updated = transformToFrontendFormat(response.data);
         return updated;
     } catch (error) {
-        console.error("Error patching client:", error);
         throw error;
     }
 };
@@ -446,7 +433,6 @@ export const deleteClient = async (clientId: string): Promise<any> => {
         const response = await axiosInstance.delete(`${CLIENTS_ENDPOINT}/${clientId}`);
         return response.data;
     } catch (error) {
-        console.error("Error deleting client:", error);
         throw error;
     }
 };

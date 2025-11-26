@@ -5,7 +5,7 @@ import api from "../axios";
  * Handles CRUD operations for service categories
  */
 
-export interface Package {
+export interface ServicePackage {
     _id: string;
     nameEn: string;
     nameAr: string;
@@ -24,7 +24,7 @@ export interface Service {
     ar: string;
     description?: string;
     price?: number;
-    packages?: Package[];
+    packages?: ServicePackage[];
     deleted?: boolean;
     createdAt?: string;
     updatedAt?: string;

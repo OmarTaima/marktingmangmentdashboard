@@ -51,7 +51,6 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
                 const response = await api.get("/packages", { params });
                 return response.data;
             } catch (error) {
-                console.error("Error fetching packages:", error);
                 throw error;
             }
         },
@@ -68,7 +67,6 @@ export const getPackageById = async (id: string): Promise<Package> => {
             const response = await api.get(`/packages/${id}`);
             return response.data.data;
         } catch (error) {
-            console.error(`Error fetching package ${id}:`, error);
             throw error;
         }
     });
@@ -91,7 +89,6 @@ export const createPackage = async (packageData: {
         invalidateCachePattern("/packages");
         return response.data.data;
     } catch (error) {
-        console.error("Error creating package:", error);
         throw error;
     }
 };
@@ -116,7 +113,6 @@ export const updatePackage = async (
         invalidateCachePattern("/packages");
         return response.data.data;
     } catch (error) {
-        console.error(`Error updating package ${id}:`, error);
         throw error;
     }
 };
@@ -130,7 +126,6 @@ export const deletePackage = async (id: string): Promise<void> => {
         // Invalidate packages cache after deleting
         invalidateCachePattern("/packages");
     } catch (error) {
-        console.error(`Error deleting package ${id}:`, error);
         throw error;
     }
 };
@@ -138,5 +133,4 @@ export const deletePackage = async (id: string): Promise<void> => {
 // Cache clearing utility
 export const clearPackagesCache = () => {
     invalidateCachePattern("/packages");
-    console.debug("Packages cache cleared");
 };

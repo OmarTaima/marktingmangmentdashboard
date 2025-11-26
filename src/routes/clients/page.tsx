@@ -55,7 +55,6 @@ const ClientsPage = () => {
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (err) {
-            console.error("Export failed:", err);
             showAlert("Failed to export clients. Please try again.", "error");
         } finally {
             setExporting(false);

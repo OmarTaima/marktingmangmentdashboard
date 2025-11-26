@@ -165,8 +165,6 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
             // DEBUG: log the created/updated payload so we can trace clientId/_id
             // (temporary - will remove once issue is diagnosed)
-            // eslint-disable-next-line no-console
-            console.debug("[CreateQuotation] createdOrUpdated:", createdOrUpdated);
 
             // Helper to normalize client id whether API returned string or full client object
             const extractClientId = (maybe: any): string | undefined => {
@@ -187,15 +185,10 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                     const full = await getQuotationById(createdOrUpdated._id);
                     const fullData = full?.data ?? full;
                     resultingClientId = extractClientId(fullData?.clientId) ?? resultingClientId;
-                    // eslint-disable-next-line no-console
-                    console.debug("[CreateQuotation] fetched full quotation:", fullData);
                 } catch (e) {
                     // ignore — we'll fallback to navClientName or stub behavior
                 }
             }
-
-            // eslint-disable-next-line no-console
-            console.debug("[CreateQuotation] resultingClientId:", resultingClientId, "navClientName:", navClientName);
 
             if (onSuccess) {
                 onSuccess(resultingClientId, navClientName);
@@ -203,7 +196,6 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                 onBack();
             }
         } catch (error: any) {
-            console.error("Failed to save quotation:", error);
             showAlert(error.response?.data?.message || t("failed_to_save_quotation") || "Failed to save quotation", "error");
         }
     };

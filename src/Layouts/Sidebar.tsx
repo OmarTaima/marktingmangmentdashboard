@@ -91,7 +91,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(({ collapsed, se
                                                     await logout();
                                                 } catch (err) {
                                                     // ignore errors - we still want to redirect to login
-                                                    console.warn("Logout failed, redirecting to login", err);
                                                 } finally {
                                                     // Redirect to login page (full reload to clear state)
                                                     window.location.href = "/auth/login";
