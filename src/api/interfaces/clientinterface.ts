@@ -71,11 +71,12 @@ export interface Segment {
     clientId?: string;
     name: string;
     description?: string;
-    ageRange?: string;
-    gender?: "all" | "male" | "female" | "other";
+    ageRange?: string[];
+    productName?: string[];
+    population?: number[];
+    gender?: Array<"all" | "male" | "female" | "other">;
     area?: string[];
     governorate?: string[];
-    productName?: string;
     note?: string;
     deleted?: boolean;
     createdAt?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Users, Mail, Phone, MapPin, Edit2, Target } from "lucide-react";
+import { Users, Mail, Phone, MapPin, Edit2, Target, Plus, Trash2 } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useQueryClient } from "@tanstack/react-query";
 import LocalizedArrow from "@/components/LocalizedArrow";
@@ -23,6 +23,9 @@ import {
     useDeleteBranch,
     clientsKeys,
 } from "@/hooks/queries";
+import { createSegments as apiCreateSegments } from "@/api/requests/segmentService";
+import { createCompetitors as apiCreateCompetitors } from "@/api/requests/competitorsService";
+import { createBranches as apiCreateBranches } from "@/api/requests/branchesService";
 
 interface ClientInfoProps {
     client?: Client | null;
@@ -55,18 +58,18 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     } = fullPage ? useClient(id || "") : { data: null, isLoading: false, error: null };
     const error = queryError?.message || null;
 
-    // React Query mutations (only for full page)
-    const updateClientMutation = fullPage ? useUpdateClient() : null;
-    const deleteClientMutation = fullPage ? useDeleteClient() : null;
-    const createSegmentMutation = fullPage ? useCreateSegment() : null;
-    const updateSegmentMutation = fullPage ? useUpdateSegment() : null;
-    const deleteSegmentMutation = fullPage ? useDeleteSegment() : null;
-    const createCompetitorMutation = fullPage ? useCreateCompetitor() : null;
-    const updateCompetitorMutation = fullPage ? useUpdateCompetitor() : null;
-    const deleteCompetitorMutation = fullPage ? useDeleteCompetitor() : null;
-    const createBranchMutation = fullPage ? useCreateBranch() : null;
-    const updateBranchMutation = fullPage ? useUpdateBranch() : null;
-    const deleteBranchMutation = fullPage ? useDeleteBranch() : null;
+    // React Query mutations (initialize regardless so save works in nested mode)
+    const updateClientMutation = useUpdateClient();
+    const deleteClientMutation = useDeleteClient();
+    const createSegmentMutation = useCreateSegment();
+    const updateSegmentMutation = useUpdateSegment();
+    const deleteSegmentMutation = useDeleteSegment();
+    const createCompetitorMutation = useCreateCompetitor();
+    const updateCompetitorMutation = useUpdateCompetitor();
+    const deleteCompetitorMutation = useDeleteCompetitor();
+    const createBranchMutation = useCreateBranch();
+    const updateBranchMutation = useUpdateBranch();
+    const deleteBranchMutation = useDeleteBranch();
 
     const [localEditing, setLocalEditing] = useState<boolean>(propEditing);
     const [localDraft, setLocalDraft] = useState<Partial<Client> | null>(propDraft);
@@ -92,7 +95,9 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     // Use fetched client if full page, otherwise use prop client
     const client = fullPage ? fetchedClient : propClient;
 
-    // Removed localStorage-dependent state since localStorage is disabled
+    // Determine client id: prefer route param, fall back to provided client object
+    const clientId = id || (client && ((client as any)._id || (client as any).id));
+
     const clientObjectives: any[] = [];
     const draftDate: Date | null = null;
 
@@ -171,6 +176,41 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
         });
     };
 
+    // Local inputs for per-segment temporary values (used by chip-style inputs)
+    const [segmentInputs, setSegmentInputs] = useState<Record<number, { age?: string; area?: string; governorate?: string; productName?: string }>>(
+        {},
+    );
+
+    const setSegmentInput = (idx: number, field: string, value: string) => {
+        setSegmentInputs((prev) => ({ ...(prev || {}), [idx]: { ...(prev[idx] || {}), [field]: value } }));
+    };
+
+    const addSegmentChip = (idx: number, field: "ageRange" | "area" | "governorate" | "productName") => {
+        const val = (
+            (segmentInputs[idx] && (segmentInputs[idx] as any)[field.replace(/Range$/, "")]) ||
+            (segmentInputs[idx] && (segmentInputs[idx] as any)[field]) ||
+            ""
+        )
+            .toString()
+            .trim();
+        if (!val) return;
+        const sanitize = field === "ageRange" ? (s: string) => s.replace(/[^0-9-]/g, "") : (s: string) => s.trim();
+        const cleaned = sanitize(val);
+        if (!cleaned) return;
+        const existing = Array.isArray((data as any).segments?.[idx]?.[field]) ? [...((data as any).segments[idx][field] as any[])] : [];
+        existing.push(cleaned);
+        updateDraft(`segments.${idx}.${field}`, existing.length > 0 ? existing : "");
+        setSegmentInput(idx, field.replace(/Range$/, ""), "");
+        // clear the field properly in state
+        setSegmentInput(idx, field as any, "");
+    };
+
+    const removeSegmentChip = (idx: number, field: string, chipIndex: number) => {
+        const existing = Array.isArray((data as any).segments?.[idx]?.[field]) ? [...((data as any).segments[idx][field] as any[])] : [];
+        existing.splice(chipIndex, 1);
+        updateDraft(`segments.${idx}.${field}`, existing.length > 0 ? existing : "");
+    };
+
     const startEditing = () => {
         setDraft(client ? (JSON.parse(JSON.stringify(client)) as Partial<Client>) : null);
         setEditing(true);
@@ -189,7 +229,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     };
 
     const saveEditing = async () => {
-        if (!draft || !id || !fullPage) return;
+        if (!draft || !id) return;
 
         try {
             console.debug("[saveEditing] RAW DRAFT before processing:", JSON.stringify(draft));
@@ -256,138 +296,186 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
             console.debug("[saveEditing] sanitized client payload:", JSON.stringify(sanitizedForClient));
 
-            await updateClientMutation!.mutateAsync({ id, data: sanitizedForClient });
+            await updateClientMutation!.mutateAsync({ id: clientId, data: sanitizedForClient });
 
             const originalSegments = client?.segments || [];
-            const segmentOperations = [];
+            try {
+                // eslint-disable-next-line no-console
+                console.debug("[saveEditing] draftSegments (before processing):", JSON.stringify(draftSegments));
+            } catch (e) {}
+            // Process segments: batch-create new segments using bulk endpoint, keep updates/deletes per-item
+            const segmentCreatePayloads: any[] = [];
+            const segmentUpdatePromises: Promise<any>[] = [];
+            const segmentDeletePromises: Promise<any>[] = [];
 
             for (const segment of draftSegments) {
                 const sanitized = JSON.parse(JSON.stringify(segment));
                 if (sanitized._interestsText !== undefined) delete sanitized._interestsText;
 
+                // Normalize population: backend expects a single number
+                if (sanitized.population !== undefined) {
+                    if (Array.isArray(sanitized.population)) {
+                        const n = sanitized.population.length > 0 ? Number(sanitized.population[0]) : undefined;
+                        sanitized.population = !Number.isNaN(n as number) ? n : undefined;
+                    } else if (typeof sanitized.population === "string") {
+                        const raw = (sanitized.population || "").toString().trim();
+                        const n = Number(raw);
+                        sanitized.population = !Number.isNaN(n) ? n : undefined;
+                    } else if (typeof sanitized.population === "number") {
+                        // keep as-is
+                    } else {
+                        sanitized.population = undefined;
+                    }
+                }
+
                 if (sanitized._id) {
-                    // Only update if the segment has actually changed
                     const originalSegment = originalSegments.find((s: Segment) => s._id === sanitized._id);
                     if (originalSegment) {
                         const originalSanitized = JSON.parse(JSON.stringify(originalSegment));
                         if (originalSanitized._interestsText !== undefined) delete originalSanitized._interestsText;
-
                         if (hasChanges(originalSanitized, sanitized)) {
-                            segmentOperations.push(
+                            segmentUpdatePromises.push(
                                 updateSegmentMutation!
-                                    .mutateAsync({ clientId: id, segmentId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                    .mutateAsync({ clientId: clientId, segmentId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
                                     .catch((err) => console.error("Error updating segment:", err)),
                             );
                         }
                     }
                 } else {
-                    segmentOperations.push(
-                        createSegmentMutation!
-                            .mutateAsync({ clientId: id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error creating segment:", err)),
-                    );
+                    segmentCreatePayloads.push(sanitized);
                 }
             }
 
             for (const originalSegment of originalSegments) {
                 const stillExists = draftSegments.find((s: Segment) => s._id === originalSegment._id);
                 if (!stillExists && originalSegment._id) {
-                    segmentOperations.push(
+                    segmentDeletePromises.push(
                         deleteSegmentMutation!
-                            .mutateAsync({ clientId: id, segmentId: originalSegment._id }, { onSuccess: () => {} })
+                            .mutateAsync({ clientId: clientId, segmentId: originalSegment._id }, { onSuccess: () => {} })
                             .catch((err) => console.error("Error deleting segment:", err)),
                     );
                 }
             }
 
-            if (segmentOperations.length > 0) {
-                await Promise.all(segmentOperations);
+            // Batch create new segments if any
+            if (segmentCreatePayloads.length > 0) {
+                try {
+                    await apiCreateSegments(clientId, segmentCreatePayloads);
+                } catch (err) {
+                    console.error("Error creating segments (bulk):", err);
+                }
+            }
+
+            // Run updates/deletes in parallel
+            if (segmentUpdatePromises.length > 0 || segmentDeletePromises.length > 0) {
+                await Promise.all([...segmentUpdatePromises, ...segmentDeletePromises]);
             }
 
             const originalCompetitors = client?.competitors || [];
-            const competitorOperations = [];
+            const competitorCreatePayloads: any[] = [];
+            const competitorUpdatePromises: Promise<any>[] = [];
+            const competitorDeletePromises: Promise<any>[] = [];
 
             for (const competitor of draftCompetitors) {
                 const sanitized = JSON.parse(JSON.stringify(competitor));
 
                 if (sanitized._id) {
-                    // Only update if the competitor has actually changed
                     const originalCompetitor = originalCompetitors.find((c: any) => c._id === sanitized._id);
                     if (originalCompetitor && hasChanges(originalCompetitor, sanitized)) {
-                        competitorOperations.push(
+                        competitorUpdatePromises.push(
                             updateCompetitorMutation!
-                                .mutateAsync({ clientId: id, competitorId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                .mutateAsync({ clientId: clientId, competitorId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
                                 .catch((err) => console.error("Error updating competitor:", err)),
                         );
                     }
                 } else {
-                    competitorOperations.push(
-                        createCompetitorMutation!
-                            .mutateAsync({ clientId: id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error creating competitor:", err)),
-                    );
+                    competitorCreatePayloads.push(sanitized);
                 }
             }
 
             for (const originalCompetitor of originalCompetitors) {
                 const stillExists = draftCompetitors.find((c: any) => c._id === originalCompetitor._id);
                 if (!stillExists && originalCompetitor._id) {
-                    competitorOperations.push(
+                    competitorDeletePromises.push(
                         deleteCompetitorMutation!
-                            .mutateAsync({ clientId: id, competitorId: originalCompetitor._id }, { onSuccess: () => {} })
+                            .mutateAsync({ clientId: clientId, competitorId: originalCompetitor._id }, { onSuccess: () => {} })
                             .catch((err) => console.error("Error deleting competitor:", err)),
                     );
                 }
             }
 
-            if (competitorOperations.length > 0) {
-                await Promise.all(competitorOperations);
+            // Bulk create new competitors if any
+            if (competitorCreatePayloads.length > 0) {
+                try {
+                    await apiCreateCompetitors(clientId, competitorCreatePayloads);
+                } catch (err) {
+                    console.error("Error creating competitors (bulk):", err);
+                }
+            }
+
+            if (competitorUpdatePromises.length > 0 || competitorDeletePromises.length > 0) {
+                await Promise.all([...competitorUpdatePromises, ...competitorDeletePromises]);
             }
 
             const originalBranches = client?.branches || [];
-            const branchOperations = [];
+            const branchCreatePayloads: any[] = [];
+            const branchUpdatePromises: Promise<any>[] = [];
+            const branchDeletePromises: Promise<any>[] = [];
 
             for (const branch of draftBranches) {
                 const sanitized = JSON.parse(JSON.stringify(branch));
 
                 if (sanitized._id) {
-                    // Only update if the branch has actually changed
                     const originalBranch = originalBranches.find((b: any) => b._id === sanitized._id);
                     if (originalBranch && hasChanges(originalBranch, sanitized)) {
-                        branchOperations.push(
+                        branchUpdatePromises.push(
                             updateBranchMutation!
-                                .mutateAsync({ clientId: id, branchId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
+                                .mutateAsync({ clientId: clientId, branchId: sanitized._id, data: sanitized }, { onSuccess: () => {} })
                                 .catch((err) => console.error("Error updating branch:", err)),
                         );
                     }
                 } else {
-                    branchOperations.push(
-                        createBranchMutation!
-                            .mutateAsync({ clientId: id, data: sanitized }, { onSuccess: () => {} })
-                            .catch((err) => console.error("Error creating branch:", err)),
-                    );
+                    branchCreatePayloads.push(sanitized);
                 }
             }
 
             for (const originalBranch of originalBranches) {
                 const stillExists = draftBranches.find((b: any) => b._id === originalBranch._id);
                 if (!stillExists && originalBranch._id) {
-                    branchOperations.push(
+                    branchDeletePromises.push(
                         deleteBranchMutation!
-                            .mutateAsync({ clientId: id, branchId: originalBranch._id }, { onSuccess: () => {} })
+                            .mutateAsync({ clientId: clientId, branchId: originalBranch._id }, { onSuccess: () => {} })
                             .catch((err) => console.error("Error deleting branch:", err)),
                     );
                 }
             }
 
-            if (branchOperations.length > 0) {
-                await Promise.all(branchOperations);
+            // Bulk create new branches if any
+            if (branchCreatePayloads.length > 0) {
+                try {
+                    await apiCreateBranches(clientId, branchCreatePayloads);
+                } catch (err) {
+                    console.error("Error creating branches (bulk):", err);
+                }
+            }
+
+            if (branchUpdatePromises.length > 0 || branchDeletePromises.length > 0) {
+                await Promise.all([...branchUpdatePromises, ...branchDeletePromises]);
             }
 
             await queryClient.refetchQueries({
-                queryKey: clientsKeys.detail(id),
+                queryKey: clientsKeys.detail(clientId),
                 exact: true,
             });
+
+            try {
+                // Fetch fresh client from cache/server and log it for debugging
+                const fresh = await queryClient.fetchQuery({ queryKey: clientsKeys.detail(clientId) });
+                // eslint-disable-next-line no-console
+                console.debug("[saveEditing] fresh client after save:", fresh);
+            } catch (e) {
+                // ignore
+            }
 
             setEditing(false);
             setDraft(null);
@@ -1133,14 +1221,45 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
                                                             {t("age_range") || "Age Range"}
                                                         </label>
-                                                        <input
-                                                            className={inputBaseClass}
-                                                            value={
-                                                                Array.isArray(segment.ageRange) ? segment.ageRange[0] || "" : segment.ageRange || ""
-                                                            }
-                                                            placeholder={t("age_range_placeholder") || "e.g., 25-35"}
-                                                            onChange={(e) => updateDraft(`segments.${idx}.ageRange`, e.target.value)}
-                                                        />
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                className={inputBaseClass}
+                                                                value={(segmentInputs[idx] && segmentInputs[idx].age) || ""}
+                                                                placeholder={t("age_range_placeholder") || "e.g., 25-35"}
+                                                                onChange={(e) => setSegmentInput(idx, "age", e.target.value.replace(/[^0-9-]/g, ""))}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        addSegmentChip(idx, "ageRange");
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={buttonAddClass}
+                                                                onClick={() => addSegmentChip(idx, "ageRange")}
+                                                            >
+                                                                <Plus size={14} />
+                                                                {t("add")}
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {(Array.isArray(segment.ageRange) ? segment.ageRange : []).map((a: any, i: number) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                                                                >
+                                                                    <span>{a}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeSegmentChip(idx, "ageRange", i)}
+                                                                        className="text-danger-600"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
@@ -1163,54 +1282,159 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
                                                             {t("area") || "Area"}
                                                         </label>
-                                                        <input
-                                                            type="text"
-                                                            className={inputBaseClass}
-                                                            value={Array.isArray(segment.area) ? segment.area.join(", ") : segment.area || ""}
-                                                            placeholder={t("area_placeholder") || "e.g., Nasr City, Maadi"}
-                                                            onChange={(e) => {
-                                                                const value = e.target.value;
-                                                                const areas = value
-                                                                    .split(/[,;]+/)
-                                                                    .map((s) => s.trim())
-                                                                    .filter(Boolean);
-                                                                updateDraft(`segments.${idx}.area`, areas);
-                                                            }}
-                                                        />
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                className={inputBaseClass}
+                                                                value={(segmentInputs[idx] && segmentInputs[idx].area) || ""}
+                                                                placeholder={t("area_placeholder") || "e.g., Nasr City, Maadi"}
+                                                                onChange={(e) => setSegmentInput(idx, "area", e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        addSegmentChip(idx, "area");
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={buttonAddClass}
+                                                                onClick={() => addSegmentChip(idx, "area")}
+                                                            >
+                                                                {" "}
+                                                                <Plus size={14} /> {t("add")}{" "}
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {(Array.isArray(segment.area) ? segment.area : []).map((a: any, i: number) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                                                                >
+                                                                    <span>{a}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeSegmentChip(idx, "area", i)}
+                                                                        className="text-danger-600"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </span>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
                                                             {t("governorate") || "Governorate"}
                                                         </label>
-                                                        <input
-                                                            type="text"
-                                                            className={inputBaseClass}
-                                                            value={
-                                                                Array.isArray(segment.governorate)
-                                                                    ? segment.governorate.join(", ")
-                                                                    : segment.governorate || ""
-                                                            }
-                                                            placeholder={t("governorate_placeholder") || "e.g., Cairo, Giza"}
-                                                            onChange={(e) => {
-                                                                const value = e.target.value;
-                                                                const governorates = value
-                                                                    .split(/[,;]+/)
-                                                                    .map((s) => s.trim())
-                                                                    .filter(Boolean);
-                                                                updateDraft(`segments.${idx}.governorate`, governorates);
-                                                            }}
-                                                        />
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                className={inputBaseClass}
+                                                                value={(segmentInputs[idx] && segmentInputs[idx].governorate) || ""}
+                                                                placeholder={t("governorate_placeholder") || "e.g., Cairo, Giza"}
+                                                                onChange={(e) => setSegmentInput(idx, "governorate", e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        addSegmentChip(idx, "governorate");
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={buttonAddClass}
+                                                                onClick={() => addSegmentChip(idx, "governorate")}
+                                                            >
+                                                                {" "}
+                                                                <Plus size={14} /> {t("add")}{" "}
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {(Array.isArray(segment.governorate) ? segment.governorate : []).map(
+                                                                (a: any, i: number) => (
+                                                                    <span
+                                                                        key={i}
+                                                                        className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                                                                    >
+                                                                        <span>{a}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeSegmentChip(idx, "governorate", i)}
+                                                                            className="text-danger-600"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                    </span>
+                                                                ),
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
                                                             {t("product_name") || "Product Name"}
                                                         </label>
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                className={inputBaseClass}
+                                                                value={(segmentInputs[idx] && segmentInputs[idx].productName) || ""}
+                                                                placeholder={t("product_name_placeholder") || "Product or service name"}
+                                                                onChange={(e) => setSegmentInput(idx, "productName", e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        e.preventDefault();
+                                                                        addSegmentChip(idx, "productName");
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className={buttonAddClass}
+                                                                onClick={() => addSegmentChip(idx, "productName")}
+                                                            >
+                                                                {" "}
+                                                                <Plus size={14} /> {t("add")}{" "}
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {((segment as any).productName || []).map((p: any, i: number) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                                                                >
+                                                                    <span>{p}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeSegmentChip(idx, "productName", i)}
+                                                                        className="text-danger-600"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-light-700 dark:text-dark-300 mb-1 block text-sm font-medium">
+                                                            {t("population") || "Population"}
+                                                        </label>
                                                         <input
-                                                            type="text"
+                                                            type="number"
+                                                            inputMode="numeric"
                                                             className={inputBaseClass}
-                                                            value={(segment as any).productName || ""}
-                                                            placeholder={t("product_name_placeholder") || "Product or service name"}
-                                                            onChange={(e) => updateDraft(`segments.${idx}.productName`, e.target.value)}
+                                                            value={
+                                                                Array.isArray((segment as any).population)
+                                                                    ? ((segment as any).population[0] ?? "")
+                                                                    : ((segment as any).population ?? "")
+                                                            }
+                                                            placeholder={t("population_placeholder") || "e.g., 10000"}
+                                                            onChange={(e) => {
+                                                                const v = e.target.value;
+                                                                const num = v === "" ? NaN : Number(v);
+                                                                const nextVal = Number.isNaN(num) ? undefined : num;
+                                                                updateDraft(`segments.${idx}.population`, nextVal);
+                                                            }}
                                                         />
                                                     </div>
                                                     <div>
@@ -1262,7 +1486,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                               )
                                                             : segment.gender !== "all" && (
                                                                   <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
-                                                                      {segment.gender.charAt(0).toUpperCase() + segment.gender.slice(1)}
+                                                                      {typeof segment.gender === "string"
+                                                                          ? (segment.gender as string).charAt(0).toUpperCase() +
+                                                                            (segment.gender as string).slice(1)
+                                                                          : ""}
                                                                   </span>
                                                               ))}
                                                     {(segment as any).area && (segment as any).area.length > 0 && (
@@ -1283,9 +1510,22 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     )}
                                                     {(segment as any).productName && (
                                                         <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
-                                                            {(segment as any).productName}
+                                                            {Array.isArray((segment as any).productName)
+                                                                ? (segment as any).productName.join(", ")
+                                                                : (segment as any).productName}
                                                         </span>
                                                     )}
+                                                    {(segment as any).population !== undefined &&
+                                                        (Array.isArray((segment as any).population)
+                                                            ? (segment as any).population.length > 0
+                                                            : true) && (
+                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                                Population:{" "}
+                                                                {Array.isArray((segment as any).population)
+                                                                    ? (segment as any).population.join(", ")
+                                                                    : (segment as any).population}
+                                                            </span>
+                                                        )}
                                                 </div>
                                                 {(segment as any).note && (
                                                     <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{(segment as any).note}</p>
@@ -1309,11 +1549,11 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                 next.segments.push({
                                                     name: "",
                                                     description: "",
-                                                    ageRange: "",
+                                                    ageRange: [],
                                                     gender: "all",
                                                     area: [],
                                                     governorate: [],
-                                                    productName: "",
+                                                    productName: [],
                                                     note: "",
                                                 });
                                                 return next;

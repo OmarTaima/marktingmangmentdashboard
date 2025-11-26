@@ -10,39 +10,73 @@ const CAMPAIGNS_ENDPOINT = "/campaigns";
 /**
  * Campaign/Plan data structure
  */
+export interface SWOTAnalysis {
+    strengths: string[];
+    weaknesses: string[];
+    opportunities: string[];
+    threats: string[];
+}
+
 export interface CampaignObjective {
     name: string;
-    description: string;
+    ar: string;
+    description?: string;
+    descriptionAr?: string;
+}
+
+export interface CampaignTimelineItem {
+    timelineStart?: string;
+    timelineEnd?: string;
+    objectiveEn?: string;
+    objectiveAr?: string;
 }
 
 export interface CampaignStrategy {
-    budget: number;
-    timeline: string;
-    description: string;
+    budget?: number;
+    timeline?: CampaignTimelineItem[];
+    description?: string;
+    descriptionAr?: string;
 }
 
 export interface Campaign {
     _id?: string;
+    planId?: string;
     clientId: string;
-    description: string;
-    objectives: CampaignObjective[];
-    strategy: CampaignStrategy;
+    branches?: string[];
+    segments?: string[];
+    competitors?: string[];
+    swotAnalysis?: SWOTAnalysis;
+    description?: string;
+    objectives?: CampaignObjective[];
+    strategy?: CampaignStrategy;
+    createdBy?: string;
+    deleted?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
 
 export interface CreateCampaignPayload {
     clientId: string;
-    description: string;
-    objectives: CampaignObjective[];
-    strategy: CampaignStrategy;
+    branches?: string[];
+    segments?: string[];
+    competitors?: string[];
+    swotAnalysis?: SWOTAnalysis;
+    description?: string;
+    objectives?: CampaignObjective[];
+    strategy?: CampaignStrategy;
+    createdBy?: string;
 }
 
 export interface UpdateCampaignPayload {
     clientId?: string;
+    branches?: string[];
+    segments?: string[];
+    competitors?: string[];
+    swotAnalysis?: SWOTAnalysis;
     description?: string;
     objectives?: CampaignObjective[];
     strategy?: CampaignStrategy;
+    deleted?: boolean;
 }
 
 /**
@@ -75,6 +109,15 @@ export const getCampaignsByClientId = async (clientId: string): Promise<Campaign
 };
 
 /**
+ * Get campaign by ID
+ * GET /campaigns/:campaignId
+ */
+export const getCampaignById = async (campaignId: string): Promise<Campaign> => {
+    const response = await axiosInstance.get(`${CAMPAIGNS_ENDPOINT}/${campaignId}`);
+    return response.data;
+};
+
+/**
  * Update a campaign
  * PUT /campaigns/:campaignId
  */
@@ -95,6 +138,7 @@ export default {
     createCampaign,
     getAllCampaigns,
     getCampaignsByClientId,
+    getCampaignById,
     updateCampaign,
     deleteCampaign,
 };

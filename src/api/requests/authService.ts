@@ -132,11 +132,6 @@ export const logout = async (refreshToken?: string): Promise<void> => {
     }
 };
 
-// Note: localStorage is intentionally not used for auth persistence.
-// Auth state is handled with cookies and server-side sessions. The
-// previous helper that removed auth-related localStorage keys was
-// removed to avoid client-side localStorage for auth.
-
 /**
  * Get current user profile
  * GET /auth/me

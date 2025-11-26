@@ -9,7 +9,9 @@ import { withCache, invalidateCachePattern } from "../../utils/apiCache";
 export interface Item {
     _id: string;
     name: string;
+    ar: string;
     description?: string;
+    descriptionAr?: string;
     deleted?: boolean;
     createdAt?: string;
     updatedAt?: string;
@@ -70,7 +72,7 @@ export const getItemById = async (id: string): Promise<Item> => {
 /**
  * Create a new item
  */
-export const createItem = async (itemData: { name: string; description?: string }): Promise<Item> => {
+export const createItem = async (itemData: { name: string; ar?: string; description?: string; descriptionAr?: string }): Promise<Item> => {
     try {
         const response = await api.post("/items", itemData);
         // Invalidate items cache after creating
@@ -89,7 +91,9 @@ export const updateItem = async (
     id: string,
     itemData: {
         name?: string;
+        ar?: string;
         description?: string;
+        descriptionAr?: string;
     },
 ): Promise<Item> => {
     try {

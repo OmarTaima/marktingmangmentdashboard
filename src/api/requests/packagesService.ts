@@ -13,6 +13,7 @@ export interface Package {
     nameAr: string;
     price: number;
     description?: string;
+    descriptionAr?: string;
     items?: Item[];
     deleted?: boolean;
     createdAt?: string;
@@ -81,6 +82,7 @@ export const createPackage = async (packageData: {
     nameAr: string;
     price: number;
     description?: string;
+    descriptionAr?: string;
     items?: { item: string; quantity: number }[];
 }): Promise<Package> => {
     try {
@@ -104,6 +106,7 @@ export const updatePackage = async (
         nameAr?: string;
         price?: number;
         description?: string;
+        descriptionAr?: string;
         items?: { item: string; quantity: number }[];
     },
 ): Promise<Package> => {

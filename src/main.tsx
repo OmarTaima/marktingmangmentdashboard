@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -31,20 +30,11 @@ if (!rootElement) {
     throw new Error("Root element not found");
 }
 
-// Optionally disable localStorage across the app so the client only uses the API.
-// This clears existing localStorage and overrides storage methods to no-op.
-// If you want to revert, remove or comment out this block.
 try {
     if (typeof window !== "undefined" && window.localStorage) {
         // Clear any existing keys
         window.localStorage.clear();
 
-        // Replace Storage prototype methods with no-ops to prevent further reads/writes
-        // getItem returns null so callers behave as 'no value'
-        // removeItem / setItem / clear become no-ops
-        // Note: modifying Storage.prototype affects both localStorage and sessionStorage
-        // and is reversible by reloading without this code.
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         Storage.prototype.getItem = function () {
             return null;

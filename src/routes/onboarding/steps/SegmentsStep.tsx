@@ -14,7 +14,8 @@ type Segment = {
     area?: string[];
     governorate?: string[];
     note?: string;
-    productName?: string;
+    productName?: string[];
+    population?: number[];
 };
 
 type SegmentsStepProps = {
@@ -33,17 +34,29 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             description: "",
             ageRange: [],
             gender: ["all"],
-            productName: "",
+            productName: [],
             area: [],
             governorate: [],
             note: "",
         },
     );
 
+    const [newProductName, setNewProductName] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
-    // Keep textual editors for age ranges, area, and governorate.
-    const [areaText, setAreaText] = useState<string>(((data.segmentsDraft?.area as string[]) || []).join("\n"));
-    const [governorateText, setGovernorateText] = useState<string>(((data.segmentsDraft?.governorate as string[]) || []).join("\n"));
+    // Keep textual editors for age ranges. Areas and governorate use chip-style inputs now.
+    const [newArea, setNewArea] = useState<string>("");
+    const [newGovernorate, setNewGovernorate] = useState<string>("");
+    const [newAgeRange, setNewAgeRange] = useState<string>("");
+
+    const addAgeRange = () => {
+        const val = (newAgeRange || "").trim().replace(/[^0-9-]/g, "");
+        if (!val) return;
+        const arr = Array.isArray(currentSegment.ageRange) ? [...currentSegment.ageRange, val] : [val];
+        const next = { ...currentSegment, ageRange: arr } as Segment;
+        setCurrentSegment(next);
+        setNewAgeRange("");
+        if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+    };
 
     const handleAddSegment = () => {
         const newErrors: Record<string, string> = {};
@@ -60,8 +73,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             name: currentSegment.name.trim(),
         };
 
-        if (currentSegment.productName && currentSegment.productName.trim()) {
-            cleanedSegment.productName = currentSegment.productName.trim();
+        if (currentSegment.productName && Array.isArray(currentSegment.productName) && currentSegment.productName.length > 0) {
+            cleanedSegment.productName = currentSegment.productName.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
         }
 
         if (currentSegment.description && currentSegment.description.trim()) {
@@ -75,6 +88,10 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
         if (currentSegment.area && currentSegment.area.length > 0) {
             cleanedSegment.area = currentSegment.area.filter((i) => i.trim().length > 0);
+        }
+
+        if (currentSegment.population && Array.isArray(currentSegment.population) && currentSegment.population.length > 0) {
+            cleanedSegment.population = currentSegment.population.map((n) => Number(n)).filter((n) => !Number.isNaN(n));
         }
 
         if (currentSegment.governorate && currentSegment.governorate.length > 0) {
@@ -99,13 +116,17 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             description: "",
             ageRange: [],
             gender: ["all"],
-            productName: "",
+            productName: [],
             area: [],
             governorate: [],
+            population: [],
             note: "",
         };
         if (typeof onUpdate === "function") onUpdate({ segments: next, segmentsDraft: emptySegment });
         setCurrentSegment(emptySegment);
+        setNewProductName("");
+        setNewArea("");
+        setNewGovernorate("");
         setErrors({});
     };
 
@@ -146,8 +167,12 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
             // interests removed — nothing to keep here
 
-            if (currentSegment.productName && currentSegment.productName.trim()) {
-                cleanedSegment.productName = currentSegment.productName.trim();
+            if (currentSegment.productName && Array.isArray(currentSegment.productName) && currentSegment.productName.length > 0) {
+                cleanedSegment.productName = currentSegment.productName.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            }
+
+            if (currentSegment.population && Array.isArray(currentSegment.population) && currentSegment.population.length > 0) {
+                cleanedSegment.population = currentSegment.population.map((n) => Number(n)).filter((n) => !Number.isNaN(n));
             }
 
             if (currentSegment.area && currentSegment.area.length > 0) {
@@ -162,19 +187,40 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             finalSegments = [...segments, cleanedSegment];
         }
 
+        // Normalize population for backend: send a single number (server expects number)
+        const normalizedForServer = finalSegments.map((s) => {
+            let val: number | undefined;
+            if (Array.isArray(s.population)) {
+                const n = s.population.length > 0 ? Number(s.population[0]) : undefined;
+                val = !Number.isNaN(n) ? n : undefined;
+            } else if (s.population !== undefined && s.population !== null && s.population !== "") {
+                const n = Number(s.population);
+                val = !Number.isNaN(n) ? n : undefined;
+            }
+            return {
+                ...s,
+                // send population as a number (server validation expects a number)
+                population: typeof val === "number" ? val : undefined,
+            } as any;
+        });
+
         onNext({
-            segments: finalSegments,
+            segments: normalizedForServer,
             segmentsDraft: {
                 name: "",
                 description: "",
                 ageRange: [],
                 gender: ["all"],
-                productName: "",
+                productName: [],
                 area: [],
                 governorate: [],
+                population: [],
                 note: "",
             },
         });
+        setNewProductName("");
+        setNewArea("");
+        setNewGovernorate("");
     };
 
     // Keep segments synced with parent data so values persist when navigating
@@ -183,20 +229,52 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
     }, [data?.segments]);
 
     useEffect(() => {
-        setCurrentSegment(
-            (data.segmentsDraft as Segment) || {
-                name: "",
-                description: "",
-                ageRange: [],
-                gender: ["all"],
-                productName: "",
-                area: [],
-                governorate: [],
-                note: "",
-            },
-        );
-        setAreaText(((data.segmentsDraft as any)?.area || []).join("\n"));
-        setGovernorateText(((data.segmentsDraft as any)?.governorate || []).join("\n"));
+        const draft = (data.segmentsDraft as any) || null;
+        const normalized = draft
+            ? {
+                  ...draft,
+                  productName: Array.isArray(draft.productName) ? draft.productName : draft.productName ? [draft.productName] : [],
+                  area: Array.isArray(draft.area)
+                      ? draft.area
+                      : draft.area
+                        ? ("" + draft.area)
+                              .split(/[,;\n]+/)
+                              .map((s: string) => s.trim())
+                              .filter(Boolean)
+                        : [],
+                  governorate: Array.isArray(draft.governorate)
+                      ? draft.governorate
+                      : draft.governorate
+                        ? ("" + draft.governorate)
+                              .split(/[,;\n]+/)
+                              .map((s: string) => s.trim())
+                              .filter(Boolean)
+                        : [],
+                  population: Array.isArray(draft.population)
+                      ? draft.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n))
+                      : draft.population
+                        ? ("" + draft.population)
+                              .split(/[,;\n]+/)
+                              .map((s: string) => Number((s || "").trim()))
+                              .filter((n: number) => !Number.isNaN(n))
+                        : [],
+              }
+            : {
+                  name: "",
+                  description: "",
+                  ageRange: [],
+                  gender: ["all"],
+                  productName: [],
+                  area: [],
+                  governorate: [],
+                  population: [],
+                  note: "",
+              };
+
+        setCurrentSegment(normalized as Segment);
+        setNewProductName("");
+        setNewArea("");
+        setNewGovernorate("");
     }, [data?.segmentsDraft]);
 
     useEffect(() => {
@@ -249,35 +327,121 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("product_name")}</label>
-                    <input
-                        type="text"
-                        value={currentSegment.productName || ""}
-                        onChange={(e) => {
-                            const next = { ...currentSegment, productName: e.target.value } as Segment;
-                            setCurrentSegment(next);
-                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
-                        }}
-                        placeholder={t("product_name_placeholder") as string}
-                        className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
-                    />
+
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newProductName}
+                            onChange={(e) => setNewProductName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const val = newProductName.trim();
+                                    if (!val) return;
+                                    const arr = Array.isArray(currentSegment.productName) ? [...currentSegment.productName, val] : [val];
+                                    const next = { ...currentSegment, productName: arr } as Segment;
+                                    setCurrentSegment(next);
+                                    setNewProductName("");
+                                    if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                }
+                            }}
+                            placeholder={t("product_name_placeholder") as string}
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const val = newProductName.trim();
+                                if (!val) return;
+                                const arr = Array.isArray(currentSegment.productName) ? [...currentSegment.productName, val] : [val];
+                                const next = { ...currentSegment, productName: arr } as Segment;
+                                setCurrentSegment(next);
+                                setNewProductName("");
+                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                            }}
+                            className="btn-ghost flex items-center gap-2"
+                        >
+                            <Plus size={14} />
+                            {t("add")}
+                        </button>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {(currentSegment.productName || []).map((p, i) => (
+                            <span
+                                key={i}
+                                className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                            >
+                                <span>{p}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const arr = (currentSegment.productName || []).filter((_, idx) => idx !== i);
+                                        const next = { ...currentSegment, productName: arr } as Segment;
+                                        setCurrentSegment(next);
+                                        if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                    }}
+                                    className="text-danger-600"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("age_range")}</label>
-                        <input
-                            type="text"
-                            value={(currentSegment.ageRange && currentSegment.ageRange[0]) || ""}
-                            onChange={(e) => {
-                                // Only allow numbers and dashes
-                                const value = e.target.value.replace(/[^0-9-]/g, "");
-                                const next = { ...currentSegment, ageRange: value ? [value] : [] } as Segment;
-                                setCurrentSegment(next);
-                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
-                            }}
-                            placeholder={t("age_range_placeholder") as string}
-                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
-                        />
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newAgeRange}
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9-]/g, "");
+                                    setNewAgeRange(value);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addAgeRange();
+                                    }
+                                }}
+                                placeholder={t("age_range_placeholder") as string}
+                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => addAgeRange()}
+                                className="btn-ghost flex items-center gap-2"
+                            >
+                                <Plus size={14} />
+                                {t("add")}
+                            </button>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {(currentSegment.ageRange || []).map((a, i) => (
+                                <span
+                                    key={i}
+                                    className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                                >
+                                    <span>{a}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const arr = (currentSegment.ageRange || []).filter((_, idx) => idx !== i);
+                                            const next = { ...currentSegment, ageRange: arr } as Segment;
+                                            setCurrentSegment(next);
+                                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                        }}
+                                        className="text-danger-600"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
                     </div>
                     <div>
                         <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("gender")}</label>
@@ -298,49 +462,154 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                     </div>
                 </div>
 
-                {/* interests textarea removed */}
-
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("governorate")}</label>
-                    <textarea
-                        rows={2}
-                        value={governorateText}
-                        onChange={(e) => setGovernorateText(e.target.value)}
-                        onBlur={() => {
-                            const arr = (governorateText || "")
-                                .split(/[,;\n]+/)
-                                .map((s) => s.trim())
-                                .filter((s) => s.length > 0);
-                            const next = { ...currentSegment, governorate: arr } as Segment;
-                            setCurrentSegment(next);
-                            if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
-                        }}
-                        placeholder={t("governorate_placeholder") as string}
-                        className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
-                    />
+
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newGovernorate}
+                            onChange={(e) => setNewGovernorate(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const val = newGovernorate.trim();
+                                    if (!val) return;
+                                    const arr = Array.isArray(currentSegment.governorate) ? [...currentSegment.governorate, val] : [val];
+                                    const next = { ...currentSegment, governorate: arr } as Segment;
+                                    setCurrentSegment(next);
+                                    setNewGovernorate("");
+                                    if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                }
+                            }}
+                            placeholder={t("governorate_placeholder") as string}
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const val = newGovernorate.trim();
+                                if (!val) return;
+                                const arr = Array.isArray(currentSegment.governorate) ? [...currentSegment.governorate, val] : [val];
+                                const next = { ...currentSegment, governorate: arr } as Segment;
+                                setCurrentSegment(next);
+                                setNewGovernorate("");
+                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                            }}
+                            className="btn-ghost flex items-center gap-2"
+                        >
+                            <Plus size={14} />
+                            {t("add")}
+                        </button>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {(currentSegment.governorate || []).map((g, i) => (
+                            <span
+                                key={i}
+                                className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                            >
+                                <span>{g}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const arr = (currentSegment.governorate || []).filter((_, idx) => idx !== i);
+                                        const next = { ...currentSegment, governorate: arr } as Segment;
+                                        setCurrentSegment(next);
+                                        if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                    }}
+                                    className="text-danger-600"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
 
                 <div>
-                    <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("area")}</label>
-                    <textarea
-                        rows={2}
-                        value={areaText}
-                        onChange={(e) => setAreaText(e.target.value)}
-                        onBlur={() => {
-                            const arr = (areaText || "")
-                                .split(/[,;\n]+/)
-                                .map((s) => s.trim())
-                                .filter((s) => s.length > 0);
-                            const next = { ...currentSegment, area: arr } as Segment;
+                    <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("areas")}</label>
+
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newArea}
+                            onChange={(e) => setNewArea(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    const val = newArea.trim();
+                                    if (!val) return;
+                                    const arr = Array.isArray(currentSegment.area) ? [...currentSegment.area, val] : [val];
+                                    const next = { ...currentSegment, area: arr } as Segment;
+                                    setCurrentSegment(next);
+                                    setNewArea("");
+                                    if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                }
+                            }}
+                            placeholder={t("area_placeholder") as string}
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const val = newArea.trim();
+                                if (!val) return;
+                                const arr = Array.isArray(currentSegment.area) ? [...currentSegment.area, val] : [val];
+                                const next = { ...currentSegment, area: arr } as Segment;
+                                setCurrentSegment(next);
+                                setNewArea("");
+                                if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                            }}
+                            className="btn-ghost flex items-center gap-2"
+                        >
+                            <Plus size={14} />
+                            {t("add")}
+                        </button>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {(currentSegment.area || []).map((a, i) => (
+                            <span
+                                key={i}
+                                className="bg-light-50 dark:bg-dark-700 text-light-900 dark:text-dark-50 border-light-200 dark:border-dark-700 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+                            >
+                                <span>{a}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const arr = (currentSegment.area || []).filter((_, idx) => idx !== i);
+                                        const next = { ...currentSegment, area: arr } as Segment;
+                                        setCurrentSegment(next);
+                                        if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
+                                    }}
+                                    className="text-danger-600"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("population")}</label>
+
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        value={(currentSegment.population && currentSegment.population[0]) ?? ""}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            const num = v === "" ? NaN : Number(v);
+                            const next = { ...currentSegment, population: Number.isNaN(num) ? [] : [num] } as Segment;
                             setCurrentSegment(next);
                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
-                        placeholder={t("area_placeholder") as string}
+                        placeholder={t("population_placeholder") as string}
                         className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                     />
                 </div>
-
-                {/* incomeLevel removed */}
 
                 <button
                     type="button"
@@ -370,7 +639,12 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                     {segment.gender && Array.isArray(segment.gender) && !segment.gender.includes("all") && (
                                         <span>Gender: {segment.gender.join(", ")}</span>
                                     )}
-                                    {segment.productName && <span>Product: {segment.productName}</span>}
+                                    {segment.productName && Array.isArray(segment.productName) && segment.productName.length > 0 && (
+                                        <span>Product: {segment.productName.join(", ")}</span>
+                                    )}
+                                    {segment.population && Array.isArray(segment.population) && segment.population.length > 0 && (
+                                        <span>Population: {segment.population.join(", ")}</span>
+                                    )}
                                 </div>
                             </div>
                             <button

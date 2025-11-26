@@ -3,7 +3,6 @@ import { Plus, Check, Loader2, Minus, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { showConfirm, showAlert } from "@/utils/swal";
 import { getItems, type Item } from "@/api/requests/itemsService";
-import { createPackage } from "@/api/requests/packagesService";
 import type { Package } from "@/api/requests/packagesService";
 import { usePackages, useDeletePackage, useUpdatePackage, useCreatePackage } from "@/hooks/queries/usePackagesQuery";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +16,7 @@ const AddPackagePage = () => {
     const [nameEn, setNameEn] = useState<string>("");
     const [nameAr, setNameAr] = useState<string>("");
     const [description, setDescription] = useState<string>("");
+    const [descriptionAr, setDescriptionAr] = useState<string>("");
     const [price, setPrice] = useState<string>("");
     const [availableItems, setAvailableItems] = useState<Item[]>([]);
     const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -145,6 +145,7 @@ const AddPackagePage = () => {
                         nameAr: ar,
                         price: Number(p),
                         description: description.trim() || undefined,
+                        descriptionAr: descriptionAr.trim() || undefined,
                         items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
                     },
                 });
@@ -156,6 +157,7 @@ const AddPackagePage = () => {
                     nameAr: ar,
                     price: Number(p),
                     description: description.trim() || undefined,
+                    descriptionAr: descriptionAr.trim() || undefined,
                     items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
                 });
             }
@@ -208,6 +210,7 @@ const AddPackagePage = () => {
         setNameEn(pkg.nameEn || "");
         setNameAr(pkg.nameAr || "");
         setDescription(pkg.description || "");
+        setDescriptionAr(pkg.descriptionAr || "");
         setPrice(pkg.price?.toString() || "");
 
         // normalize items: pkg.items may contain { item: { _id } , quantity }
@@ -407,17 +410,32 @@ const AddPackagePage = () => {
                     {priceError && <p className="text-danger-500 mt-1 text-xs">{priceError}</p>}
                 </div>
 
-                <div>
-                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                        {t("package_description") || "Description (Optional)"}
-                    </label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder={t("package_description_placeholder") || "Enter package description..."}
-                        rows={3}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                    />
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <div>
+                        <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
+                            {t("package_description") || "Description (Optional)"}
+                        </label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder={t("package_description_placeholder") || "Enter package description..."}
+                            rows={3}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
+                            {t("package_description_ar") || "Description (Arabic)"}
+                        </label>
+                        <textarea
+                            value={descriptionAr}
+                            onChange={(e) => setDescriptionAr(e.target.value)}
+                            placeholder={t("package_description_ar_placeholder") || "أدخل وصف الباقة (بالعربية)..."}
+                            rows={3}
+                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        />
+                    </div>
                 </div>
 
                 <div>
@@ -497,6 +515,7 @@ const AddPackagePage = () => {
                                 setNameEn("");
                                 setNameAr("");
                                 setDescription("");
+                                setDescriptionAr("");
                                 setPrice("");
                                 setSelectedItemIds([]);
                                 setItemQuantities({});

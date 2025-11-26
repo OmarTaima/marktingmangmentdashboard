@@ -79,8 +79,31 @@ const transformSegmentToBackendPayload = (segmentData: any): any => {
     }
 
     // productName: optional string
-    if (segmentData.productName && typeof segmentData.productName === "string" && segmentData.productName.trim()) {
-        payload.productName = segmentData.productName.trim();
+    // productName: accept array or single string
+    if (segmentData.productName) {
+        if (Array.isArray(segmentData.productName)) {
+            const arr = segmentData.productName.map((s: any) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
+            if (arr.length > 0) payload.productName = arr;
+        } else if (typeof segmentData.productName === "string" && segmentData.productName.trim()) {
+            payload.productName = segmentData.productName
+                .split(/[,;\n]+/)
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+        }
+    }
+
+    // population: accept array of numbers or comma separated string
+    if (segmentData.population) {
+        if (Array.isArray(segmentData.population)) {
+            const nums = segmentData.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n));
+            if (nums.length > 0) payload.population = nums;
+        } else if (typeof segmentData.population === "string" && segmentData.population.trim()) {
+            const nums = segmentData.population
+                .split(/[,;\n]+/)
+                .map((s: string) => Number(s.trim()))
+                .filter((n: number) => !Number.isNaN(n));
+            if (nums.length > 0) payload.population = nums;
+        }
     }
 
     // incomeLevel removed — do not include it in payloads
@@ -99,11 +122,14 @@ const transformSegmentToFrontendFormat = (backendData: any): any => {
         clientId: backendData.clientId,
         name: backendData.name,
         description: backendData.description,
-        ageRange: backendData.ageRange,
-        gender: backendData.gender || "all",
+        ageRange: Array.isArray(backendData.ageRange) ? backendData.ageRange : backendData.ageRange ? [backendData.ageRange] : [],
+        productName: Array.isArray(backendData.productName) ? backendData.productName : backendData.productName ? [backendData.productName] : [],
+        population: Array.isArray(backendData.population)
+            ? backendData.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n))
+            : [],
+        gender: Array.isArray(backendData.gender) ? backendData.gender : backendData.gender ? [backendData.gender] : ["all"],
         area: backendData.area || [],
         governorate: backendData.governorate || [],
-        productName: backendData.productName,
         note: backendData.note,
         deleted: backendData.deleted || false,
         createdAt: backendData.createdAt,

@@ -6,12 +6,16 @@ import { useItems, useCreateItem, useUpdateItem, useDeleteItem } from "@/hooks/q
 import type { Item } from "@/api/requests/itemsService";
 
 const ItemsPage = () => {
-    const { t } = useLang();
+    const { t, lang } = useLang();
     const [inputName, setInputName] = useState<string>("");
     const [inputDescription, setInputDescription] = useState<string>("");
+    const [inputNameAr, setInputNameAr] = useState<string>("");
+    const [inputDescriptionAr, setInputDescriptionAr] = useState<string>("");
     const [editingId, setEditingId] = useState<string>("");
     const [editingName, setEditingName] = useState<string>("");
     const [editingDescription, setEditingDescription] = useState<string>("");
+    const [editingNameAr, setEditingNameAr] = useState<string>("");
+    const [editingDescriptionAr, setEditingDescriptionAr] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [error, setError] = useState<string>("");
@@ -34,6 +38,8 @@ const ItemsPage = () => {
     const handleAdd = () => {
         const name = (inputName || "").trim();
         const desc = (inputDescription || "").trim();
+        const nameAr = (inputNameAr || "").trim();
+        const descAr = (inputDescriptionAr || "").trim();
 
         if (!name) {
             setError(t("item_name_required") || "Item name is required");
@@ -44,7 +50,9 @@ const ItemsPage = () => {
 
         const payload = {
             name,
+            ar: nameAr || undefined,
             description: desc || undefined,
+            descriptionAr: descAr || undefined,
         };
 
         // Use mutate (not mutateAsync) so we don't await the server and the
@@ -58,7 +66,9 @@ const ItemsPage = () => {
 
         // Clear inputs immediately so the form feels responsive.
         setInputName("");
+        setInputNameAr("");
         setInputDescription("");
+        setInputDescriptionAr("");
     };
 
     const handleCreateKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -78,12 +88,16 @@ const ItemsPage = () => {
     const startEdit = (item: Item) => {
         setEditingId(item._id);
         setEditingName(item.name || "");
+        setEditingNameAr((item as any).ar || "");
         setEditingDescription(item.description || "");
+        setEditingDescriptionAr((item as any).descriptionAr || "");
     };
 
     const saveEdit = async (id: string) => {
         const name = (editingName || "").trim();
         const desc = (editingDescription || "").trim();
+        const nameAr = (editingNameAr || "").trim();
+        const descAr = (editingDescriptionAr || "").trim();
 
         if (!name) {
             setError(t("item_name_required") || "Item name is required");
@@ -96,12 +110,16 @@ const ItemsPage = () => {
                 id,
                 data: {
                     name,
+                    ar: nameAr || undefined,
                     description: desc || undefined,
+                    descriptionAr: descAr || undefined,
                 },
             });
             setEditingId("");
             setEditingName("");
+            setEditingNameAr("");
             setEditingDescription("");
+            setEditingDescriptionAr("");
         } catch (e: any) {
             console.error("Error updating item:", e);
             setError(e.response?.data?.message || "Failed to update item");
@@ -111,7 +129,9 @@ const ItemsPage = () => {
     const cancelEdit = () => {
         setEditingId("");
         setEditingName("");
+        setEditingNameAr("");
         setEditingDescription("");
+        setEditingDescriptionAr("");
     };
 
     const remove = async (item: Item) => {
@@ -183,29 +203,54 @@ const ItemsPage = () => {
                                                             value={editingName}
                                                             onChange={(e) => setEditingName(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                                             placeholder={t("item_name") || "Item Name"}
+                                                        />
+                                                        <input
+                                                            value={editingNameAr}
+                                                            onChange={(e) => setEditingNameAr(e.target.value)}
+                                                            onKeyDown={handleEditKeyDown}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("item_name_ar") || "اسم العنصر (بالعربية)"}
                                                         />
                                                         <input
                                                             value={editingDescription}
                                                             onChange={(e) => setEditingDescription(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/2 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                                             placeholder={t("item_description") || "Description"}
+                                                        />
+                                                        <input
+                                                            value={editingDescriptionAr}
+                                                            onChange={(e) => setEditingDescriptionAr(e.target.value)}
+                                                            onKeyDown={handleEditKeyDown}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("item_description_ar") || "وصف (بالعربية)"}
                                                         />
                                                     </div>
                                                 ) : (
                                                     <div className="flex w-full">
                                                         <div className="flex w-full items-center justify-between">
                                                             <div className="flex flex-col">
-                                                                <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
-                                                                    {item.name}
-                                                                </span>
-                                                                {item.description && (
-                                                                    <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                        {item.description}
-                                                                    </span>
-                                                                )}
+                                                                {(() => {
+                                                                    const displayName = lang === "ar" ? item.ar || item.name : item.name || item.ar;
+                                                                    const displayDesc =
+                                                                        lang === "ar"
+                                                                            ? item.descriptionAr || item.description
+                                                                            : item.description || item.descriptionAr;
+                                                                    return (
+                                                                        <>
+                                                                            <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                                                {displayName}
+                                                                            </span>
+                                                                            {displayDesc && (
+                                                                                <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                                    {displayDesc}
+                                                                                </span>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -290,10 +335,26 @@ const ItemsPage = () => {
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
                     />
                     <input
+                        value={inputNameAr}
+                        onChange={(e) => setInputNameAr(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
+                        placeholder={t("item_name_ar") || "اسم العنصر (بالعربية)"}
+                        disabled={isSaving}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                    />
+                    <input
                         value={inputDescription}
                         onChange={(e) => setInputDescription(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
                         placeholder={t("item_description") || "Description"}
+                        disabled={isSaving}
+                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                    />
+                    <input
+                        value={inputDescriptionAr}
+                        onChange={(e) => setInputDescriptionAr(e.target.value)}
+                        onKeyDown={handleCreateKeyDown}
+                        placeholder={t("item_description_ar") || "وصف (بالعربية)"}
                         disabled={isSaving}
                         className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
                     />
