@@ -74,6 +74,43 @@ const QuotationsPage = () => {
         return Array.from(map.values());
     })();
 
+    // Build a map of quotation counts per client id (for quotations that reference a client)
+    const quotationsCountByClientId: Record<string, number> = (() => {
+        const counts: Record<string, number> = {};
+        allQuotations.forEach((q: any) => {
+            if (!q) return;
+            // Determine client id from different shapes
+            const cid = q.clientId || (q.client && (q.client._id || q.client.id));
+            if (!cid) return;
+            const key = String(cid);
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        return counts;
+    })();
+
+    // Combine clients and custom groups into a single list and sort by name so they show together
+    type CombinedItem =
+        | { type: "client"; id: string; name: string; client: Client; quotationCount: number }
+        | { type: "custom"; id: string; name: string; quotations: any[] };
+
+    const combinedItems: CombinedItem[] = [];
+
+    // add clients
+    clients.forEach((client) => {
+        const id = (client as any).id || (client as any)._id || "";
+        const name = client.business?.businessName || client.personal?.fullName || t("unnamed_client") || "Unnamed";
+        const count = quotationsCountByClientId[String(id)] || 0;
+        combinedItems.push({ type: "client", id: String(id), name, client, quotationCount: count });
+    });
+
+    // add custom groups
+    customQuotationsByName.forEach((g) => {
+        combinedItems.push({ type: "custom", id: `custom-${g.name}`, name: g.name, quotations: g.quotations });
+    });
+
+    // Sort alphabetically by name so clients and custom groups appear interleaved
+    combinedItems.sort((a, b) => a.name.localeCompare(b.name));
+
     // Render Create View
     if (currentView === "create" && selectedClient) {
         const clientId = (selectedClient as any).id || (selectedClient as any)._id || undefined;
@@ -195,68 +232,49 @@ const QuotationsPage = () => {
                 </div>
             ) : (
                 <>
-                    {customQuotationsByName.length > 0 && (
-                        <>
-                            <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">
-                                {t("custom_quotations") || "Custom Quotations"}
-                            </h2>
-                            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {customQuotationsByName.map((group) => (
-                                    <div
-                                        key={`custom-${group.name}`}
-                                        className="card flex flex-col"
-                                    >
-                                        <h3 className="card-title text-lg">{group.name}</h3>
-                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
-                                            {group.quotations.length} {t("quotations") || "quotations"}
-                                        </p>
+                    {/* Combined grid of clients and custom quotation groups (sorted by name) */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {combinedItems.map((item) => {
+                            if (item.type === "client") {
+                                const client = item.client;
+                                return (
+                                    <div key={`client-${item.id}`} className="card flex flex-col">
+                                        <h3 className="card-title text-lg">{item.name}</h3>
+                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || ""}</p>
+                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{item.quotationCount} {t("quotations") || "quotations"}</p>
                                         <div className="mt-4 flex flex-col gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setCustomCreateName(group.name);
-                                                    setEditingQuotation(null);
-                                                    setCurrentView("custom");
-                                                }}
-                                                className="btn-primary w-full"
-                                            >
+                                            <button onClick={() => handleCreateQuotation(client)} className="btn-primary w-full">
                                                 {t("create_quotation") || "Create Quotation"}
                                             </button>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedClient({ business: { businessName: group.name } } as Client);
-                                                    setCurrentView("preview");
-                                                }}
-                                                className="btn-ghost w-full"
-                                            >
+                                            <button onClick={() => handleShowQuotations(client)} className="btn-ghost w-full">
                                                 {t("show_quotations") || "Show Quotations"}
                                             </button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
+                                );
+                            }
 
-                    <h2 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-semibold">{t("select_a_client") || "Select a client"}</h2>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {clients.map((client) => {
-                            // whether client has quotations is not needed here
+                            // custom group
                             return (
-                                <div
-                                    key={client.id}
-                                    className="card flex flex-col"
-                                >
-                                    <h3 className="card-title text-lg">{client.business?.businessName || t("unnamed_client") || "Unnamed Client"}</h3>
-                                    <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || ""}</p>
+                                <div key={item.id} className="card flex flex-col">
+                                    <h3 className="card-title text-lg">{item.name}</h3>
+                                    <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{item.quotations.length} {t("quotations") || "quotations"}</p>
                                     <div className="mt-4 flex flex-col gap-2">
                                         <button
-                                            onClick={() => handleCreateQuotation(client)}
+                                            onClick={() => {
+                                                setCustomCreateName(item.name);
+                                                setEditingQuotation(null);
+                                                setCurrentView("custom");
+                                            }}
                                             className="btn-primary w-full"
                                         >
                                             {t("create_quotation") || "Create Quotation"}
                                         </button>
                                         <button
-                                            onClick={() => handleShowQuotations(client)}
+                                            onClick={() => {
+                                                setSelectedClient({ business: { businessName: item.name } } as Client);
+                                                setCurrentView("preview");
+                                            }}
                                             className="btn-ghost w-full"
                                         >
                                             {t("show_quotations") || "Show Quotations"}
@@ -267,7 +285,7 @@ const QuotationsPage = () => {
                         })}
                     </div>
 
-                    {clients.length === 0 && (
+                    {combinedItems.length === 0 && (
                         <div className="card">
                             <div className="py-8 text-center">
                                 <p className="text-light-600 dark:text-dark-400">{t("no_clients_found") || "No clients found"}</p>

@@ -131,7 +131,12 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
         onCreateNew ||
         (() => {
             // navigate to the dedicated manage page that renders the form
-            navigate("/strategies/manage", { state: { clientId, referrer: location.pathname || "/strategies" } });
+            navigate("/strategies/manage", {
+                state: {
+                    clientId,
+                    referrer: { pathname: location.pathname || "/strategies", state: (location && (location as any).state) || null },
+                },
+            });
         });
 
     const handleEdit =
@@ -139,7 +144,11 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
         ((c: Campaign) => {
             // Navigate to the manage page with edit id so the form opens for editing
             navigate("/strategies/manage", {
-                state: { clientId: clientId, editCampaignId: c._id, referrer: location.pathname || "/strategies/preview" },
+                state: {
+                    clientId: clientId,
+                    editCampaignId: c._id,
+                    referrer: { pathname: location.pathname || "/strategies/preview", state: (location && (location as any).state) || null },
+                },
             });
         });
 

@@ -30,10 +30,22 @@ const ManageCampaignPage: React.FC = () => {
                 <div className="flex items-center justify-start gap-4">
                     <button
                         onClick={() => {
-                            if (referrer && referrer.pathname) {
-                                navigate(referrer.pathname, { state: referrer.state });
-                                return;
+                            try {
+                                // Support both { pathname, state } and legacy string referrer values
+                                if (referrer) {
+                                    if (typeof referrer === "string") {
+                                        navigate(referrer);
+                                        return;
+                                    }
+                                    if (referrer.pathname) {
+                                        navigate(referrer.pathname, { state: referrer.state });
+                                        return;
+                                    }
+                                }
+                            } catch (e) {
+                                // ignore and fallback to history back
                             }
+
                             navigate(-1);
                         }}
                         className="btn-ghost"
