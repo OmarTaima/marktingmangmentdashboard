@@ -12,15 +12,27 @@ interface PreviewQuotationProps {
     onBack: () => void;
     onCreateNew: () => void;
     onEdit: (quotation: Quotation) => void;
+    autoPreviewQuotationId?: string;
+    autoDownloadQuotationId?: string;
 }
 
-const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }: PreviewQuotationProps) => {
+const PreviewQuotation = ({
+    clientId,
+    clientName,
+    onBack,
+    onCreateNew,
+    onEdit,
+    autoPreviewQuotationId,
+    autoDownloadQuotationId,
+}: PreviewQuotationProps) => {
     const { t, lang } = useLang();
 
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize] = useState<number>(20);
     const [statusFilter, setStatusFilter] = useState<string>("");
     const [isDownloading, setIsDownloading] = useState<string | null>(null);
+    const [autoPreviewDone, setAutoPreviewDone] = useState<boolean>(false);
+    const [autoDownloadDone, setAutoDownloadDone] = useState<boolean>(false);
 
     const { data: clients = [], isLoading: clientsLoading } = useClients();
     const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
@@ -684,6 +696,62 @@ const PreviewQuotation = ({ clientId, clientName, onBack, onCreateNew, onEdit }:
             setIsDownloading(null);
         }
     };
+
+    // Auto preview / download when requested by parent
+    useEffect(() => {
+        // Only act when data is loaded
+        if (!autoPreviewQuotationId && !autoDownloadQuotationId) return;
+        if (clientsLoading || servicesLoading || itemsLoading || quotationsLoading) return;
+
+        if (autoPreviewQuotationId && !autoPreviewDone) {
+            const q = quotations.find(
+                (x: any) => String(x._id) === String(autoPreviewQuotationId) || String(x.id) === String(autoPreviewQuotationId),
+            );
+            if (q) {
+                (async () => {
+                    try {
+                        await handlePreviewPDF(q as Quotation);
+                    } catch (e) {
+                        // ignore
+                    }
+                    setAutoPreviewDone(true);
+                })();
+            } else {
+                setAutoPreviewDone(true);
+            }
+        }
+
+        if (autoDownloadQuotationId && !autoDownloadDone) {
+            (async () => {
+                try {
+                    await handleDownloadPDF(autoDownloadQuotationId);
+                } catch (e) {
+                    // ignore
+                }
+                setAutoDownloadDone(true);
+            })();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        autoPreviewQuotationId,
+        autoDownloadQuotationId,
+        clientsLoading,
+        servicesLoading,
+        itemsLoading,
+        quotationsLoading,
+        quotations,
+        autoPreviewDone,
+        autoDownloadDone,
+    ]);
+
+    // Reset done flags when requested ids change
+    useEffect(() => {
+        setAutoPreviewDone(false);
+    }, [autoPreviewQuotationId]);
+
+    useEffect(() => {
+        setAutoDownloadDone(false);
+    }, [autoDownloadQuotationId]);
 
     const handleConvertToContract = async () => {
         if (!convertQuotationId) return;

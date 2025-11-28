@@ -3,6 +3,7 @@ import { Save, Plus, Trash2, Edit3, Loader2 } from "lucide-react";
 import { showAlert } from "@/utils/swal";
 import { useCreateCampaign, useUpdateCampaign } from "@/hooks/queries";
 import { getCampaignById } from "@/api/requests/planService";
+import { getPackages, Package as PackageType } from "@/api/requests/packagesService";
 // Using MUI DatePicker for plan-level dates
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -62,6 +63,12 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         opportunities: string[];
         threats: string[];
     }>({ strengths: [], weaknesses: [], opportunities: [], threats: [] });
+
+    // Packages for budget quick-select
+    const [packages, setPackages] = useState<PackageType[]>([]);
+    const [packagesLoading, setPackagesLoading] = useState(false);
+    const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+    const [packageSetFromServer, setPackageSetFromServer] = useState(false);
 
     // Load campaign for edit when editCampaignId provided
     useEffect(() => {
@@ -126,6 +133,13 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     threats: Array.isArray(sw.threats) ? sw.threats : [],
                 });
 
+                // If campaign references a package id, set it so UI reflects selection
+                const pkgId = camp.strategy?.packageId || (camp.packageId ? camp.packageId : undefined);
+                if (pkgId) {
+                    setSelectedPackageId(pkgId);
+                    setPackageSetFromServer(true);
+                }
+
                 // respect initial viewOnly flag: only enable editing if not view-only
                 setIsEditing(!(viewOnly ?? false));
             } catch (e) {
@@ -140,6 +154,44 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editCampaignId]);
+
+    // If packages loaded and a packageId was set (e.g., editing), ensure budget matches package price
+    useEffect(() => {
+        if (!selectedPackageId || packages.length === 0) return;
+        const pkg = packages.find((p) => p._id === selectedPackageId);
+        if (!pkg) return;
+
+        // Only auto-apply package price when the package selection came from the
+        // server (editing an existing campaign) or when there is no current budget.
+        // This avoids overwriting a manually-entered budget when the user selects
+        // a package interactively.
+        if (packageSetFromServer || !(planData.budget || "").toString().trim()) {
+            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
+        }
+        // reset flag after applying once
+        if (packageSetFromServer) setPackageSetFromServer(false);
+    }, [selectedPackageId, packages]);
+
+    // Load available packages so user can pick one for budget quick-select
+    useEffect(() => {
+        let mounted = true;
+        const loadPackages = async () => {
+            setPackagesLoading(true);
+            try {
+                const res = await getPackages({ limit: 1000 });
+                if (!mounted) return;
+                setPackages(Array.isArray(res?.data) ? res.data : []);
+            } catch (e) {
+                // ignore package load errors silently
+            } finally {
+                if (mounted) setPackagesLoading(false);
+            }
+        };
+        loadPackages();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     // Timeline items (multiple chips)
     const [timelineItems, setTimelineItems] = useState<
@@ -292,8 +344,87 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     // UI state: which client-selection panel is open (segments/competitors/branches/swot)
     const [openPanel, setOpenPanel] = useState<"segments" | "competitors" | "branches" | "swot" | null>(null);
 
+    // Expanded details state for items (so we can show a details panel per item)
+    const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+
+    const toggleDetail = (key: string) => {
+        setExpandedDetails((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleItemKeyDown = (e: React.KeyboardEvent, cb: () => void) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            cb();
+        }
+    };
+
+    // Build a flat list of all swot items available on the client
+    const allSwotItems = useMemo(() => {
+        const sw = (clientData?.swot as any) || {};
+        return {
+            strengths: Array.isArray(sw.strengths) ? sw.strengths : [],
+            weaknesses: Array.isArray(sw.weaknesses) ? sw.weaknesses : [],
+            opportunities: Array.isArray(sw.opportunities) ? sw.opportunities : [],
+            threats: Array.isArray(sw.threats) ? sw.threats : [],
+        } as Record<string, string[]>;
+    }, [clientData?.swot]);
+
+    const allSwotSelected = useMemo(() => {
+        // true if there is at least one swot item and every available swot item is selected
+        const cats = Object.keys(allSwotItems) as Array<SwotCategory>;
+        let total = 0;
+        for (const cat of cats) {
+            total += (allSwotItems[cat] || []).length;
+        }
+        if (total === 0) return false; // nothing to select
+
+        return cats.every((cat) => {
+            const items = allSwotItems[cat] || [];
+            const selected = (selectedSwot as any)[cat] || [];
+            return items.every((it) => selected.includes(it));
+        });
+    }, [allSwotItems, selectedSwot]);
     const handleBudgetChange = (value: string) => {
         setPlanData((p) => ({ ...p, budget: value }));
+        // If user manually edits budget and it no longer matches the selected package price,
+        // clear the selected package so the form reflects a custom budget value.
+        if (selectedPackageId) {
+            const pkg = packages.find((p) => p._id === selectedPackageId);
+            const numeric = Number(value || 0);
+            if (!pkg || Number(pkg.price) !== numeric) {
+                setSelectedPackageId(null);
+            }
+        }
+    };
+
+    const handleSelectPackage = (pkgId: string | null) => {
+        const prevPkgId = selectedPackageId;
+        // Set selection state first
+        setSelectedPackageId(pkgId);
+        // mark that this selection came from user interaction
+        setPackageSetFromServer(false);
+
+        // If clearing selection, do nothing else
+        if (!pkgId) return;
+
+        const pkg = packages.find((p) => p._id === pkgId);
+        if (!pkg) return;
+
+        // If there was a previously-selected package, user is switching packages
+        // => update budget to match newly-selected package's price.
+        if (prevPkgId) {
+            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
+            return;
+        }
+
+        // If there was no previously-selected package, that means either the user
+        // hasn't chosen a package yet or they typed a custom budget. We should
+        // NOT overwrite a manually-entered budget. Only set budget when the
+        // current budget is empty.
+        const currentBudget = (planData.budget || "").toString().trim();
+        if (!currentBudget) {
+            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
+        }
     };
 
     // Save Plan Handler -> call API
@@ -336,6 +467,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                 swot: selectedSwot,
                 strategy: {
                     budget: Number(planData.budget) || 0,
+                    packageId: selectedPackageId || undefined,
                     timeline: timelinePayload,
                     description: planData.strategy || undefined,
                 },
@@ -554,32 +686,93 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                     const sid = typeof s === "string" ? s : s._id || s.id;
                                     const label = typeof s === "string" ? s : s.name || s.title || "Unnamed segment";
                                     const checked = selectedSegments.includes(sid);
+                                    const key = `segment-${sid}`;
                                     return (
-                                        <button
+                                        <div
                                             key={sid}
-                                            type="button"
-                                            onClick={() => toggleSegment(sid)}
-                                            aria-pressed={checked}
-                                            disabled={!isEditing}
-                                            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => isEditing && toggleSegment(sid)}
+                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleSegment(sid))}
+                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
                                                 checked
                                                     ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
                                                     : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
                                             }`}
                                         >
-                                            <div className="text-sm">
-                                                <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                {s.description && <div className="text-light-600 dark:text-dark-400 text-xs">{s.description}</div>}
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm">
+                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
+                                                </div>
+                                                <div />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {s.population && (
-                                                    <div className="text-light-500 text-xs">
-                                                        {Array.isArray(s.population) ? s.population.join(", ") : s.population}
-                                                    </div>
-                                                )}
-                                                {checked && <span className="text-light-500 text-xs">Selected</span>}
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleDetail(key);
+                                                    }}
+                                                    className="btn-primary text-sm"
+                                                >
+                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
+                                                </button>
                                             </div>
-                                        </button>
+                                            {expandedDetails[key] && (
+                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
+                                                    {s.description && <div className="text-light-900 dark:text-dark-50 text-sm">{s.description}</div>}
+                                                    {Array.isArray(s.ageRange) && s.ageRange.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Age range: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.ageRange.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(s.productName) && s.productName.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Products: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.productName.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {s.population !== undefined && s.population !== null && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Population: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">
+                                                                {Array.isArray(s.population) ? s.population.join(", ") : s.population}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(s.gender) && s.gender.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Gender: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.gender.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(s.area) && s.area.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Area: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.area.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(s.governorate) && s.governorate.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Governorates: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.governorate.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {s.note && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Note: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{s.note}</span>
+                                                        </div>
+                                                    )}
+                                                    {s.metadata && (
+                                                        <pre className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                            {JSON.stringify(s.metadata, null, 2)}
+                                                        </pre>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -594,28 +787,85 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                     const cid = typeof c === "string" ? c : c._id || c.id;
                                     const label = typeof c === "string" ? c : c.name || "Unnamed competitor";
                                     const checked = selectedCompetitors.includes(cid);
+                                    const key = `competitor-${cid}`;
                                     return (
-                                        <button
+                                        <div
                                             key={cid}
-                                            type="button"
-                                            onClick={() => toggleCompetitor(cid)}
-                                            aria-pressed={checked}
-                                            disabled={!isEditing}
-                                            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => isEditing && toggleCompetitor(cid)}
+                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleCompetitor(cid))}
+                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
                                                 checked
                                                     ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
                                                     : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
                                             }`}
                                         >
-                                            <div className="text-sm">
-                                                <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                {c.description && <div className="text-light-600 dark:text-dark-400 text-xs">{c.description}</div>}
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm">
+                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
+                                                </div>
+                                                <div />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {c.website && <div className="text-light-500 text-xs">{c.website}</div>}
-                                                {checked && <span className="text-light-500 text-xs">Selected</span>}
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleDetail(key);
+                                                    }}
+                                                    className="btn-primary text-sm"
+                                                >
+                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
+                                                </button>
                                             </div>
-                                        </button>
+                                            {expandedDetails[key] && (
+                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
+                                                    {c.description && <div className="text-light-900 dark:text-dark-50 text-sm">{c.description}</div>}
+                                                    {Array.isArray(c.swot_strengths) && c.swot_strengths.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT strengths: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_strengths.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(c.swot_weaknesses) && c.swot_weaknesses.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT weaknesses: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_weaknesses.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(c.swot_opportunities) && c.swot_opportunities.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT opportunities: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">
+                                                                {c.swot_opportunities.join(", ")}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(c.swot_threats) && c.swot_threats.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT threats: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_threats.join(", ")}</span>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(c.socialLinks) && c.socialLinks.length > 0 && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Social links:</span>
+                                                            <ul className="text-light-600 dark:text-dark-400 ml-3 list-disc">
+                                                                {c.socialLinks.map((sl: any, idx: number) => (
+                                                                    <li
+                                                                        key={idx}
+                                                                        className="text-xs"
+                                                                    >
+                                                                        {(sl.platform || sl.name) + ": " + (sl.url || sl.value)}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -630,30 +880,69 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                     const bid = typeof b === "string" ? b : b._id || b.id;
                                     const label = typeof b === "string" ? b : b.name || b.address || "Unnamed branch";
                                     const checked = selectedBranches.includes(bid);
+                                    const key = `branch-${bid}`;
                                     return (
-                                        <button
+                                        <div
                                             key={bid}
-                                            type="button"
-                                            onClick={() => toggleBranch(bid)}
-                                            aria-pressed={checked}
-                                            disabled={!isEditing}
-                                            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => isEditing && toggleBranch(bid)}
+                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleBranch(bid))}
+                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
                                                 checked
                                                     ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
                                                     : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
                                             }`}
                                         >
-                                            <div className="text-sm">
-                                                <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                {b.mainOfficeAddress && (
-                                                    <div className="text-light-600 dark:text-dark-400 text-xs">{b.mainOfficeAddress}</div>
-                                                )}
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm">
+                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
+                                                </div>
+                                                <div />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                {b.phone && <div className="text-light-500 text-xs">{b.phone}</div>}
-                                                {checked && <span className="text-light-500 text-xs">Selected</span>}
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleDetail(key);
+                                                    }}
+                                                    className="btn-primary text-sm"
+                                                >
+                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
+                                                </button>
                                             </div>
-                                        </button>
+                                            {expandedDetails[key] && (
+                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
+                                                    {(b.mainOfficeAddress || b.address) && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Address: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">
+                                                                {b.mainOfficeAddress || b.address}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {b.city && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">City: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{b.city}</span>
+                                                        </div>
+                                                    )}
+                                                    {b.phone && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Phone: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{b.phone}</span>
+                                                        </div>
+                                                    )}
+                                                    {b.notes && (
+                                                        <div className="text-xs">
+                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Notes: </span>
+                                                            <span className="text-light-600 dark:text-dark-400">{b.notes}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -662,36 +951,68 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
 
                     {openPanel === "swot" && (
                         <div className="space-y-3">
-                            {(["strengths", "weaknesses", "opportunities", "threats"] as SwotCategory[]).map((cat) => (
-                                <div key={cat}>
-                                    <div className="text-light-600 dark:text-dark-400 mb-2 text-sm font-medium">
-                                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            <div className="mb-4 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!isEditing) return;
+                                        if (allSwotSelected) {
+                                            setSelectedSwot({ strengths: [], weaknesses: [], opportunities: [], threats: [] });
+                                        } else {
+                                            setSelectedSwot({
+                                                strengths: allSwotItems.strengths.slice(),
+                                                weaknesses: allSwotItems.weaknesses.slice(),
+                                                opportunities: allSwotItems.opportunities.slice(),
+                                                threats: allSwotItems.threats.slice(),
+                                            });
+                                        }
+                                    }}
+                                    disabled={!isEditing || Object.values(allSwotItems).flat().length === 0}
+                                    className="btn-primary text-sm"
+                                >
+                                    {allSwotSelected ? "Unselect all SWOT" : "Select all SWOT"}
+                                </button>
+                            </div>
+                            {(["strengths", "weaknesses", "opportunities", "threats"] as SwotCategory[]).map((cat) => {
+                                const items = ((clientData?.swot as any)?.[cat] || []) as string[];
+                                const allSelected = items.length > 0 && items.every((it) => (selectedSwot as any)[cat]?.includes(it));
+                                return (
+                                    <div key={cat}>
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-light-600 dark:text-dark-400 mb-2 text-sm font-medium">
+                                                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                            </div>
+                                            <div />
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {items.length === 0 && <div className="text-dark-500">No items</div>}
+                                            {items.map((item: any, i: number) => {
+                                                const checked = (selectedSwot as any)[cat]?.includes(item);
+                                                const key = `swot-${cat}-${i}`;
+                                                return (
+                                                    <div
+                                                        key={`${cat}-${i}`}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onKeyDown={(e) => handleItemKeyDown(e, () => toggleSwotItem(cat, item))}
+                                                        onClick={() => isEditing && toggleSwotItem(cat, item)}
+                                                        className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                                                            checked
+                                                                ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
+                                                                : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                        }`}
+                                                    >
+                                                        <div className="text-light-900 dark:text-dark-50 text-sm">{item}</div>
+                                                        <div className="flex items-center gap-2">
+                                                            {checked && <div className="text-light-500 text-xs">Selected</div>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {((clientData?.swot as any)?.[cat] || []).length === 0 && <div className="text-dark-500">No items</div>}
-                                        {((clientData?.swot as any)?.[cat] || []).map((item: any, i: number) => {
-                                            const checked = (selectedSwot as any)[cat]?.includes(item);
-                                            return (
-                                                <button
-                                                    key={`${cat}-${i}`}
-                                                    type="button"
-                                                    onClick={() => toggleSwotItem(cat, item)}
-                                                    aria-pressed={checked}
-                                                    disabled={!isEditing}
-                                                    className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
-                                                        checked
-                                                            ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
-                                                            : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
-                                                    }`}
-                                                >
-                                                    <div className="text-light-900 dark:text-dark-50 text-sm">{item}</div>
-                                                    {checked && <div className="text-light-500 text-xs">Selected</div>}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -858,17 +1179,28 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                 onChange={(e) => handleBudgetChange(e.target.value)}
                                 disabled={!isEditing}
                             />
-                        </label>
-
-                        <label className="flex flex-col">
-                            <span className="text-light-600 dark:text-dark-400 mb-1 text-sm">Description (strategy)</span>
-                            <input
-                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                placeholder="Strategy description"
-                                value={planData.strategy}
-                                onChange={(e) => setPlanData((p) => ({ ...p, strategy: e.target.value }))}
-                                disabled={!isEditing}
-                            />
+                            <div className="mt-2">
+                                <label className="flex flex-col">
+                                    <span className="text-light-600 dark:text-dark-400 mb-1 text-xs">Or pick a package</span>
+                                    <select
+                                        className="text-light-900 dark:border-dark-700 dark:text-dark-50 focus:border-light-500 w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-8 text-sm transition-colors focus:outline-none"
+                                        style={{ WebkitAppearance: "none", MozAppearance: "none", appearance: "none", backgroundImage: "none" }}
+                                        value={selectedPackageId || ""}
+                                        onChange={(e) => handleSelectPackage(e.target.value || null)}
+                                        disabled={!isEditing || packagesLoading}
+                                    >
+                                        <option value="">none</option>
+                                        {packages.map((pkg) => (
+                                            <option
+                                                key={pkg._id}
+                                                value={pkg._id}
+                                            >
+                                                {pkg.nameEn || pkg.nameAr} - {pkg.price}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
                         </label>
                     </div>
 

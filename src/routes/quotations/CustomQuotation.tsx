@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, FileText, Loader2, Trash2 } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
-import { useServices, useCreateQuotation } from "@/hooks/queries";
+import { useServices, useCreateQuotation, useItems } from "@/hooks/queries";
 import type { CustomService, CreateQuotationPayload } from "@/api/requests/quotationsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -21,6 +21,8 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
 
     const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
     const services = servicesResponse?.data || [];
+    const { data: itemsResponse } = useItems({ limit: 1000 });
+    const items = itemsResponse?.data || [];
 
     const createQuotationMutation = useCreateQuotation();
     const isSaving = createQuotationMutation.isPending;
@@ -37,10 +39,14 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
     const [customNameAr, setCustomNameAr] = useState<string>("");
     const [customPrice, setCustomPrice] = useState<string>("");
     const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+    // We'll repurpose expandedServiceId as the selected service tab id.
+    const servicesWithPackages = services.filter((s: any) => s.packages && s.packages.length > 0);
 
-    const toggleExpandService = (serviceId: string) => {
-        setExpandedServiceId((prev) => (prev === serviceId ? null : serviceId));
-    };
+    useEffect(() => {
+        if (!expandedServiceId && servicesWithPackages.length > 0) {
+            setExpandedServiceId(servicesWithPackages[0]._id);
+        }
+    }, [servicesWithPackages]);
 
     const togglePackage = (packageId: string) => {
         if (selectedPackages.includes(packageId)) setSelectedPackages(selectedPackages.filter((id) => id !== packageId));
@@ -159,99 +165,126 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                             />
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {services.map((service) => {
-                                const isExpanded = expandedServiceId === service._id;
-                                const hasPackages = service.packages && service.packages.length > 0;
-                                const selectedCount = hasPackages
-                                    ? (service.packages ?? []).filter((pkg: any) => selectedPackages.includes(pkg._id)).length
-                                    : 0;
-
-                                return (
-                                    <div
-                                        key={service._id}
-                                        className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-800 overflow-hidden rounded-lg border"
-                                    >
-                                        <div className="flex items-center justify-between px-4 py-3">
-                                            <div className="flex-1">
+                        <div>
+                            {/* Tabs for services that have packages */}
+                            {servicesWithPackages.length > 0 && (
+                                <div className="mb-4 flex gap-2 overflow-auto">
+                                    {servicesWithPackages.map((service) => {
+                                        const selectedCount = (service.packages ?? []).filter((pkg: any) =>
+                                            selectedPackages.includes(pkg._id),
+                                        ).length;
+                                        const isActive = expandedServiceId === service._id;
+                                        return (
+                                            <button
+                                                key={service._id}
+                                                onClick={() => setExpandedServiceId(service._id)}
+                                                className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
+                                                    isActive
+                                                        ? "bg-light-500 dark:bg-secdark-700 text-white"
+                                                        : "text-light-900 dark:bg-dark-800 dark:text-dark-50 border bg-white"
+                                                }`}
+                                            >
                                                 <div className="flex items-center gap-2">
-                                                    <div className="text-light-900 dark:text-dark-50 text-base font-semibold">
-                                                        {lang === "ar" ? service.ar : service.en}
-                                                    </div>
-                                                    {selectedCount > 0 && (
-                                                        <span className="bg-light-500 dark:bg-secdark-700 rounded-full px-2 py-0.5 text-xs font-medium text-white">
-                                                            {selectedCount} {t("selected") || "selected"}
-                                                        </span>
-                                                    )}
+                                                    <span>{lang === "ar" ? service.ar : service.en}</span>
+                                                    <span className="bg-light-600 rounded-full px-2 py-0.5 text-xs text-white">
+                                                        {service.packages?.length ?? 0}
+                                                    </span>
+                                                    {selectedCount > 0 && <span className="ml-1 text-xs">{selectedCount} selected</span>}
                                                 </div>
-                                                {service.description && (
-                                                    <div className="text-light-600 dark:text-dark-400 mt-1 text-sm">{service.description}</div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {service.price != null && (
-                                                    <div className="text-light-900 dark:text-dark-50 text-sm font-medium">
-                                                        {service.price} {lang === "ar" ? "ج.م" : "EGP"}
-                                                    </div>
-                                                )}
-                                                {hasPackages && (
-                                                    <button
-                                                        onClick={() => toggleExpandService(service._id)}
-                                                        className="btn-primary text-sm"
-                                                    >
-                                                        {isExpanded
-                                                            ? t("hide_packages") || "Hide"
-                                                            : `${t("view") || "View"} ${service.packages?.length || 0} ${t("packages") || "packages"}`}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
-                                        {isExpanded && hasPackages && (
-                                            <div className="dark:bg-dark-900 border-light-600 dark:border-dark-700 border-t bg-white px-4 py-3">
-                                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                                    {(service.packages || []).map((pkg: any) => {
-                                                        const isSelected = selectedPackages.includes(pkg._id);
-                                                        return (
-                                                            <div
-                                                                key={pkg._id}
-                                                                onClick={() => togglePackage(pkg._id)}
-                                                                className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
-                                                                    isSelected
-                                                                        ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
-                                                                        : "border-light-600 dark:border-dark-700 dark:bg-dark-800 text-light-900 dark:text-dark-50 hover:border-light-500 dark:hover:border-secdark-700 bg-white"
-                                                                }`}
-                                                            >
-                                                                <div className="flex items-start justify-between gap-3">
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <div
-                                                                            className={`mb-1 text-sm font-medium ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
-                                                                        >
-                                                                            {lang === "ar" ? pkg.nameAr : pkg.nameEn}
-                                                                        </div>
-                                                                        {pkg.description && (
-                                                                            <div
-                                                                                className={`line-clamp-2 text-xs ${isSelected ? "text-white opacity-90" : "text-light-600 dark:text-dark-400"}`}
-                                                                            >
-                                                                                {pkg.description}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
+                            {/* Packages for selected service */}
+                            {expandedServiceId &&
+                                (() => {
+                                    const selectedService = servicesWithPackages.find((s: any) => s._id === expandedServiceId);
+                                    if (!selectedService) return null;
+                                    return (
+                                        <div className="dark:bg-dark-900 border-light-600 dark:border-dark-700 border-t bg-white px-0 py-3">
+                                            <div className="grid grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-3">
+                                                {(selectedService.packages || []).map((pkg: any) => {
+                                                    const isSelected = selectedPackages.includes(pkg._id);
+                                                    // Resolve package items as readable text
+                                                    const pkgItems: string[] = (pkg.items || []).map((it: any) => {
+                                                        const inner = (it && (it.item || it)) || {};
+                                                        let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                                        const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
+
+                                                        if (!name || name === "(item)") {
+                                                            const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
+                                                            if (itemId) {
+                                                                const found = items.find(
+                                                                    (i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId),
+                                                                );
+                                                                if (found) name = found.name || found.ar;
+                                                            }
+                                                        }
+
+                                                        const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
+                                                        return `• ${name || "(item)"}${qtyText}`;
+                                                    });
+
+                                                    return (
+                                                        <div
+                                                            key={pkg._id}
+                                                            onClick={() => togglePackage(pkg._id)}
+                                                            className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
+                                                                isSelected
+                                                                    ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
+                                                                    : "border-light-600 dark:border-dark-700 dark:bg-dark-800 text-light-900 dark:text-dark-50 hover:border-light-500 dark:hover:border-secdark-700 bg-white"
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="min-w-0 flex-1">
                                                                     <div
-                                                                        className={`text-sm font-semibold whitespace-nowrap ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                                                        className={`mb-1 text-sm font-medium ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
                                                                     >
-                                                                        {pkg.price} {lang === "ar" ? "ج.م" : "EGP"}
+                                                                        {lang === "ar" ? pkg.nameAr : pkg.nameEn}
                                                                     </div>
+                                                                    {pkg.description && (
+                                                                        <div
+                                                                            className={`line-clamp-2 text-xs ${isSelected ? "text-white opacity-90" : "text-light-600 dark:text-dark-400"}`}
+                                                                        >
+                                                                            {pkg.description}
+                                                                        </div>
+                                                                    )}
+                                                                    {pkgItems.length > 0 && (
+                                                                        <div className="mt-2">
+                                                                            <div
+                                                                                className={`flex flex-wrap gap-2 ${isSelected ? "text-white/90" : "text-light-600 dark:text-dark-400"}`}
+                                                                            >
+                                                                                {pkgItems.map((itText, idx) => (
+                                                                                    <div
+                                                                                        key={idx}
+                                                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                                                                                            isSelected
+                                                                                                ? "bg-white/10 text-white"
+                                                                                                : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
+                                                                                        }`}
+                                                                                    >
+                                                                                        {itText}
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div
+                                                                    className={`text-sm font-semibold whitespace-nowrap ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                                                >
+                                                                    {pkg.price} {lang === "ar" ? "ج.م" : "EGP"}
                                                                 </div>
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                        </div>
+                                    );
+                                })()}
                         </div>
                     )}
                 </div>
