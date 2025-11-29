@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Check, Loader2, Minus, Trash2 } from "lucide-react";
+import { Plus, Check, Loader2, Minus, Trash2, X } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { showConfirm, showAlert } from "@/utils/swal";
 import { getItems, type Item } from "@/api/requests/itemsService";
@@ -21,6 +21,10 @@ const AddPackagePage = () => {
     const [availableItems, setAvailableItems] = useState<Item[]>([]);
     const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
     const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
+    const [displayTypes, setDisplayTypes] = useState<Record<string, "number" | "string" | "availability">>({});
+    const [stringValues, setStringValues] = useState<Record<string, string>>({});
+    const [availabilities, setAvailabilities] = useState<Record<string, boolean>>({});
+    const [activeChooserFor, setActiveChooserFor] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
@@ -51,50 +55,6 @@ const AddPackagePage = () => {
             setError(err.response?.data?.message || "Failed to load items");
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const toggleItemSelection = (itemId: string) => {
-        setSelectedItemIds((prev) => {
-            if (prev.includes(itemId)) {
-                setItemQuantities((q) => {
-                    const copy = { ...q };
-                    delete copy[itemId];
-                    return copy;
-                });
-                return prev.filter((id) => id !== itemId);
-            }
-            setItemQuantities((q) => ({ ...q, [itemId]: q[itemId] || 1 }));
-            return [...prev, itemId];
-        });
-    };
-
-    // Prevent package tiles from toggling when Enter-driven submit is happening
-    const ignorePackageToggleRef = useRef(false);
-
-    const incrementQuantity = (itemId: string) => {
-        setItemQuantities((q) => ({ ...q, [itemId]: (q[itemId] || 0) + 1 }));
-        if (!selectedItemIds.includes(itemId)) {
-            setSelectedItemIds((prev) => [...prev, itemId]);
-        }
-    };
-
-    const decrementQuantity = (itemId: string) => {
-        setItemQuantities((q) => {
-            const current = q[itemId] || 0;
-            const next = Math.max(1, current - 1);
-            return { ...q, [itemId]: next };
-        });
-        if (!selectedItemIds.includes(itemId)) {
-            setSelectedItemIds((prev) => [...prev, itemId]);
-        }
-    };
-
-    const setQuantity = (itemId: string, value: number) => {
-        const next = Math.max(1, Math.floor(Number(value) || 1));
-        setItemQuantities((q) => ({ ...q, [itemId]: next }));
-        if (!selectedItemIds.includes(itemId)) {
-            setSelectedItemIds((prev) => [...prev, itemId]);
         }
     };
 
@@ -146,10 +106,21 @@ const AddPackagePage = () => {
                         price: Number(p),
                         description: description.trim() || undefined,
                         descriptionAr: descriptionAr.trim() || undefined,
-                        items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
+                        items: selectedItemIds.map((itemId) => {
+                            const type =
+                                displayTypes[itemId] ||
+                                (typeof itemQuantities[itemId] !== "undefined"
+                                    ? "number"
+                                    : typeof stringValues[itemId] !== "undefined"
+                                      ? "string"
+                                      : "availability");
+                            let quantity: any = itemQuantities[itemId];
+                            if (type === "string") quantity = stringValues[itemId] ?? "";
+                            if (type === "availability") quantity = !!availabilities[itemId];
+                            return { item: itemId, quantity };
+                        }),
                     },
                 });
-                // reset edit state
                 setEditPackageId(null);
             } else {
                 await createPackageMutation.mutateAsync({
@@ -158,27 +129,35 @@ const AddPackagePage = () => {
                     price: Number(p),
                     description: description.trim() || undefined,
                     descriptionAr: descriptionAr.trim() || undefined,
-                    items: selectedItemIds.map((itemId) => ({ item: itemId, quantity: itemQuantities[itemId] || 1 })),
+                    items: selectedItemIds.map((itemId) => {
+                        const type =
+                            displayTypes[itemId] ||
+                            (typeof itemQuantities[itemId] !== "undefined"
+                                ? "number"
+                                : typeof stringValues[itemId] !== "undefined"
+                                  ? "string"
+                                  : "availability");
+                        let quantity: any = itemQuantities[itemId];
+                        if (type === "string") quantity = stringValues[itemId] ?? "";
+                        if (type === "availability") quantity = !!availabilities[itemId];
+                        return { item: itemId, quantity };
+                    }),
                 });
             }
 
-            // ensure packages list is refetched so other pages show fresh data
             try {
                 queryClient.invalidateQueries({ queryKey: packagesKeys.lists() });
             } catch (e) {
                 // ignore
             }
 
-            // show success alert, then navigate back to packages list
             try {
                 if (editPackageId) {
                     await showAlert(t("package_updated_success") || "Package updated successfully", "success");
                 } else {
                     await showAlert(t("package_created_success") || "Package created successfully", "success");
                 }
-            } catch (e) {
-                // ignore swal errors and proceed
-            }
+            } catch (e) {}
 
             navigate("/packages");
         } catch (err: any) {
@@ -188,7 +167,119 @@ const AddPackagePage = () => {
         }
     };
 
-    // (removed unused keyboard handler)
+    const toggleItemSelection = (itemId: string) => {
+        setSelectedItemIds((prev) => {
+            if (prev.includes(itemId)) {
+                setItemQuantities((q) => {
+                    const copy = { ...q };
+                    delete copy[itemId];
+                    return copy;
+                });
+                setDisplayTypes((d) => {
+                    const copy = { ...d };
+                    delete copy[itemId];
+                    return copy;
+                });
+                setStringValues((s) => {
+                    const copy = { ...s };
+                    delete copy[itemId];
+                    return copy;
+                });
+                setAvailabilities((a) => {
+                    const copy = { ...a };
+                    delete copy[itemId];
+                    return copy;
+                });
+                return prev.filter((id) => id !== itemId);
+            }
+            setItemQuantities((q) => ({ ...q, [itemId]: q[itemId] || 1 }));
+            setDisplayTypes((d) => ({ ...d, [itemId]: d[itemId] || "number" }));
+            return [...prev, itemId];
+        });
+    };
+
+    // Prevent package tiles from toggling when Enter-driven submit is happening
+    const ignorePackageToggleRef = useRef(false);
+
+    const incrementQuantity = (itemId: string) => {
+        setDisplayTypes((d) => ({ ...d, [itemId]: d[itemId] || "number" }));
+        setItemQuantities((q) => ({ ...q, [itemId]: (q[itemId] || 0) + 1 }));
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
+    };
+
+    const decrementQuantity = (itemId: string) => {
+        setItemQuantities((q) => {
+            const current = q[itemId] || 0;
+            const next = Math.max(1, current - 1);
+            return { ...q, [itemId]: next };
+        });
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
+    };
+
+    const setQuantity = (itemId: string, value: number) => {
+        const next = Math.max(1, Math.floor(Number(value) || 1));
+        setDisplayTypes((d) => ({ ...d, [itemId]: d[itemId] || "number" }));
+        setItemQuantities((q) => ({ ...q, [itemId]: next }));
+        if (!selectedItemIds.includes(itemId)) {
+            setSelectedItemIds((prev) => [...prev, itemId]);
+        }
+    };
+
+    const openChooser = (itemId: string) => {
+        setActiveChooserFor((cur) => (cur === itemId ? null : itemId));
+    };
+
+    const chooseDisplayType = (itemId: string, type: "number" | "string" | "availability") => {
+        setDisplayTypes((d) => ({ ...d, [itemId]: type }));
+        if (type === "number") {
+            setItemQuantities((q) => ({ ...q, [itemId]: q[itemId] || 1 }));
+        } else if (type === "string") {
+            setStringValues((s) => ({ ...s, [itemId]: s[itemId] || "" }));
+        } else if (type === "availability") {
+            setAvailabilities((a) => ({ ...a, [itemId]: a[itemId] ?? true }));
+        }
+        setSelectedItemIds((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
+    };
+
+    const applySelection = (itemId: string) => {
+        // finish chooser: return card to normal but keep selected type/value
+        setActiveChooserFor(null);
+    };
+
+    const cancelChooser = (itemId: string) => {
+        // simply close chooser without changing stored values
+        setActiveChooserFor(null);
+    };
+
+    const removeSelection = (itemId: string) => {
+        setSelectedItemIds((prev) => prev.filter((id) => id !== itemId));
+        setItemQuantities((q) => {
+            const copy = { ...q };
+            delete copy[itemId];
+            return copy;
+        });
+        setDisplayTypes((d) => {
+            const copy = { ...d };
+            delete copy[itemId];
+            return copy;
+        });
+        setStringValues((s) => {
+            const copy = { ...s };
+            delete copy[itemId];
+            return copy;
+        });
+        setAvailabilities((a) => {
+            const copy = { ...a };
+            delete copy[itemId];
+            return copy;
+        });
+        setActiveChooserFor(null);
+    };
+
     const startEditPackage = (pkg: Package) => {
         setEditPackageId(pkg._id);
         setNameEn(pkg.nameEn || "");
@@ -197,20 +288,37 @@ const AddPackagePage = () => {
         setDescriptionAr(pkg.descriptionAr || "");
         setPrice(pkg.price?.toString() || "");
 
-        // normalize items: pkg.items may contain { item: { _id } , quantity }
         const ids: string[] = [];
         const quantities: Record<string, number> = {};
+        const dTypes: Record<string, "number" | "string" | "availability"> = {};
+        const sValues: Record<string, string> = {};
+        const aValues: Record<string, boolean> = {};
         (pkg.items || []).forEach((it: any) => {
             const itemObj = it.item || it;
             const id = typeof itemObj === "string" ? itemObj : itemObj?._id || itemObj?.id;
             if (id) {
                 ids.push(id);
-                quantities[id] = it.quantity || 1;
+                const q = it.quantity;
+                if (typeof q === "number") {
+                    quantities[id] = q || 1;
+                    dTypes[id] = "number";
+                } else if (typeof q === "string") {
+                    sValues[id] = q;
+                    dTypes[id] = "string";
+                } else if (typeof q === "boolean") {
+                    aValues[id] = q;
+                    dTypes[id] = "availability";
+                } else {
+                    quantities[id] = 1;
+                    dTypes[id] = "number";
+                }
             }
         });
         setSelectedItemIds(ids);
         setItemQuantities(quantities);
-        // scroll to form
+        setDisplayTypes(dTypes);
+        setStringValues(sValues);
+        setAvailabilities(aValues);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -262,21 +370,36 @@ const AddPackagePage = () => {
                                                     key={id}
                                                     className="flex items-center gap-2"
                                                 >
-                                                    <Check
-                                                        size={14}
-                                                        className="text-green-500"
-                                                    />
                                                     <div className="text-sm">
                                                         <div className="text-light-900 dark:text-dark-50 font-medium">{name}</div>
                                                         {descriptionInner && (
                                                             <div className="text-light-600 dark:text-dark-400 text-xs">{descriptionInner}</div>
                                                         )}
                                                     </div>
-                                                    {typeof quantity !== "undefined" && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
-                                                            x{quantity}
-                                                        </span>
-                                                    )}
+                                                    {typeof quantity !== "undefined" &&
+                                                        (typeof quantity === "boolean" ? (
+                                                            <span className="ml-auto inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                {quantity ? (
+                                                                    <Check
+                                                                        size={14}
+                                                                        className="text-green-500"
+                                                                    />
+                                                                ) : (
+                                                                    <X
+                                                                        size={14}
+                                                                        className="text-danger-600"
+                                                                    />
+                                                                )}
+                                                            </span>
+                                                        ) : typeof quantity === "number" ? (
+                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                x{quantity}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                {quantity}
+                                                            </span>
+                                                        ))}
                                                 </li>
                                             );
                                         })}
@@ -427,57 +550,162 @@ const AddPackagePage = () => {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {availableItems.map((item) => {
                             const isSelected = selectedItemIds.includes(item._id);
-                            const qty = itemQuantities[item._id] || 1;
+
                             return (
                                 <div
                                     key={item._id}
                                     onClick={() => {
                                         if (ignorePackageToggleRef.current) return;
-                                        toggleItemSelection(item._id);
+                                        openChooser(item._id);
                                     }}
-                                    className={`flex cursor-pointer flex-col items-start justify-between gap-2 rounded-lg border px-4 py-3 text-sm transition-all sm:flex-row sm:items-center ${
+                                    className={`relative flex cursor-pointer flex-col items-start justify-between gap-2 overflow-hidden rounded-lg border px-4 py-3 text-sm transition-all duration-200 sm:flex-row sm:items-center ${
                                         isSelected
-                                            ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:text-dark-50 text-white"
+                                            ? "border-light-500 dark:bg-dark-900 dark:text-dark-50 text-light-900 bg-white/5"
                                             : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
-                                    }`}
+                                    } ${activeChooserFor === item._id ? "ring-light-200/50 dark:ring-secdark-600 shadow-sm ring-1 ring-offset-1" : ""}`}
                                 >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <span className="truncate">{item.name}</span>
-                                    </div>
+                                    {activeChooserFor === item._id ? (
+                                        <div className="flex w-full flex-col gap-3">
+                                            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    {[
+                                                        { key: "number", label: t("as_number") || "Number" },
+                                                        { key: "string", label: t("as_text") || "Text" },
+                                                        { key: "availability", label: t("as_availability") || "Availability" },
+                                                    ].map((opt) => {
+                                                        const key = opt.key as "number" | "string" | "availability";
+                                                        const selected = displayTypes[item._id] === key;
+                                                        return (
+                                                            <button
+                                                                key={key}
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    chooseDisplayType(item._id, key);
+                                                                    applySelection(item._id);
+                                                                }}
+                                                                className={`btn-ghost flex items-center justify-center gap-2 px-3 py-2 text-sm`}
+                                                            >
+                                                                <span className="font-medium">{opt.label}</span>
+                                                                {selected && (
+                                                                    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-white/20 px-1 py-0.5 text-[10px]">
+                                                                        <Check size={12} />
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
 
-                                    <div
-                                        className="mt-2 flex items-center gap-2 sm:mt-0"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => decrementQuantity(item._id)}
-                                                aria-label={t("decrease_quantity") || "Decrease quantity"}
-                                                className="hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:hover:bg-dark-700 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-xs"
-                                            >
-                                                <Minus size={12} />
-                                            </button>
-
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                value={qty}
-                                                onChange={(e) => setQuantity(item._id, Number(e.target.value))}
-                                                aria-label={t("item_quantity") || "Item quantity"}
-                                                className="dark:bg-dark-800 dark:border-dark-700 w-12 rounded-md border bg-white px-1.5 py-0.5 text-center text-sm sm:w-12"
-                                            />
-
-                                            <button
-                                                type="button"
-                                                onClick={() => incrementQuantity(item._id)}
-                                                aria-label={t("increase_quantity") || "Increase quantity"}
-                                                className="hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:hover:bg-dark-700 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-xs"
-                                            >
-                                                <Plus size={12} />
-                                            </button>
+                                                <div className="flex gap-2 sm:ml-4 sm:justify-self-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            cancelChooser(item._id);
+                                                        }}
+                                                        className="btn-ghost"
+                                                    >
+                                                        {t("cancel") || "Cancel"}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex w-full min-w-0 items-center gap-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="truncate text-sm font-medium">{item.name}</span>
+                                                    {item.description && (
+                                                        <div className="text-light-600 dark:text-dark-400 mt-1 truncate text-xs">
+                                                            {item.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="ml-3 flex items-center gap-2">
+                                                    {/* show a compact field summarizing or carrying current display value */}
+                                                    {selectedItemIds.includes(item._id)
+                                                        ? (() => {
+                                                              const type = displayTypes[item._id] || "number";
+                                                              if (type === "number") {
+                                                                  return (
+                                                                      <div className="flex items-center gap-2">
+                                                                          <button
+                                                                              type="button"
+                                                                              onClick={(e) => {
+                                                                                  e.stopPropagation();
+                                                                                  decrementQuantity(item._id);
+                                                                              }}
+                                                                              className="dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-sm"
+                                                                          >
+                                                                              -
+                                                                          </button>
+                                                                          <input
+                                                                              type="number"
+                                                                              value={itemQuantities[item._id] || 1}
+                                                                              onClick={(e) => e.stopPropagation()}
+                                                                              onChange={(e) => {
+                                                                                  e.stopPropagation();
+                                                                                  setQuantity(item._id, Number(e.target.value));
+                                                                              }}
+                                                                              className="dark:bg-dark-800 dark:border-dark-700 text-light-900 dark:text-dark-50 w-12 rounded-md border bg-white px-1 py-0.5 text-center text-sm"
+                                                                          />
+                                                                          <button
+                                                                              type="button"
+                                                                              onClick={(e) => {
+                                                                                  e.stopPropagation();
+                                                                                  incrementQuantity(item._id);
+                                                                              }}
+                                                                              className="dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex h-7 w-7 items-center justify-center rounded-full border bg-white text-sm"
+                                                                          >
+                                                                              +
+                                                                          </button>
+                                                                      </div>
+                                                                  );
+                                                              }
+                                                              if (type === "string") {
+                                                                  return (
+                                                                      <input
+                                                                          type="text"
+                                                                          value={stringValues[item._id] || ""}
+                                                                          onClick={(e) => e.stopPropagation()}
+                                                                          onChange={(e) => {
+                                                                              e.stopPropagation();
+                                                                              setStringValues((s) => ({ ...s, [item._id]: e.target.value }));
+                                                                          }}
+                                                                          className="dark:bg-dark-800 text-light-900 dark:text-dark-50 w-40 rounded-md border bg-white px-2 py-1 text-sm"
+                                                                      />
+                                                                  );
+                                                              }
+                                                              return (
+                                                                  <div className="flex items-center gap-3">
+                                                                      <button
+                                                                          type="button"
+                                                                          onClick={(e) => {
+                                                                              e.stopPropagation();
+                                                                              setAvailabilities((a) => ({ ...a, [item._id]: !a[item._id] }));
+                                                                              if (!selectedItemIds.includes(item._id))
+                                                                                  setSelectedItemIds((prev) => [...prev, item._id]);
+                                                                          }}
+                                                                          aria-pressed={!!availabilities[item._id]}
+                                                                          className={`relative h-6 w-11 rounded-full transition-colors duration-150 ${availabilities[item._id] ? "bg-green-500" : "dark:bg-dark-700 bg-gray-300"}`}
+                                                                      >
+                                                                          <span
+                                                                              className={`absolute top-0 left-0 h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-150 ${availabilities[item._id] ? "translate-x-5" : "translate-x-0"}`}
+                                                                          ></span>
+                                                                      </button>
+                                                                      <span className="text-light-900 dark:text-dark-50 text-sm">
+                                                                          {availabilities[item._id] ? t("true") || "True" : t("false") || "False"}
+                                                                      </span>
+                                                                  </div>
+                                                              );
+                                                          })()
+                                                        : null}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             );
                         })}

@@ -16,6 +16,7 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [remember, setRemember] = useState(false);
 
     const validate = () => {
         if (!email || !password) return "Please enter email and password";
@@ -35,7 +36,7 @@ const LoginPage: React.FC = () => {
             const data = await login({ email, password });
 
             if (data?.accessToken) {
-                setAuthCookies(data.accessToken, data.refreshToken);
+                setAuthCookies(data.accessToken, data.refreshToken, remember);
                 axiosInstance.defaults.headers.common.Authorization = `Bearer ${data.accessToken}`;
             }
 
@@ -162,6 +163,8 @@ const LoginPage: React.FC = () => {
                                     <label className="text-light-900 dark:text-dark-50 inline-flex items-center gap-2">
                                         <input
                                             type="checkbox"
+                                            checked={remember}
+                                            onChange={(e) => setRemember(e.target.checked)}
                                             className="border-light-600 text-light-500 focus:ring-light-500/20 dark:border-dark-700 dark:bg-dark-800 dark:text-secdark-700 dark:focus:ring-secdark-700/20 h-4 w-4 rounded transition-colors focus:ring-2"
                                         />
                                         <span>{t("remember_me") || "Remember me"}</span>

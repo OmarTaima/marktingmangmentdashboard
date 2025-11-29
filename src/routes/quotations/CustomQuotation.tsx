@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FileText, Loader2, Trash2 } from "lucide-react";
+import { Plus, FileText, Loader2, Trash2, Check, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
@@ -207,24 +207,25 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                                             <div className="grid grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-3">
                                                 {(selectedService.packages || []).map((pkg: any) => {
                                                     const isSelected = selectedPackages.includes(pkg._id);
-                                                    // Resolve package items as readable text
-                                                    const pkgItems: string[] = (pkg.items || []).map((it: any) => {
+                                                    // Resolve package items into structured objects
+                                                    const pkgItems: Array<{ label: string; quantity?: number | string | boolean }> = (
+                                                        pkg.items || []
+                                                    ).map((it: any) => {
                                                         const inner = (it && (it.item || it)) || {};
-                                                        let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                                        let name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
                                                         const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
 
-                                                        if (!name || name === "(item)") {
+                                                        if ((!name || name === "(item)") && inner) {
                                                             const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
                                                             if (itemId) {
                                                                 const found = items.find(
                                                                     (i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId),
                                                                 );
-                                                                if (found) name = found.name || found.ar;
+                                                                if (found) name = found.name || found.ar || name;
                                                             }
                                                         }
 
-                                                        const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
-                                                        return `• ${name || "(item)"}${qtyText}`;
+                                                        return { label: name || "(item)", quantity };
                                                     });
 
                                                     return (
@@ -256,7 +257,7 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                                                                             <div
                                                                                 className={`flex flex-wrap gap-2 ${isSelected ? "text-white/90" : "text-light-600 dark:text-dark-400"}`}
                                                                             >
-                                                                                {pkgItems.map((itText, idx) => (
+                                                                                {pkgItems.map((itObj, idx) => (
                                                                                     <div
                                                                                         key={idx}
                                                                                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
@@ -265,7 +266,31 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                                                                                                 : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
                                                                                         }`}
                                                                                     >
-                                                                                        {itText}
+                                                                                        <span className="truncate">{itObj.label}</span>
+                                                                                        {typeof itObj.quantity !== "undefined" &&
+                                                                                            (typeof itObj.quantity === "boolean" ? (
+                                                                                                <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                                                    {itObj.quantity ? (
+                                                                                                        <Check
+                                                                                                            size={14}
+                                                                                                            className="text-green-500"
+                                                                                                        />
+                                                                                                    ) : (
+                                                                                                        <X
+                                                                                                            size={14}
+                                                                                                            className="text-red-600"
+                                                                                                        />
+                                                                                                    )}
+                                                                                                </span>
+                                                                                            ) : typeof itObj.quantity === "number" ? (
+                                                                                                <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                    x{itObj.quantity}
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                    {String(itObj.quantity)}
+                                                                                                </span>
+                                                                                            ))}
                                                                                     </div>
                                                                                 ))}
                                                                             </div>

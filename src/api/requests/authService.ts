@@ -33,13 +33,32 @@ export type AuthResponse = {
 /**
  * Helper to set auth cookies
  */
-export const setAuthCookies = (accessToken: string, refreshToken?: string) => {
+export const setAuthCookies = (accessToken: string, refreshToken?: string, remember = false) => {
     const setCookie = (name: string, value: string, days: number) => {
         const maxAge = days * 24 * 60 * 60;
         document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
     };
+
     setCookie("accessToken", accessToken, 1);
     if (refreshToken) setCookie("refreshToken", refreshToken, 7);
+
+    // If user chose "remember me", persist tokens to localStorage so session survives browser restarts
+    if (remember) {
+        try {
+            localStorage.setItem("accessToken", accessToken);
+            if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+        } catch (err) {
+            // ignore storage errors
+        }
+    } else {
+        // ensure localStorage is clean when not remembering
+        try {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+        } catch (err) {
+            // ignore
+        }
+    }
 };
 
 /**
@@ -48,6 +67,12 @@ export const setAuthCookies = (accessToken: string, refreshToken?: string) => {
 export const clearAuthCookies = () => {
     document.cookie = "accessToken=; Path=/; Max-Age=0";
     document.cookie = "refreshToken=; Path=/; Max-Age=0";
+    try {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+    } catch (err) {
+        // ignore
+    }
 };
 
 /**

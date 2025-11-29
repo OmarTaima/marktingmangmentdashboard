@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLang } from "@/hooks/useLang";
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Loader2, Search, X } from "lucide-react";
 import { usePackages } from "@/hooks/queries";
 import type { Package } from "@/api/requests/packagesService";
 
@@ -104,10 +104,6 @@ const PackagesPage = () => {
                                                         key={id}
                                                         className="flex items-start gap-2"
                                                     >
-                                                        <Check
-                                                            size={18}
-                                                            className="mt-0.5 flex-shrink-0 text-green-500"
-                                                        />
                                                         <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
                                                             {name}
                                                             {description && (
@@ -115,11 +111,30 @@ const PackagesPage = () => {
                                                                     - {description}
                                                                 </span>
                                                             )}
-                                                            {typeof quantity !== "undefined" && (
-                                                                <span className="bg-light-100 dark:bg-dark-700 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                    x{quantity}
-                                                                </span>
-                                                            )}
+                                                            {typeof quantity !== "undefined" &&
+                                                                (typeof quantity === "boolean" ? (
+                                                                    <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                        {quantity ? (
+                                                                            <Check
+                                                                                size={14}
+                                                                                className="text-green-500"
+                                                                            />
+                                                                        ) : (
+                                                                            <X
+                                                                                size={14}
+                                                                                className="text-danger-600"
+                                                                            />
+                                                                        )}
+                                                                    </span>
+                                                                ) : typeof quantity === "number" ? (
+                                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                        x{quantity}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                        {quantity}
+                                                                    </span>
+                                                                ))}
                                                         </span>
                                                     </li>
                                                 );

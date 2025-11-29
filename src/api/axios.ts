@@ -9,6 +9,21 @@ const getCookie = (name: string): string | null => {
     return null;
 };
 
+// Helper to get token (cookie first, fallback to localStorage)
+const getStoredToken = (name: string): string | null => {
+    const cookieVal = getCookie(name);
+    if (cookieVal) return decodeURIComponent(cookieVal);
+
+    try {
+        const local = localStorage.getItem(name);
+        if (local) return local;
+    } catch (err) {
+        // ignore storage errors
+    }
+
+    return null;
+};
+
 // Create axios instance with base configuration
 const axiosInstance = axios.create({
     baseURL: "https://marketing-planner-tau.vercel.app/api/v1",
@@ -24,6 +39,16 @@ const axiosInstance = axios.create({
     httpsAgent: undefined,
 });
 
+// Initialize default Authorization header from stored token (cookie or localStorage)
+try {
+    const initToken = getStoredToken("accessToken");
+    if (initToken) {
+        axiosInstance.defaults.headers.common.Authorization = `Bearer ${initToken}`;
+    }
+} catch (err) {
+    // ignore
+}
+
 // Request interceptor (for adding auth tokens)
 axiosInstance.interceptors.request.use(
     (config) => {
@@ -32,10 +57,10 @@ axiosInstance.interceptors.request.use(
         const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
 
         if (!isPublicEndpoint) {
-            // Get token from cookie for all protected endpoints
-            const token = getCookie("accessToken");
+            // Get token from cookie or localStorage for protected endpoints
+            const token = getStoredToken("accessToken");
             if (token) {
-                config.headers.Authorization = `Bearer ${decodeURIComponent(token)}`;
+                config.headers.Authorization = `Bearer ${token}`;
             } else {
                 // Warn about missing token for protected endpoints
                 if (!config.url?.includes("/auth/refresh")) {
@@ -171,13 +196,19 @@ axiosInstance.interceptors.response.use(
 
                             const { accessToken, refreshToken: newRefreshToken } = response.data;
 
-                            // Update cookies with new tokens
+                            // Update cookies with new tokens and localStorage (for remember-me)
                             const setCookie = (name: string, value: string, days: number) => {
                                 const maxAge = days * 24 * 60 * 60;
                                 document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
                             };
                             setCookie("accessToken", accessToken, 1);
                             setCookie("refreshToken", newRefreshToken, 7);
+                            try {
+                                localStorage.setItem("accessToken", accessToken);
+                                localStorage.setItem("refreshToken", newRefreshToken);
+                            } catch (err) {
+                                // ignore
+                            }
 
                             // Update authorization header
                             axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;

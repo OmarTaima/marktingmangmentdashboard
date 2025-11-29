@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FileText, Loader2, Trash2 } from "lucide-react";
+import { Plus, FileText, Loader2, Trash2, Check, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
@@ -302,24 +302,25 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                     <div className="grid grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-3">
                                                         {(selectedService.packages || []).map((pkg: any) => {
                                                             const isSelected = selectedPackages.includes(pkg._id);
-                                                            const pkgItems: string[] = (pkg.items || []).map((it: any) => {
+                                                            const pkgItems: Array<{ label: string; quantity?: number | string | boolean }> = (
+                                                                pkg.items || []
+                                                            ).map((it: any) => {
                                                                 const inner = (it && (it.item || it)) || {};
-                                                                let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                                                let name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
                                                                 const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
 
-                                                                if (!name || name === "(item)") {
+                                                                if ((!name || name === "(item)") && inner) {
                                                                     const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
                                                                     if (itemId) {
                                                                         const found = items.find(
                                                                             (i: any) =>
                                                                                 String(i._id) === String(itemId) || String(i.id) === String(itemId),
                                                                         );
-                                                                        if (found) name = found.name || found.ar;
+                                                                        if (found) name = found.name || found.ar || name;
                                                                     }
                                                                 }
 
-                                                                const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
-                                                                return `• ${name || "(item)"}${qtyText}`;
+                                                                return { label: name || "(item)", quantity };
                                                             });
 
                                                             return (
@@ -351,18 +352,45 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                                                     <div
                                                                                         className={`flex flex-wrap gap-2 ${isSelected ? "text-white/90" : "text-light-600 dark:text-dark-400"}`}
                                                                                     >
-                                                                                        {pkgItems.map((itText, idx) => (
-                                                                                            <div
-                                                                                                key={idx}
-                                                                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-                                                                                                    isSelected
-                                                                                                        ? "bg-white/10 text-white"
-                                                                                                        : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
-                                                                                                }`}
-                                                                                            >
-                                                                                                {itText}
-                                                                                            </div>
-                                                                                        ))}
+                                                                                        {pkgItems.map((itObj, idx) => {
+                                                                                            const quantity = itObj.quantity;
+                                                                                            return (
+                                                                                                <div
+                                                                                                    key={idx}
+                                                                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                                                                                                        isSelected
+                                                                                                            ? "bg-white/10 text-white"
+                                                                                                            : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    <span className="truncate">{itObj.label}</span>
+                                                                                                    {typeof quantity !== "undefined" &&
+                                                                                                        (typeof quantity === "boolean" ? (
+                                                                                                            <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                                                                {quantity ? (
+                                                                                                                    <Check
+                                                                                                                        size={14}
+                                                                                                                        className="text-green-500"
+                                                                                                                    />
+                                                                                                                ) : (
+                                                                                                                    <X
+                                                                                                                        size={14}
+                                                                                                                        className="text-red-600"
+                                                                                                                    />
+                                                                                                                )}
+                                                                                                            </span>
+                                                                                                        ) : typeof quantity === "number" ? (
+                                                                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                                x{quantity}
+                                                                                                            </span>
+                                                                                                        ) : (
+                                                                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                                {String(quantity)}
+                                                                                                            </span>
+                                                                                                        ))}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                                                                     </div>
                                                                                 </div>
                                                                             )}
@@ -437,13 +465,15 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                                             {(service.packages || []).map((pkg: any) => {
                                                                 const isSelected = selectedPackages.includes(pkg._id);
-                                                                const pkgItems: string[] = (pkg.items || []).map((it: any) => {
+                                                                const pkgItems: Array<{ label: string; quantity?: number | string | boolean }> = (
+                                                                    pkg.items || []
+                                                                ).map((it: any) => {
                                                                     const inner = (it && (it.item || it)) || {};
-                                                                    let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                                                    let name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
                                                                     const quantity =
                                                                         typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
 
-                                                                    if (!name || name === "(item)") {
+                                                                    if ((!name || name === "(item)") && inner) {
                                                                         const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
                                                                         if (itemId) {
                                                                             const found = items.find(
@@ -451,12 +481,11 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                                                     String(i._id) === String(itemId) ||
                                                                                     String(i.id) === String(itemId),
                                                                             );
-                                                                            if (found) name = found.name || found.name || found.ar;
+                                                                            if (found) name = found.name || found.ar || name;
                                                                         }
                                                                     }
 
-                                                                    const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
-                                                                    return `• ${name || "(item)"}${qtyText}`;
+                                                                    return { label: name || "(item)", quantity };
                                                                 });
 
                                                                 return (
@@ -490,18 +519,47 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                                                         <div
                                                                                             className={`flex flex-wrap gap-2 ${isSelected ? "text-white/90" : "text-light-600 dark:text-dark-400"}`}
                                                                                         >
-                                                                                            {pkgItems.map((itText, idx) => (
-                                                                                                <div
-                                                                                                    key={idx}
-                                                                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
-                                                                                                        isSelected
-                                                                                                            ? "bg-white/10 text-white"
-                                                                                                            : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    {itText}
-                                                                                                </div>
-                                                                                            ))}
+                                                                                            {pkgItems.map((itObj, idx) => {
+                                                                                                const quantity = itObj.quantity;
+                                                                                                return (
+                                                                                                    <div
+                                                                                                        key={idx}
+                                                                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${
+                                                                                                            isSelected
+                                                                                                                ? "bg-white/10 text-white"
+                                                                                                                : "bg-light-50 text-light-900 dark:bg-dark-700 dark:text-dark-50"
+                                                                                                        }`}
+                                                                                                    >
+                                                                                                        <span className="truncate">
+                                                                                                            {itObj.label}
+                                                                                                        </span>
+                                                                                                        {typeof quantity !== "undefined" &&
+                                                                                                            (typeof quantity === "boolean" ? (
+                                                                                                                <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                                                                    {quantity ? (
+                                                                                                                        <Check
+                                                                                                                            size={14}
+                                                                                                                            className="text-green-500"
+                                                                                                                        />
+                                                                                                                    ) : (
+                                                                                                                        <X
+                                                                                                                            size={14}
+                                                                                                                            className="text-red-600"
+                                                                                                                        />
+                                                                                                                    )}
+                                                                                                                </span>
+                                                                                                            ) : typeof quantity === "number" ? (
+                                                                                                                <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                                    x{quantity}
+                                                                                                                </span>
+                                                                                                            ) : (
+                                                                                                                <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                                    {String(quantity)}
+                                                                                                                </span>
+                                                                                                            ))}
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
                                                                                         </div>
                                                                                     </div>
                                                                                 )}

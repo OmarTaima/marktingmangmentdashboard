@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Save, Plus, Trash2, Edit3, Loader2 } from "lucide-react";
+import { Save, Plus, Trash2, Edit3, Loader2, Check, X } from "lucide-react";
 import { showAlert } from "@/utils/swal";
 import { useCreateCampaign, useUpdateCampaign } from "@/hooks/queries";
 import { getCampaignById } from "@/api/requests/planService";
@@ -10,6 +10,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { createTheme, ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { useTheme as useAppTheme } from "@/hooks/useTheme";
+import { useLang } from "@/hooks/useLang";
 import { useNavigate } from "react-router-dom";
 import { useClient } from "@/hooks/queries/useClientsQuery";
 import format from "date-fns/format";
@@ -64,10 +65,10 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         threats: string[];
     }>({ strengths: [], weaknesses: [], opportunities: [], threats: [] });
 
-    // Packages for budget quick-select
+    // Packages for budget quick-select (support multiple selection)
     const [packages, setPackages] = useState<PackageType[]>([]);
     const [packagesLoading, setPackagesLoading] = useState(false);
-    const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+    const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
     const [packageSetFromServer, setPackageSetFromServer] = useState(false);
 
     // Load campaign for edit when editCampaignId provided
@@ -133,10 +134,13 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     threats: Array.isArray(sw.threats) ? sw.threats : [],
                 });
 
-                // If campaign references a package id, set it so UI reflects selection
-                const pkgId = camp.strategy?.packageId || (camp.packageId ? camp.packageId : undefined);
-                if (pkgId) {
-                    setSelectedPackageId(pkgId);
+                // If campaign references package id(s), set them so UI reflects selection
+                const pkgIdRaw = camp.strategy?.packageId || camp.strategy?.packageIds || camp.packageId || camp.packageIds;
+                if (pkgIdRaw) {
+                    let pkgIds: string[] = [];
+                    if (Array.isArray(pkgIdRaw)) pkgIds = pkgIdRaw.map((p: any) => (typeof p === "string" ? p : p._id || p.id));
+                    else pkgIds = [typeof pkgIdRaw === "string" ? pkgIdRaw : pkgIdRaw._id || pkgIdRaw.id];
+                    setSelectedPackageIds(pkgIds.filter(Boolean));
                     setPackageSetFromServer(true);
                 }
 
@@ -155,22 +159,9 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editCampaignId]);
 
-    // If packages loaded and a packageId was set (e.g., editing), ensure budget matches package price
-    useEffect(() => {
-        if (!selectedPackageId || packages.length === 0) return;
-        const pkg = packages.find((p) => p._id === selectedPackageId);
-        if (!pkg) return;
-
-        // Only auto-apply package price when the package selection came from the
-        // server (editing an existing campaign) or when there is no current budget.
-        // This avoids overwriting a manually-entered budget when the user selects
-        // a package interactively.
-        if (packageSetFromServer || !(planData.budget || "").toString().trim()) {
-            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
-        }
-        // reset flag after applying once
-        if (packageSetFromServer) setPackageSetFromServer(false);
-    }, [selectedPackageId, packages]);
+    // We intentionally do NOT auto-apply package prices into the budget field when
+    // packages are selected. The budget input should remain under the user's control.
+    // (Previously this effect would set `planData.budget` when packages were selected.)
 
     // Load available packages so user can pick one for budget quick-select
     useEffect(() => {
@@ -192,6 +183,20 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
             mounted = false;
         };
     }, []);
+
+    // Compute selected packages total and overall total combining manual budget input
+    const packagesTotal = useMemo(() => {
+        if (!packages || packages.length === 0 || !selectedPackageIds || selectedPackageIds.length === 0) return 0;
+        return packages.filter((p) => selectedPackageIds.includes(p._id)).reduce((s, p) => s + (Number((p as any).price) || 0), 0);
+    }, [packages, selectedPackageIds]);
+
+    const manualBudgetNum = Number(planData.budget) || 0;
+
+    const totalBudget = useMemo(() => {
+        // If the manual budget equals the packages total (e.g., auto-applied), don't double-count.
+        const manualIsSameAsPackages = manualBudgetNum === packagesTotal && packagesTotal > 0;
+        return packagesTotal + (manualIsSameAsPackages ? 0 : manualBudgetNum);
+    }, [packagesTotal, manualBudgetNum]);
 
     // Timeline items (multiple chips)
     const [timelineItems, setTimelineItems] = useState<
@@ -225,6 +230,8 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     }, [appTheme]);
 
     const muiTheme = useMemo(() => createTheme({ palette: { mode: muiMode } }), [muiMode]);
+
+    const { lang } = useLang();
 
     const handleAddTimeline = () => {
         const start = newTimelineStart || null;
@@ -329,6 +336,17 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         setSelectedBranches((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
     };
 
+    const togglePackage = (id: string) => {
+        setSelectedPackageIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+        setPackageSetFromServer(false);
+    };
+
+    // control expanded item lists per package
+    const [expandedPackageDetails, setExpandedPackageDetails] = useState<string[]>([]);
+    const togglePackageDetails = (id: string) => {
+        setExpandedPackageDetails((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+    };
+
     type SwotCategory = "strengths" | "weaknesses" | "opportunities" | "threats";
 
     const toggleSwotItem = (category: SwotCategory, value: string) => {
@@ -386,45 +404,17 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     }, [allSwotItems, selectedSwot]);
     const handleBudgetChange = (value: string) => {
         setPlanData((p) => ({ ...p, budget: value }));
-        // If user manually edits budget and it no longer matches the selected package price,
-        // clear the selected package so the form reflects a custom budget value.
-        if (selectedPackageId) {
-            const pkg = packages.find((p) => p._id === selectedPackageId);
-            const numeric = Number(value || 0);
-            if (!pkg || Number(pkg.price) !== numeric) {
-                setSelectedPackageId(null);
-            }
-        }
+        // Intentionally do NOT clear selected packages when the user edits the budget field.
+        // Packages remain selected independently from the manual budget input.
     };
 
-    const handleSelectPackage = (pkgId: string | null) => {
-        const prevPkgId = selectedPackageId;
-        // Set selection state first
-        setSelectedPackageId(pkgId);
+    const handleSelectPackagesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const values = Array.from(e.target.selectedOptions)
+            .map((o) => o.value)
+            .filter(Boolean);
+        setSelectedPackageIds(values);
         // mark that this selection came from user interaction
         setPackageSetFromServer(false);
-
-        // If clearing selection, do nothing else
-        if (!pkgId) return;
-
-        const pkg = packages.find((p) => p._id === pkgId);
-        if (!pkg) return;
-
-        // If there was a previously-selected package, user is switching packages
-        // => update budget to match newly-selected package's price.
-        if (prevPkgId) {
-            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
-            return;
-        }
-
-        // If there was no previously-selected package, that means either the user
-        // hasn't chosen a package yet or they typed a custom budget. We should
-        // NOT overwrite a manually-entered budget. Only set budget when the
-        // current budget is empty.
-        const currentBudget = (planData.budget || "").toString().trim();
-        if (!currentBudget) {
-            setPlanData((p) => ({ ...p, budget: String(pkg.price || 0) }));
-        }
     };
 
     // Save Plan Handler -> call API
@@ -466,8 +456,8 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                 // loading logic already supports both `swot` and `swotAnalysis` so this is safe.
                 swot: selectedSwot,
                 strategy: {
-                    budget: Number(planData.budget) || 0,
-                    packageId: selectedPackageId || undefined,
+                    budget: Number(totalBudget) || 0,
+                    packageIds: selectedPackageIds && selectedPackageIds.length > 0 ? selectedPackageIds : undefined,
                     timeline: timelinePayload,
                     description: planData.strategy || undefined,
                 },
@@ -1180,26 +1170,151 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                 disabled={!isEditing}
                             />
                             <div className="mt-2">
-                                <label className="flex flex-col">
-                                    <span className="text-light-600 dark:text-dark-400 mb-1 text-xs">Or pick a package</span>
-                                    <select
-                                        className="text-light-900 dark:border-dark-700 dark:text-dark-50 focus:border-light-500 w-full appearance-none rounded-lg border bg-transparent px-3 py-2 pr-8 text-sm transition-colors focus:outline-none"
-                                        style={{ WebkitAppearance: "none", MozAppearance: "none", appearance: "none", backgroundImage: "none" }}
-                                        value={selectedPackageId || ""}
-                                        onChange={(e) => handleSelectPackage(e.target.value || null)}
-                                        disabled={!isEditing || packagesLoading}
-                                    >
-                                        <option value="">none</option>
-                                        {packages.map((pkg) => (
-                                            <option
-                                                key={pkg._id}
-                                                value={pkg._id}
-                                            >
-                                                {pkg.nameEn || pkg.nameAr} - {pkg.price}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-light-600 dark:text-dark-400 mb-1 text-xs">pick packages</span>
+                                    <div className="text-light-600 dark:text-dark-400 text-xs">
+                                        {selectedPackageIds.length > 0 ? `${selectedPackageIds.length} selected` : "None selected"}
+                                    </div>
+                                </div>
+
+                                <div className="mt-2 flex items-center justify-between">
+                                    <div className="text-light-600 dark:text-dark-400 text-xs">Total Budget (packages + manual)</div>
+                                    <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                        {(totalBudget || 0).toLocaleString()}
+                                    </div>
+                                </div>
+
+                                {packagesLoading ? (
+                                    <div className="text-light-600 dark:text-dark-400 text-sm">Loading packages...</div>
+                                ) : packages.length === 0 ? (
+                                    <div className="text-light-600 dark:text-dark-400 text-sm">No packages available</div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                        {packages.map((pkg) => {
+                                            const checked = selectedPackageIds.includes(pkg._id);
+                                            const expanded = expandedPackageDetails.includes(pkg._id);
+
+                                            const pkgItems = Array.isArray((pkg as any).items) ? (pkg as any).items : [];
+                                            const visibleItems = expanded ? pkgItems : pkgItems.slice(0, 6);
+
+                                            const renderLabel = (it: any) => {
+                                                if (!it) return "";
+                                                if (typeof it === "string") return it;
+                                                const en = it.name || (it.item && it.item.name) || undefined;
+                                                const ar = it.ar || (it.item && it.item.ar) || undefined;
+                                                // Only show Arabic label when current site language is Arabic
+                                                if (en) return en;
+                                                if (lang === "ar" && ar) return ar;
+                                                if (it.item && typeof it.item === "string") return it.item;
+                                                if (it.item && typeof it.item === "object")
+                                                    return it.item.name || it.item._id || JSON.stringify(it.item);
+                                                return it._id || JSON.stringify(it);
+                                            };
+
+                                            return (
+                                                <div
+                                                    key={pkg._id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => isEditing && togglePackage(pkg._id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            isEditing && togglePackage(pkg._id);
+                                                        }
+                                                    }}
+                                                    className={`rounded-lg p-3 transition-colors ${
+                                                        checked
+                                                            ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
+                                                            : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                    }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="text-light-900 dark:text-dark-50 font-medium">
+                                                                    {pkg.nameEn || pkg.nameAr}
+                                                                </div>
+                                                                <div className="text-smtext-light-900 dark:text-dark-50 font-semibold">
+                                                                    {pkg.price}
+                                                                </div>
+                                                            </div>
+                                                            {pkg.description && (
+                                                                <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                    {String(pkg.description).slice(0, 120)}
+                                                                </div>
+                                                            )}
+
+                                                            {pkgItems.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <div className="mb-2 flex items-center justify-between">
+                                                                        <div className="text-light-600 dark:text-dark-400 text-xs font-medium">
+                                                                            Items ({pkgItems.length})
+                                                                        </div>
+                                                                        {pkgItems.length > 6 && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    togglePackageDetails(pkg._id);
+                                                                                }}
+                                                                                className="text-light-500 text-xs hover:underline"
+                                                                            >
+                                                                                {expanded ? "Show less" : `Show all (${pkgItems.length})`}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {visibleItems.map((it: any, idx: number) => {
+                                                                            const quantity =
+                                                                                it && typeof it === "object"
+                                                                                    ? (it.quantity ?? it.qty ?? undefined)
+                                                                                    : undefined;
+                                                                            return (
+                                                                                <span
+                                                                                    key={idx}
+                                                                                    className="text-light-700 dark:text-dark-200 bg-light-100 dark:bg-dark-600 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+                                                                                >
+                                                                                    <span className="max-w-[220px] truncate">{renderLabel(it)}</span>
+
+                                                                                    {typeof quantity !== "undefined" &&
+                                                                                        (typeof quantity === "boolean" ? (
+                                                                                            <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                                                {quantity ? (
+                                                                                                    <Check
+                                                                                                        size={14}
+                                                                                                        className="text-green-500"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <X
+                                                                                                        size={14}
+                                                                                                        className="text-red-600"
+                                                                                                    />
+                                                                                                )}
+                                                                                            </span>
+                                                                                        ) : typeof quantity === "number" ? (
+                                                                                            <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                x{quantity}
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                                {String(quantity)}
+                                                                                            </span>
+                                                                                        ))}
+                                                                                </span>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </label>
                     </div>
