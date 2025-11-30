@@ -244,8 +244,32 @@ const AddPackagePage = () => {
         }
     };
 
+    const [chooserDrafts, setChooserDrafts] = useState<Record<string, any>>({});
+    const [chooserOriginals, setChooserOriginals] = useState<Record<string, any>>({});
+
     const openChooser = (itemId: string) => {
         setActiveChooserFor((cur) => (cur === itemId ? null : itemId));
+        // initialise draft from current values
+        setChooserDrafts((d) => ({
+            ...d,
+            [itemId]: {
+                type: displayTypes[itemId] || "number",
+                quantity: itemQuantities[itemId] || 1,
+                stringValue: stringValues[itemId] || "",
+                availability: availabilities[itemId] ?? true,
+                note: itemNotes[itemId] || "",
+            },
+        }));
+        setChooserOriginals((o) => ({
+            ...o,
+            [itemId]: {
+                type: displayTypes[itemId] || "number",
+                quantity: itemQuantities[itemId] || 1,
+                stringValue: stringValues[itemId] || "",
+                availability: availabilities[itemId] ?? true,
+                note: itemNotes[itemId] || "",
+            },
+        }));
     };
 
     const chooseDisplayType = (itemId: string, type: "number" | "string" | "availability") => {
@@ -261,12 +285,52 @@ const AddPackagePage = () => {
     };
 
     const applySelection = (itemId: string) => {
-        // finish chooser: return card to normal but keep selected type/value
+        // commit draft into real state
+        const draft = chooserDrafts[itemId];
+        if (draft) {
+            const { type, quantity, stringValue, availability, note } = draft;
+            setDisplayTypes((d) => ({ ...d, [itemId]: type }));
+            if (type === "number") setItemQuantities((q) => ({ ...q, [itemId]: Math.max(1, Number(quantity) || 1) }));
+            if (type === "string") setStringValues((s) => ({ ...s, [itemId]: String(stringValue || "") }));
+            if (type === "availability") setAvailabilities((a) => ({ ...a, [itemId]: !!availability }));
+            setItemNotes((n) => ({ ...n, [itemId]: String(note || "") }));
+            setSelectedItemIds((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]));
+        }
+        // remove draft and close chooser
+        setChooserDrafts((d) => {
+            const copy = { ...d };
+            delete copy[itemId];
+            return copy;
+        });
+        setChooserOriginals((o) => {
+            const copy = { ...o };
+            delete copy[itemId];
+            return copy;
+        });
         setActiveChooserFor(null);
     };
 
     const cancelChooser = (itemId: string) => {
-        // simply close chooser without changing stored values
+        // restore original values if present
+        const orig = chooserOriginals[itemId];
+        if (orig) {
+            const { type, quantity, stringValue, availability, note } = orig;
+            setDisplayTypes((d) => ({ ...d, [itemId]: type }));
+            if (type === "number") setItemQuantities((q) => ({ ...q, [itemId]: Math.max(1, Number(quantity) || 1) }));
+            if (type === "string") setStringValues((s) => ({ ...s, [itemId]: String(stringValue || "") }));
+            if (type === "availability") setAvailabilities((a) => ({ ...a, [itemId]: !!availability }));
+            setItemNotes((n) => ({ ...n, [itemId]: String(note || "") }));
+        }
+        setChooserDrafts((d) => {
+            const copy = { ...d };
+            delete copy[itemId];
+            return copy;
+        });
+        setChooserOriginals((o) => {
+            const copy = { ...o };
+            delete copy[itemId];
+            return copy;
+        });
         setActiveChooserFor(null);
     };
 
@@ -590,15 +654,37 @@ const AddPackagePage = () => {
                                                         { key: "availability", label: t("as_availability") || "Availability" },
                                                     ].map((opt) => {
                                                         const key = opt.key as "number" | "string" | "availability";
-                                                        const selected = displayTypes[item._id] === key;
+                                                        const draft = chooserDrafts[item._id] || {};
+                                                        const selected = (draft.type || displayTypes[item._id]) === key;
                                                         return (
                                                             <button
                                                                 key={key}
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    chooseDisplayType(item._id, key);
-                                                                    applySelection(item._id);
+                                                                    // commit selection immediately (apply on click)
+                                                                    setDisplayTypes((d) => ({ ...d, [item._id]: key }));
+                                                                    if (key === "number")
+                                                                        setItemQuantities((q) => ({ ...q, [item._id]: q[item._id] || 1 }));
+                                                                    if (key === "string")
+                                                                        setStringValues((s) => ({ ...s, [item._id]: s[item._id] || "" }));
+                                                                    if (key === "availability")
+                                                                        setAvailabilities((a) => ({ ...a, [item._id]: a[item._id] ?? true }));
+                                                                    setSelectedItemIds((prev) =>
+                                                                        prev.includes(item._id) ? prev : [...prev, item._id],
+                                                                    );
+                                                                    // clear drafts/originals and close chooser
+                                                                    setChooserDrafts((d) => {
+                                                                        const copy = { ...d };
+                                                                        delete copy[item._id];
+                                                                        return copy;
+                                                                    });
+                                                                    setChooserOriginals((o) => {
+                                                                        const copy = { ...o };
+                                                                        delete copy[item._id];
+                                                                        return copy;
+                                                                    });
+                                                                    setActiveChooserFor(null);
                                                                 }}
                                                                 className={`btn-ghost flex items-center justify-center gap-2 px-3 py-2 text-sm`}
                                                             >
@@ -618,7 +704,8 @@ const AddPackagePage = () => {
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            cancelChooser(item._id);
+                                                            // deselect the item and close chooser
+                                                            removeSelection(item._id);
                                                         }}
                                                         className="btn-ghost"
                                                     >
