@@ -24,6 +24,7 @@ const AddPackagePage = () => {
     const [displayTypes, setDisplayTypes] = useState<Record<string, "number" | "string" | "availability">>({});
     const [stringValues, setStringValues] = useState<Record<string, string>>({});
     const [availabilities, setAvailabilities] = useState<Record<string, boolean>>({});
+    const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
     const [activeChooserFor, setActiveChooserFor] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -44,6 +45,7 @@ const AddPackagePage = () => {
     const queryClient = useQueryClient();
     const [editPackageId, setEditPackageId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    // Packages preview is static now (no expand/collapse)
 
     const loadItems = async () => {
         setIsLoading(true);
@@ -98,32 +100,7 @@ const AddPackagePage = () => {
 
         try {
             if (editPackageId) {
-                await updatePackageMutation.mutateAsync({
-                    id: editPackageId,
-                    data: {
-                        nameEn: en,
-                        nameAr: ar,
-                        price: Number(p),
-                        description: description.trim() || undefined,
-                        descriptionAr: descriptionAr.trim() || undefined,
-                        items: selectedItemIds.map((itemId) => {
-                            const type =
-                                displayTypes[itemId] ||
-                                (typeof itemQuantities[itemId] !== "undefined"
-                                    ? "number"
-                                    : typeof stringValues[itemId] !== "undefined"
-                                      ? "string"
-                                      : "availability");
-                            let quantity: any = itemQuantities[itemId];
-                            if (type === "string") quantity = stringValues[itemId] ?? "";
-                            if (type === "availability") quantity = !!availabilities[itemId];
-                            return { item: itemId, quantity };
-                        }),
-                    },
-                });
-                setEditPackageId(null);
-            } else {
-                await createPackageMutation.mutateAsync({
+                const payload = {
                     nameEn: en,
                     nameAr: ar,
                     price: Number(p),
@@ -140,9 +117,41 @@ const AddPackagePage = () => {
                         let quantity: any = itemQuantities[itemId];
                         if (type === "string") quantity = stringValues[itemId] ?? "";
                         if (type === "availability") quantity = !!availabilities[itemId];
-                        return { item: itemId, quantity };
+                        const note = itemNotes[itemId]?.trim() ?? "";
+                        return { item: itemId, quantity, note };
                     }),
-                });
+                };
+                // Log payload so you can inspect request body in dev tools if needed
+                // (remove or guard this in production as desired)
+                // eslint-disable-next-line no-console
+                console.debug("updatePackage payload:", payload);
+                await updatePackageMutation.mutateAsync({ id: editPackageId, data: payload });
+                setEditPackageId(null);
+            } else {
+                const payload = {
+                    nameEn: en,
+                    nameAr: ar,
+                    price: Number(p),
+                    description: description.trim() || undefined,
+                    descriptionAr: descriptionAr.trim() || undefined,
+                    items: selectedItemIds.map((itemId) => {
+                        const type =
+                            displayTypes[itemId] ||
+                            (typeof itemQuantities[itemId] !== "undefined"
+                                ? "number"
+                                : typeof stringValues[itemId] !== "undefined"
+                                  ? "string"
+                                  : "availability");
+                        let quantity: any = itemQuantities[itemId];
+                        if (type === "string") quantity = stringValues[itemId] ?? "";
+                        if (type === "availability") quantity = !!availabilities[itemId];
+                        const note = itemNotes[itemId]?.trim() ?? "";
+                        return { item: itemId, quantity, note };
+                    }),
+                };
+                // eslint-disable-next-line no-console
+                console.debug("createPackage payload:", payload);
+                await createPackageMutation.mutateAsync(payload as any);
             }
 
             try {
@@ -190,10 +199,16 @@ const AddPackagePage = () => {
                     delete copy[itemId];
                     return copy;
                 });
+                setItemNotes((n) => {
+                    const copy = { ...n };
+                    delete copy[itemId];
+                    return copy;
+                });
                 return prev.filter((id) => id !== itemId);
             }
             setItemQuantities((q) => ({ ...q, [itemId]: q[itemId] || 1 }));
             setDisplayTypes((d) => ({ ...d, [itemId]: d[itemId] || "number" }));
+            setItemNotes((n) => ({ ...n, [itemId]: n[itemId] || "" }));
             return [...prev, itemId];
         });
     };
@@ -277,6 +292,11 @@ const AddPackagePage = () => {
             delete copy[itemId];
             return copy;
         });
+        setItemNotes((n) => {
+            const copy = { ...n };
+            delete copy[itemId];
+            return copy;
+        });
         setActiveChooserFor(null);
     };
 
@@ -293,6 +313,7 @@ const AddPackagePage = () => {
         const dTypes: Record<string, "number" | "string" | "availability"> = {};
         const sValues: Record<string, string> = {};
         const aValues: Record<string, boolean> = {};
+        const notes: Record<string, string> = {};
         (pkg.items || []).forEach((it: any) => {
             const itemObj = it.item || it;
             const id = typeof itemObj === "string" ? itemObj : itemObj?._id || itemObj?.id;
@@ -312,6 +333,10 @@ const AddPackagePage = () => {
                     quantities[id] = 1;
                     dTypes[id] = "number";
                 }
+                // load note if present on the package item
+                if (typeof it.note === "string") {
+                    notes[id] = it.note;
+                }
             }
         });
         setSelectedItemIds(ids);
@@ -319,6 +344,7 @@ const AddPackagePage = () => {
         setDisplayTypes(dTypes);
         setStringValues(sValues);
         setAvailabilities(aValues);
+        setItemNotes(notes);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -331,14 +357,14 @@ const AddPackagePage = () => {
     }
 
     return (
-        <div className="space-y-6 px-4 sm:px-6">
+        <div className="space-y-2 px-2 sm:px-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="title">{t("create_package") || "Create Package"}</h1>
                     <p className="text-light-600 dark:text-dark-400">{t("create_package_subtitle") || "Create a new package with selected items"}</p>
                 </div>
             </div>
-            <div className="card space-y-4">
+            <div className="card space-y-2">
                 <h2 className="card-title">{t("existing_packages") || "Existing Packages"}</h2>
 
                 {packagesLoading ? (
@@ -346,70 +372,60 @@ const AddPackagePage = () => {
                         <Loader2 className="text-light-500 dark:text-light-500 h-6 w-6 animate-spin" />
                     </div>
                 ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {packagesList.map((pkg) => (
-                            <div
-                                key={pkg._id}
-                                className="dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors hover:shadow-sm"
-                            >
-                                <div className="min-w-0">
-                                    <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">{pkg.nameEn || pkg.nameAr}</div>
-                                    <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description || ""}</div>
-                                </div>
-                                {pkg.items && pkg.items.length > 0 && (
-                                    <ul className="mt-3 space-y-2">
-                                        {pkg.items.map((pkgItem, idx) => {
-                                            const inner = (pkgItem as any).item || (pkgItem as any);
-                                            const id = (inner && (inner._id || inner.id)) || `${pkg._id}-${idx}`;
-                                            const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
-                                            const descriptionInner = inner?.description || inner?.desc || null;
-                                            const quantity = (pkgItem as any).quantity;
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {packagesList.map((pkg, pkgIndex) => {
+                            const pkgId = pkg._id || (pkg as any).id || `pkg-${pkgIndex}`;
+                            return (
+                                <div
+                                    key={pkgId}
+                                    className="dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors"
+                                >
+                                    <div className="flex min-w-0 items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">
+                                                {pkg.nameEn || pkg.nameAr}
+                                            </div>
+                                            {pkg.description && (
+                                                <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description}</div>
+                                            )}
+                                        </div>
+                                        <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                            {pkg.price ? `${pkg.price} EGP` : "-"}
+                                        </div>
+                                    </div>
 
-                                            return (
-                                                <li
-                                                    key={id}
-                                                    className="flex items-center gap-2"
-                                                >
-                                                    <div className="text-sm">
-                                                        <div className="text-light-900 dark:text-dark-50 font-medium">{name}</div>
-                                                        {descriptionInner && (
-                                                            <div className="text-light-600 dark:text-dark-400 text-xs">{descriptionInner}</div>
-                                                        )}
-                                                    </div>
-                                                    {typeof quantity !== "undefined" &&
-                                                        (typeof quantity === "boolean" ? (
-                                                            <span className="ml-auto inline-flex items-center rounded-md px-2 py-0.5 text-xs">
-                                                                {quantity ? (
-                                                                    <Check
-                                                                        size={14}
-                                                                        className="text-green-500"
-                                                                    />
-                                                                ) : (
-                                                                    <X
-                                                                        size={14}
-                                                                        className="text-danger-600"
-                                                                    />
-                                                                )}
-                                                            </span>
-                                                        ) : typeof quantity === "number" ? (
-                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                x{quantity}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-auto inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                {quantity}
-                                                            </span>
-                                                        ))}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                )}
+                                    {pkg.items && pkg.items.length > 0 && (
+                                        <div className="mt-1">
+                                            <div className="text-light-600 dark:text-dark-400 mb-2 text-xs">Items ({pkg.items.length})</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {pkg.items.map((pkgItem, idx) => {
+                                                    const inner = (pkgItem as any).item || (pkgItem as any);
+                                                    const id = (inner && (inner._id || inner.id)) || `${pkgId}-${idx}`;
+                                                    const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
+                                                    const quantity = (pkgItem as any).quantity;
+                                                    return (
+                                                        <div
+                                                            key={id}
+                                                            className="bg-light-100 dark:bg-dark-700 inline-flex items-center rounded-full px-3 py-1 text-xs"
+                                                        >
+                                                            <span className="text-light-900 dark:text-dark-50 mr-2 font-medium">{name}</span>
+                                                            {typeof quantity !== "undefined" && (
+                                                                <span className="text-light-900 dark:text-dark-50 bg-dark-700 ml-1 inline-block rounded px-2 py-0.5 text-[11px]">
+                                                                    {typeof quantity === "number"
+                                                                        ? `x${quantity}`
+                                                                        : quantity === true
+                                                                          ? "✓"
+                                                                          : quantity}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
-                                <div className="mt-3 flex items-center justify-between">
-                                    <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">{pkg.price ? `${pkg.price}` : "-"}</div>
-
-                                    <div className="flex items-center gap-2">
+                                    <div className="mt-3 flex items-center justify-end gap-2">
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -460,8 +476,8 @@ const AddPackagePage = () => {
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {packagesList.length === 0 && (
                             <p className="text-light-600 dark:text-dark-400 text-sm">{t("no_packages") || "No packages found."}</p>
@@ -704,6 +720,22 @@ const AddPackagePage = () => {
                                                         : null}
                                                 </div>
                                             </div>
+                                            {/* Note input for selected item */}
+                                            {selectedItemIds.includes(item._id) && (
+                                                <div className="mt-0.2">
+                                                    <input
+                                                        type="text"
+                                                        value={itemNotes[item._id] || ""}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            setItemNotes((n) => ({ ...n, [item._id]: e.target.value }));
+                                                        }}
+                                                        placeholder={t("item_note_placeholder") || "Note..."}
+                                                        className="dark:bg-dark-800 text-light-900 dark:text-dark-50 h-8 w-40 rounded-md border bg-white px-2 py-1 text-xs"
+                                                    />
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>

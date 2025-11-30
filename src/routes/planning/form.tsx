@@ -13,6 +13,7 @@ import { useTheme as useAppTheme } from "@/hooks/useTheme";
 import { useLang } from "@/hooks/useLang";
 import { useNavigate } from "react-router-dom";
 import { useClient } from "@/hooks/queries/useClientsQuery";
+import { useServices, useItems } from "@/hooks/queries";
 import format from "date-fns/format";
 
 type Bilingual = { id: string; en?: string; ar?: string; enDesc?: string; arDesc?: string };
@@ -70,6 +71,15 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     const [packagesLoading, setPackagesLoading] = useState(false);
     const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
     const [packageSetFromServer, setPackageSetFromServer] = useState(false);
+    // Pricing fields (from quotation UI)
+    const [customServices, setCustomServices] = useState<
+        Array<{ id: string; en: string; ar?: string; price: number; discount?: number; discountType?: string }>
+    >([]);
+    const [customServiceName, setCustomServiceName] = useState<string>("");
+    const [customNameAr, setCustomNameAr] = useState<string>("");
+    const [customPrice, setCustomPrice] = useState<string>("");
+    const [discountValue, setDiscountValue] = useState<string>("0");
+    const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
 
     // Load campaign for edit when editCampaignId provided
     useEffect(() => {
@@ -134,15 +144,67 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     threats: Array.isArray(sw.threats) ? sw.threats : [],
                 });
 
-                // If campaign references package id(s), set them so UI reflects selection
+                // If campaign references package id(s) or package objects, set them so UI reflects selection
                 const pkgIdRaw = camp.strategy?.packageId || camp.strategy?.packageIds || camp.packageId || camp.packageIds;
+                let pkgIds: string[] = [];
                 if (pkgIdRaw) {
-                    let pkgIds: string[] = [];
                     if (Array.isArray(pkgIdRaw)) pkgIds = pkgIdRaw.map((p: any) => (typeof p === "string" ? p : p._id || p.id));
                     else pkgIds = [typeof pkgIdRaw === "string" ? pkgIdRaw : pkgIdRaw._id || pkgIdRaw.id];
+                }
+
+                // support campaign shape where `packages` is an array of full package objects
+                if ((!pkgIds || pkgIds.length === 0) && Array.isArray(camp.packages) && camp.packages.length > 0) {
+                    pkgIds = camp.packages.map((p: any) => p?._id || p?.id).filter(Boolean as any);
+                    // merge full package objects into local packages state so we can resolve prices
+                    try {
+                        setPackages((prev) => {
+                            const existed = Array.isArray(prev) ? prev.slice() : [];
+                            const toAdd = (camp.packages || []).filter(
+                                (p: any) => !existed.some((e: any) => String(e._id) === String(p._id) || String(e.id) === String(p._id)),
+                            );
+                            return [...existed, ...toAdd];
+                        });
+                    } catch (err) {
+                        // ignore
+                    }
+                }
+
+                // support campaign shape where servicesPricing contains package references
+                if ((!pkgIds || pkgIds.length === 0) && Array.isArray(camp.servicesPricing) && camp.servicesPricing.length > 0) {
+                    const spIds = camp.servicesPricing
+                        .map((s: any) => {
+                            const p = s?.package;
+                            if (!p) return null;
+                            return typeof p === "string" ? p : p._id || p.id || null;
+                        })
+                        .filter(Boolean as any);
+                    if (spIds.length > 0) pkgIds = spIds as string[];
+                }
+
+                if (pkgIds && pkgIds.length > 0) {
                     setSelectedPackageIds(pkgIds.filter(Boolean));
                     setPackageSetFromServer(true);
                 }
+
+                // Load custom services and discounts if present on campaign (top-level schema)
+                const rawCustomServices = camp.customServices || camp.custom_services || [];
+                const normalizedCustomServices = Array.isArray(rawCustomServices)
+                    ? rawCustomServices.map((cs: any, idx: number) => {
+                          if (!cs) return { id: `custom_${Date.now()}_${idx}`, en: "", price: 0 };
+                          if (typeof cs === "string") return { id: cs, en: cs, price: 0 };
+                          return {
+                              id: cs.id || cs._id || `custom_${Date.now()}_${idx}`,
+                              en: cs.en || cs.name || cs.ar || "",
+                              ar: cs.ar || cs.nameAr || undefined,
+                              price: Number(cs.price) || 0,
+                          };
+                      })
+                    : [];
+                setCustomServices(normalizedCustomServices);
+
+                // Discount values
+                if (typeof camp.discountValue !== "undefined") setDiscountValue(String(camp.discountValue ?? 0));
+                if (typeof camp.discountType !== "undefined") setDiscountType(camp.discountType === "fixed" ? "fixed" : "percentage");
 
                 // respect initial viewOnly flag: only enable editing if not view-only
                 setIsEditing(!(viewOnly ?? false));
@@ -171,7 +233,10 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
             try {
                 const res = await getPackages({ limit: 1000 });
                 if (!mounted) return;
-                setPackages(Array.isArray(res?.data) ? res.data : []);
+                // accept both API shapes: { data: [...] } and plain array
+                if (Array.isArray(res?.data)) setPackages(res.data);
+                else if (Array.isArray(res)) setPackages(res as any);
+                else setPackages([]);
             } catch (e) {
                 // ignore package load errors silently
             } finally {
@@ -184,10 +249,52 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         };
     }, []);
 
+    // Services (for filtering packages by service like quotations UI)
+    const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
+    const services = servicesResponse?.data || [];
+    const { data: itemsResponse } = useItems({ limit: 1000 });
+    const items = itemsResponse?.data || [];
+    const servicesWithPackages = (services || []).filter((s: any) => s.packages && s.packages.length > 0);
+    const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!expandedServiceId && servicesWithPackages.length > 0) {
+            setExpandedServiceId(servicesWithPackages[0]._id);
+        }
+    }, [servicesWithPackages]);
+
+    const packagesToShow = (() => {
+        if (expandedServiceId) {
+            const svc = servicesWithPackages.find((s: any) => s._id === expandedServiceId);
+            if (svc && Array.isArray(svc.packages) && svc.packages.length > 0) {
+                // ensure selected packages are visible even if they belong to another service
+                const base = svc.packages.slice();
+                const missing = (selectedPackageIds || []).filter((id) => !base.some((p: any) => p._id === id || p.id === id));
+                if (missing.length > 0 && Array.isArray(packages) && packages.length > 0) {
+                    const extras = packages.filter((p) => missing.includes(p._id));
+                    return [...base, ...extras];
+                }
+                return base;
+            }
+        }
+
+        // default: show all packages, but make sure selected packages (if any) are included
+        if (!packages || packages.length === 0) return [];
+        const all = packages.slice();
+        const missing = (selectedPackageIds || []).filter((id) => !all.some((p: any) => p._id === id || p.id === id));
+        if (missing.length > 0) {
+            const extras = packages.filter((p) => missing.includes(p._id));
+            return [...all, ...extras];
+        }
+        return all;
+    })();
+
     // Compute selected packages total and overall total combining manual budget input
     const packagesTotal = useMemo(() => {
         if (!packages || packages.length === 0 || !selectedPackageIds || selectedPackageIds.length === 0) return 0;
-        return packages.filter((p) => selectedPackageIds.includes(p._id)).reduce((s, p) => s + (Number((p as any).price) || 0), 0);
+        return packages
+            .filter((p) => selectedPackageIds.includes(p._id) || selectedPackageIds.includes((p as any).id))
+            .reduce((s, p) => s + (Number((p as any).price) || 0), 0);
     }, [packages, selectedPackageIds]);
 
     const manualBudgetNum = Number(planData.budget) || 0;
@@ -341,6 +448,47 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         setPackageSetFromServer(false);
     };
 
+    const addCustomService = () => {
+        const name = customServiceName.trim();
+        const nameAr = customNameAr.trim();
+        const price = parseFloat(customPrice);
+
+        if (!name && !nameAr) return;
+        if (isNaN(price) || price <= 0) return;
+
+        const newCustom = { id: `custom_${Date.now()}`, en: name || nameAr, ar: nameAr || name, price };
+        setCustomServices((s) => [...s, newCustom]);
+        setCustomServiceName("");
+        setCustomNameAr("");
+        setCustomPrice("");
+    };
+
+    const removeCustomService = (id: string) => {
+        setCustomServices((s) => s.filter((c) => c.id !== id));
+    };
+
+    const calculateSubtotal = () => {
+        const pkgs = packages || [];
+        const packagesTotalCalc = selectedPackageIds.reduce((sum, pkgId) => {
+            const pkg = pkgs.find((p) => String(p._id) === String(pkgId) || String((p as any).id) === String(pkgId));
+            return sum + (Number((pkg as any)?.price) || 0);
+        }, 0);
+        const customTotal = (customServices || []).reduce((s, c) => s + (Number(c.price) || 0), 0);
+        return packagesTotalCalc + customTotal;
+    };
+
+    const calculateTotal = () => {
+        const subtotal = calculateSubtotal();
+        const disc = parseFloat(discountValue) || 0;
+        let discountAmount = 0;
+        if (discountType === "percentage") {
+            discountAmount = (subtotal * disc) / 100;
+        } else {
+            discountAmount = Math.min(disc, subtotal);
+        }
+        return subtotal - discountAmount;
+    };
+
     // control expanded item lists per package
     const [expandedPackageDetails, setExpandedPackageDetails] = useState<string[]>([]);
     const togglePackageDetails = (id: string) => {
@@ -455,9 +603,12 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                 // send `swot` to match backend validation (some servers expect `swot` instead of `swotAnalysis`)
                 // loading logic already supports both `swot` and `swotAnalysis` so this is safe.
                 swot: selectedSwot,
+                // pricing fields live at the top level to match backend schema
+                packages: selectedPackageIds && selectedPackageIds.length > 0 ? selectedPackageIds : undefined,
+                customServices: customServices && customServices.length > 0 ? customServices : undefined,
+                discountValue: Number(discountValue) || 0,
+                discountType: discountType || "percentage",
                 strategy: {
-                    budget: Number(totalBudget) || 0,
-                    packageIds: selectedPackageIds && selectedPackageIds.length > 0 ? selectedPackageIds : undefined,
                     timeline: timelinePayload,
                     description: planData.strategy || undefined,
                 },
@@ -1158,165 +1309,314 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                 <div className="card p-4">
                     <h3 className="card-title mb-2">Campaign Details</h3>
 
-                    <div className="mb-3 grid gap-3 md:grid-cols-2">
-                        <label className="flex flex-col">
-                            <span className="text-light-600 dark:text-dark-400 mb-1 text-sm">Budget</span>
-                            <input
-                                type="number"
-                                className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                placeholder="Budget"
-                                value={planData.budget}
-                                onChange={(e) => handleBudgetChange(e.target.value)}
-                                disabled={!isEditing}
-                            />
-                            <div className="mt-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-light-600 dark:text-dark-400 mb-1 text-xs">pick packages</span>
-                                    <div className="text-light-600 dark:text-dark-400 text-xs">
-                                        {selectedPackageIds.length > 0 ? `${selectedPackageIds.length} selected` : "None selected"}
-                                    </div>
+                    <div className="mb-3">
+                        <h4 className="text-light-900 dark:text-dark-50 mb-3 font-semibold">Pricing</h4>
+
+                        {/* Packages selection (existing packages list) */}
+                        <div className="mb-4">
+                            {servicesWithPackages.length > 0 && (
+                                <div className="mb-4 flex gap-2 overflow-auto">
+                                    {servicesWithPackages.map((service: any) => {
+                                        const selectedCount = (service.packages ?? []).filter((pkg: any) =>
+                                            selectedPackageIds.includes(pkg._id),
+                                        ).length;
+                                        const isActive = expandedServiceId === service._id;
+                                        return (
+                                            <button
+                                                key={service._id}
+                                                onClick={() => setExpandedServiceId(service._id)}
+                                                className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
+                                                    isActive
+                                                        ? "bg-light-500 dark:bg-secdark-700 text-white"
+                                                        : "text-light-900 dark:bg-dark-800 dark:text-dark-50 border bg-white"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span>{lang === "ar" ? service.ar : service.en}</span>
+                                                    <span className="bg-light-600 rounded-full px-2 py-0.5 text-xs text-white">
+                                                        {service.packages?.length ?? 0}
+                                                    </span>
+                                                    {selectedCount > 0 && <span className="ml-1 text-xs">{selectedCount} selected</span>}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
+                            )}
 
-                                <div className="mt-2 flex items-center justify-between">
-                                    <div className="text-light-600 dark:text-dark-400 text-xs">Total Budget (packages + manual)</div>
-                                    <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">
-                                        {(totalBudget || 0).toLocaleString()}
-                                    </div>
-                                </div>
+                            {packagesLoading ? (
+                                <div className="text-light-600 dark:text-dark-400 text-sm">Loading packages...</div>
+                            ) : packages.length === 0 ? (
+                                <div className="text-light-600 dark:text-dark-400 text-sm">No packages available</div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                    {packagesToShow.map((pkg: any) => {
+                                        const checked = selectedPackageIds.includes(pkg._id) || selectedPackageIds.includes((pkg as any).id);
+                                        const expanded = expandedPackageDetails.includes(pkg._id);
 
-                                {packagesLoading ? (
-                                    <div className="text-light-600 dark:text-dark-400 text-sm">Loading packages...</div>
-                                ) : packages.length === 0 ? (
-                                    <div className="text-light-600 dark:text-dark-400 text-sm">No packages available</div>
-                                ) : (
-                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                                        {packages.map((pkg) => {
-                                            const checked = selectedPackageIds.includes(pkg._id);
-                                            const expanded = expandedPackageDetails.includes(pkg._id);
+                                        const pkgItems = Array.isArray((pkg as any).items) ? (pkg as any).items : [];
+                                        const visibleItems = expanded ? pkgItems : pkgItems.slice(0, 6);
 
-                                            const pkgItems = Array.isArray((pkg as any).items) ? (pkg as any).items : [];
-                                            const visibleItems = expanded ? pkgItems : pkgItems.slice(0, 6);
+                                        const renderLabel = (it: any) => {
+                                            if (!it) return "";
+                                            // case: item is a string id
+                                            if (typeof it === "string") {
+                                                const found = items.find((i: any) => String(i._id) === String(it) || String(i.id) === String(it));
+                                                if (found) return found.name || found.ar || String(it);
+                                                return it;
+                                            }
 
-                                            const renderLabel = (it: any) => {
-                                                if (!it) return "";
-                                                if (typeof it === "string") return it;
-                                                const en = it.name || (it.item && it.item.name) || undefined;
-                                                const ar = it.ar || (it.item && it.item.ar) || undefined;
-                                                // Only show Arabic label when current site language is Arabic
+                                            // case: item object or { item: ... }
+                                            const inner = it.item || it;
+                                            if (inner) {
+                                                if (typeof inner === "string") {
+                                                    const found = items.find(
+                                                        (i: any) => String(i._id) === String(inner) || String(i.id) === String(inner),
+                                                    );
+                                                    if (found) return found.name || found.ar || String(inner);
+                                                    return inner;
+                                                }
+                                                const en = inner.name || inner.nameEn || undefined;
+                                                const ar = inner.ar || inner.nameAr || undefined;
                                                 if (en) return en;
                                                 if (lang === "ar" && ar) return ar;
-                                                if (it.item && typeof it.item === "string") return it.item;
-                                                if (it.item && typeof it.item === "object")
-                                                    return it.item.name || it.item._id || JSON.stringify(it.item);
-                                                return it._id || JSON.stringify(it);
-                                            };
+                                                return inner._id || JSON.stringify(inner);
+                                            }
 
-                                            return (
-                                                <div
-                                                    key={pkg._id}
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => isEditing && togglePackage(pkg._id)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === " ") {
-                                                            e.preventDefault();
-                                                            isEditing && togglePackage(pkg._id);
-                                                        }
-                                                    }}
-                                                    className={`rounded-lg p-3 transition-colors ${
-                                                        checked
-                                                            ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
-                                                            : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
-                                                    }`}
-                                                >
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="text-light-900 dark:text-dark-50 font-medium">
-                                                                    {pkg.nameEn || pkg.nameAr}
+                                            return it._id || JSON.stringify(it);
+                                        };
+
+                                        return (
+                                            <div
+                                                key={pkg._id}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => isEditing && togglePackage(pkg._id || (pkg as any).id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        isEditing && togglePackage(pkg._id || (pkg as any).id);
+                                                    }
+                                                }}
+                                                className={`rounded-lg p-3 transition-colors ${
+                                                    checked
+                                                        ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
+                                                        : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-light-900 dark:text-dark-50 font-medium">
+                                                                {pkg.nameEn || pkg.nameAr}
+                                                            </div>
+                                                            <div className="text-smtext-light-900 dark:text-dark-50 font-semibold">{pkg.price}</div>
+                                                        </div>
+                                                        {pkg.description && (
+                                                            <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                {String(pkg.description).slice(0, 120)}
+                                                            </div>
+                                                        )}
+
+                                                        {pkgItems.length > 0 && (
+                                                            <div className="mt-3">
+                                                                <div className="mb-2 flex items-center justify-between">
+                                                                    <div className="text-light-600 dark:text-dark-400 text-xs font-medium">
+                                                                        Items ({pkgItems.length})
+                                                                    </div>
+                                                                    {pkgItems.length > 6 && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                togglePackageDetails(pkg._id);
+                                                                            }}
+                                                                            className="text-light-500 text-xs hover:underline"
+                                                                        >
+                                                                            {expanded ? "Show less" : `Show all (${pkgItems.length})`}
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                                <div className="text-smtext-light-900 dark:text-dark-50 font-semibold">
-                                                                    {pkg.price}
+
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {visibleItems.map((it: any, idx: number) => {
+                                                                        const quantity =
+                                                                            it && typeof it === "object"
+                                                                                ? (it.quantity ?? it.qty ?? undefined)
+                                                                                : undefined;
+                                                                        return (
+                                                                            <span
+                                                                                key={idx}
+                                                                                className="text-light-700 dark:text-dark-200 bg-light-100 dark:bg-dark-600 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+                                                                            >
+                                                                                <span className="max-w-[220px] truncate">{renderLabel(it)}</span>
+                                                                                {typeof quantity !== "undefined" &&
+                                                                                    (typeof quantity === "boolean" ? (
+                                                                                        <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
+                                                                                            {quantity ? (
+                                                                                                <Check
+                                                                                                    size={14}
+                                                                                                    className="text-green-500"
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <X
+                                                                                                    size={14}
+                                                                                                    className="text-red-600"
+                                                                                                />
+                                                                                            )}
+                                                                                        </span>
+                                                                                    ) : typeof quantity === "number" ? (
+                                                                                        <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                            x{quantity}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                                            {String(quantity)}
+                                                                                        </span>
+                                                                                    ))}
+                                                                            </span>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
-                                                            {pkg.description && (
-                                                                <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                    {String(pkg.description).slice(0, 120)}
-                                                                </div>
-                                                            )}
-
-                                                            {pkgItems.length > 0 && (
-                                                                <div className="mt-3">
-                                                                    <div className="mb-2 flex items-center justify-between">
-                                                                        <div className="text-light-600 dark:text-dark-400 text-xs font-medium">
-                                                                            Items ({pkgItems.length})
-                                                                        </div>
-                                                                        {pkgItems.length > 6 && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    togglePackageDetails(pkg._id);
-                                                                                }}
-                                                                                className="text-light-500 text-xs hover:underline"
-                                                                            >
-                                                                                {expanded ? "Show less" : `Show all (${pkgItems.length})`}
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <div className="flex flex-wrap gap-2">
-                                                                        {visibleItems.map((it: any, idx: number) => {
-                                                                            const quantity =
-                                                                                it && typeof it === "object"
-                                                                                    ? (it.quantity ?? it.qty ?? undefined)
-                                                                                    : undefined;
-                                                                            return (
-                                                                                <span
-                                                                                    key={idx}
-                                                                                    className="text-light-700 dark:text-dark-200 bg-light-100 dark:bg-dark-600 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
-                                                                                >
-                                                                                    <span className="max-w-[220px] truncate">{renderLabel(it)}</span>
-
-                                                                                    {typeof quantity !== "undefined" &&
-                                                                                        (typeof quantity === "boolean" ? (
-                                                                                            <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
-                                                                                                {quantity ? (
-                                                                                                    <Check
-                                                                                                        size={14}
-                                                                                                        className="text-green-500"
-                                                                                                    />
-                                                                                                ) : (
-                                                                                                    <X
-                                                                                                        size={14}
-                                                                                                        className="text-red-600"
-                                                                                                    />
-                                                                                                )}
-                                                                                            </span>
-                                                                                        ) : typeof quantity === "number" ? (
-                                                                                            <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                                                x{quantity}
-                                                                                            </span>
-                                                                                        ) : (
-                                                                                            <span className="bg-light-100 dark:bg-dark-600 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                                                {String(quantity)}
-                                                                                            </span>
-                                                                                        ))}
-                                                                                </span>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Custom Services */}
+                        <div className="mb-4">
+                            <h5 className="text-light-900 dark:text-dark-50 mb-2 text-sm font-medium">Custom Services</h5>
+                            {customServices.length > 0 && (
+                                <div className="mb-3 space-y-2">
+                                    {customServices.map((cs) => (
+                                        <div
+                                            key={cs.id}
+                                            className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-800 flex items-center justify-between rounded-lg border px-4 py-2"
+                                        >
+                                            <div>
+                                                <div className="text-light-900 dark:text-dark-50 font-medium">
+                                                    {lang === "ar" ? cs.ar || cs.en : cs.en}
+                                                </div>
+                                                <div className="text-light-600 dark:text-dark-400 text-sm">
+                                                    {cs.price} {lang === "ar" ? "ج.م" : "EGP"}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => removeCustomService(cs.id)}
+                                                className="btn-ghost text-danger-500"
+                                                title="Remove"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="flex flex-wrap items-end gap-2">
+                                <div className="min-w-[150px] flex-1">
+                                    <input
+                                        type="text"
+                                        value={customServiceName}
+                                        onChange={(e) => setCustomServiceName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                addCustomService();
+                                            }
+                                        }}
+                                        placeholder="Service name (English)"
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="min-w-[150px] flex-1">
+                                    <input
+                                        type="text"
+                                        value={customNameAr}
+                                        onChange={(e) => setCustomNameAr(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                addCustomService();
+                                            }
+                                        }}
+                                        placeholder="اسم الخدمة (بالعربية)"
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div className="w-32">
+                                    <input
+                                        type="number"
+                                        value={customPrice}
+                                        onChange={(e) => setCustomPrice(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                addCustomService();
+                                            }
+                                        }}
+                                        placeholder="Price"
+                                        className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={addCustomService}
+                                    className="btn-ghost flex items-center gap-2 px-3 py-2"
+                                >
+                                    <Plus size={14} />
+                                    Add
+                                </button>
                             </div>
-                        </label>
+                        </div>
+
+                        {/* Discount and override */}
+                        <div className="mb-4 grid gap-4 md:grid-cols-3">
+                            <div>
+                                <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">Discount Type</label>
+                                <select
+                                    value={discountType}
+                                    onChange={(e) => setDiscountType(e.target.value as "percentage" | "fixed")}
+                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                >
+                                    <option value="percentage">Percentage</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">Discount Value</label>
+                                <input
+                                    type="number"
+                                    value={discountValue}
+                                    onChange={(e) => setDiscountValue(e.target.value)}
+                                    placeholder={discountType === "percentage" ? "0-100" : "Amount"}
+                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                />
+                            </div>
+                            {/* override total removed - total is auto-calculated from packages + custom services and discount */}
+                        </div>
+
+                        {/* Summary */}
+                        <div className="mb-3">
+                            <p className="text-light-900 dark:text-dark-50 text-base">
+                                Subtotal: {calculateSubtotal().toFixed(2)} {lang === "ar" ? "ج.م" : "EGP"}
+                            </p>
+                            {discountValue && parseFloat(discountValue) > 0 && (
+                                <p className="text-light-600 dark:text-dark-400 text-sm">
+                                    Discount:{" "}
+                                    {discountType === "percentage" ? `${discountValue}%` : `${discountValue} ${lang === "ar" ? "ج.م" : "EGP"}`}
+                                </p>
+                            )}
+                            <p className="text-light-900 dark:text-dark-50 text-lg font-bold">
+                                Total: {calculateTotal().toFixed(2)} {lang === "ar" ? "ج.م" : "EGP"}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">

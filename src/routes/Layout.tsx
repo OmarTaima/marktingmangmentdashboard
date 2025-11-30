@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMediaQuery } from "react-responsive";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "../Layouts/Sidebar";
@@ -7,6 +7,7 @@ import { Header } from "../Layouts/Header";
 import { cn } from "../utils/cn";
 import { useClickOutside } from "../hooks/use-click-outside";
 import { useLang } from "@/hooks/useLang";
+import { getStoredToken } from "@/api/axios";
 
 const Layout = () => {
     // Detect screen width
@@ -30,6 +31,16 @@ const Layout = () => {
     const isArabic = lang === "ar";
 
     const { pathname } = useLocation();
+    const navigate = useNavigate();
+
+    // If user is on a protected route and there's no stored token, redirect to login
+    useEffect(() => {
+        const isAuthRoute = pathname === "/" || pathname.startsWith("/auth");
+        const token = getStoredToken("accessToken");
+        if (!isAuthRoute && !token) {
+            navigate("/auth/login", { replace: true });
+        }
+    }, [pathname, navigate]);
     // Hide header/sidebar on auth routes (login/register) and root login
     const hideNav = pathname === "/" || pathname.startsWith("/auth");
 

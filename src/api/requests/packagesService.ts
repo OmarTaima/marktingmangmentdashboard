@@ -7,6 +7,13 @@ import { withCache, invalidateCachePattern } from "../../utils/apiCache";
  * Handles CRUD operations for packages
  */
 
+export interface PackageItem {
+    _id?: string;
+    item?: string | Item;
+    quantity?: number | string | boolean;
+    note?: string;
+}
+
 export interface Package {
     _id: string;
     nameEn: string;
@@ -14,7 +21,7 @@ export interface Package {
     price: number;
     description?: string;
     descriptionAr?: string;
-    items?: Item[];
+    items?: PackageItem[];
     deleted?: boolean;
     createdAt?: string;
     updatedAt?: string;
@@ -81,7 +88,7 @@ export const createPackage = async (packageData: {
     price: number;
     description?: string;
     descriptionAr?: string;
-    items?: { item: string; quantity: number }[];
+    items?: { item: string; quantity?: number | string | boolean; note?: string }[];
 }): Promise<Package> => {
     try {
         const response = await api.post("/packages", packageData);
@@ -104,7 +111,7 @@ export const updatePackage = async (
         price?: number;
         description?: string;
         descriptionAr?: string;
-        items?: { item: string; quantity: number }[];
+        items?: { item: string; quantity?: number | string | boolean; note?: string }[];
     },
 ): Promise<Package> => {
     try {

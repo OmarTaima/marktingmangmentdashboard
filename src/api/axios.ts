@@ -10,7 +10,7 @@ const getCookie = (name: string): string | null => {
 };
 
 // Helper to get token (cookie first, fallback to localStorage)
-const getStoredToken = (name: string): string | null => {
+export const getStoredToken = (name: string): string | null => {
     const cookieVal = getCookie(name);
     if (cookieVal) return decodeURIComponent(cookieVal);
 

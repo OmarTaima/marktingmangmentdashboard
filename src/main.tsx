@@ -31,30 +31,7 @@ if (!rootElement) {
 }
 
 try {
-    if (typeof window !== "undefined" && window.localStorage) {
-        // Clear any existing keys
-        window.localStorage.clear();
-
-        // @ts-ignore
-        Storage.prototype.getItem = function () {
-            return null;
-        };
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        Storage.prototype.setItem = function () {
-            return undefined;
-        };
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        Storage.prototype.removeItem = function () {
-            return undefined;
-        };
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        Storage.prototype.clear = function () {
-            return undefined;
-        };
-    }
+    // Intentionally left blank — do not override or clear localStorage so token persistence works
 } catch (err) {}
 
 createRoot(rootElement).render(

@@ -4,6 +4,7 @@ import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm } from "@/utils/swal";
 import { useClients } from "@/hooks/queries/useClientsQuery";
+import { usePackages } from "@/hooks/queries/usePackagesQuery";
 import { useCampaignsByClient, useDeleteCampaign } from "@/hooks/queries/usePlansQuery";
 import type { Campaign } from "@/api/requests/planService";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -28,6 +29,8 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
 
     const { data: clients = [], isLoading: clientsLoading } = useClients();
     const { data: campaigns = [], isLoading: campaignsLoading, refetch: refetchCampaigns } = useCampaignsByClient(clientId || "", !!clientId);
+    const { data: packagesResp } = usePackages({ limit: 1000 });
+    const allPackages = packagesResp?.data || [];
 
     useEffect(() => {
         if (!clientId) return;
@@ -209,8 +212,8 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-light-900 dark:text-dark-50 text-lg font-bold">
-                                    {selectedCampaign.description ||
-                                        selectedCampaign.strategy?.description ||
+                                    {(selectedCampaign as any).description ||
+                                        (selectedCampaign as any).strategy?.description ||
                                         t("campaign_preview") ||
                                         "Campaign Preview"}
                                 </h3>
@@ -229,11 +232,11 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                         </div>
 
                         <div className="mt-4 space-y-3">
-                            {selectedCampaign.objectives && selectedCampaign.objectives.length > 0 && (
+                            {(selectedCampaign as any).objectives && (selectedCampaign as any).objectives.length > 0 && (
                                 <div>
                                     <div className="text-light-600 dark:text-dark-400 mb-2 text-sm">{t("objectives") || "Objectives"}</div>
                                     <ul className="list-disc pl-5 text-sm">
-                                        {selectedCampaign.objectives.map((o: any, i: number) => (
+                                        {(selectedCampaign as any).objectives.map((o: any, i: number) => (
                                             <li
                                                 key={i}
                                                 className="mb-1"
@@ -245,11 +248,11 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                                 </div>
                             )}
 
-                            {selectedCampaign.strategy?.timeline && selectedCampaign.strategy.timeline.length > 0 && (
+                            {(selectedCampaign as any).strategy?.timeline && (selectedCampaign as any).strategy.timeline.length > 0 && (
                                 <div>
                                     <div className="text-light-600 dark:text-dark-400 mb-2 text-sm">{t("timeline") || "Timeline"}</div>
                                     <div className="space-y-2 text-sm">
-                                        {selectedCampaign.strategy.timeline.map((t: any, idx: number) => (
+                                        {(selectedCampaign as any).strategy.timeline.map((t: any, idx: number) => (
                                             <div
                                                 key={idx}
                                                 className="rounded border p-2"
@@ -261,6 +264,139 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                                                 {t.objectiveEn && <div className="mt-1">{t.objectiveEn}</div>}
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+                            {/* Pricing preview: packages, custom services, discounts, totals */}
+                            {((selectedCampaign as any).packages ||
+                                (selectedCampaign as any).packageIds ||
+                                (selectedCampaign as any).customServices) && (
+                                <div>
+                                    <div className="text-light-600 dark:text-dark-400 mb-2 text-sm">Pricing</div>
+                                    <div className="space-y-2 text-sm">
+                                        {/* Packages */}
+                                        {(() => {
+                                            const pkgsList =
+                                                (selectedCampaign as any).packages ||
+                                                (selectedCampaign as any).packageIds ||
+                                                (selectedCampaign as any).strategy?.packageIds ||
+                                                ((selectedCampaign as any).strategy && (selectedCampaign as any).strategy.packageId
+                                                    ? [(selectedCampaign as any).strategy.packageId]
+                                                    : []) ||
+                                                [];
+
+                                            if (!pkgsList || pkgsList.length === 0) return null;
+
+                                            return (
+                                                <div>
+                                                    <div className="text-light-600 text-xs">Packages</div>
+                                                    <ul className="list-disc pl-5">
+                                                        {pkgsList.map((p: any, idx: number) => {
+                                                            const isString = typeof p === "string";
+                                                            const pkgObj = isString
+                                                                ? allPackages.find(
+                                                                      (ap: any) => String(ap._id) === String(p) || String(ap.id) === String(p),
+                                                                  )
+                                                                : p;
+                                                            return (
+                                                                <li
+                                                                    key={idx}
+                                                                    className="mb-1"
+                                                                >
+                                                                    {pkgObj
+                                                                        ? pkgObj.nameEn || pkgObj.name || pkgObj.nameAr || pkgObj._id
+                                                                        : isString
+                                                                          ? p
+                                                                          : JSON.stringify(p)}
+                                                                    {pkgObj && typeof pkgObj.price !== "undefined" && (
+                                                                        <span className="text-light-600 text-xs">
+                                                                            {" "}
+                                                                            — {pkgObj.price} {t("currency") || "EGP"}
+                                                                        </span>
+                                                                    )}
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Custom services */}
+                                        {(selectedCampaign as any).customServices && (selectedCampaign as any).customServices.length > 0 && (
+                                            <div>
+                                                <div className="text-light-600 text-xs">Custom Services</div>
+                                                <ul className="list-disc pl-5">
+                                                    {(selectedCampaign as any).customServices.map((cs: any, idx: number) => (
+                                                        <li
+                                                            key={idx}
+                                                            className="mb-1"
+                                                        >
+                                                            {cs.en || cs.ar || cs.name || cs.id || JSON.stringify(cs)}
+                                                            {typeof cs.price !== "undefined" && (
+                                                                <span className="text-light-600 text-xs">
+                                                                    {" "}
+                                                                    — {cs.price} {t("currency") || "EGP"}
+                                                                </span>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {/* Discount & totals (best-effort calculation if prices present) */}
+                                        <div>
+                                            <div className="text-light-600 text-xs">Totals</div>
+                                            {(() => {
+                                                let subtotal = 0;
+                                                const pkgs = (selectedCampaign as any).packages || (selectedCampaign as any).packageIds || [];
+                                                for (const p of pkgs) {
+                                                    if (!p) continue;
+                                                    if (typeof p === "object") {
+                                                        if (typeof p.price !== "undefined") subtotal += Number(p.price) || 0;
+                                                        continue;
+                                                    }
+                                                    // p is an id string — try to resolve from allPackages
+                                                    const found = allPackages.find(
+                                                        (ap: any) => String(ap._id) === String(p) || String(ap.id) === String(p),
+                                                    );
+                                                    if (found && typeof found.price !== "undefined") subtotal += Number(found.price) || 0;
+                                                }
+                                                const customs = (selectedCampaign as any).customServices || [];
+                                                for (const c of customs) {
+                                                    if (c && typeof c.price !== "undefined") subtotal += Number(c.price) || 0;
+                                                }
+
+                                                const discountVal = Number((selectedCampaign as any).discountValue || 0);
+                                                const discountType = (selectedCampaign as any).discountType || "percentage";
+                                                let discountAmount = 0;
+                                                if (discountVal > 0) {
+                                                    if (discountType === "percentage") discountAmount = (subtotal * discountVal) / 100;
+                                                    else discountAmount = Math.min(discountVal, subtotal);
+                                                }
+
+                                                return (
+                                                    <div className="text-sm">
+                                                        <div>
+                                                            Subtotal: {subtotal > 0 ? subtotal.toFixed(2) : "N/A"} {t("currency") || "EGP"}
+                                                        </div>
+                                                        {discountVal > 0 && (
+                                                            <div className="text-light-600 text-xs">
+                                                                Discount:{" "}
+                                                                {discountType === "percentage"
+                                                                    ? `${discountVal}%`
+                                                                    : `${discountVal} ${t("currency") || "EGP"}`}
+                                                            </div>
+                                                        )}
+                                                        <div className="font-semibold">
+                                                            Total: {subtotal > 0 ? (subtotal - discountAmount).toFixed(2) : "N/A"}{" "}
+                                                            {t("currency") || "EGP"}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
                             )}
