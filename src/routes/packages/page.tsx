@@ -232,18 +232,23 @@ const PackagesPage = () => {
 
                                                 const key = id || `${pkg._id}-${idx}`;
 
+                                                const note = raw?.note ?? inner?.note ?? "";
+
                                                 return (
                                                     <li
                                                         key={key}
-                                                        className="flex items-start gap-2"
+                                                        className="flex flex-col items-start gap-1"
                                                     >
-                                                        <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
-                                                            {name}
-                                                            {description && (
-                                                                <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">
-                                                                    - {description}
-                                                                </span>
-                                                            )}
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
+                                                                {name}
+                                                                {description && (
+                                                                    <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">
+                                                                        - {description}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+
                                                             {typeof quantity !== "undefined" &&
                                                                 (typeof quantity === "boolean" ? (
                                                                     <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
@@ -268,7 +273,11 @@ const PackagesPage = () => {
                                                                         {quantity}
                                                                     </span>
                                                                 ))}
-                                                        </span>
+                                                        </div>
+
+                                                        {note ? (
+                                                            <small className="text-light-600 dark:text-dark-400 mt-0.5 text-[11px]">{note}</small>
+                                                        ) : null}
                                                     </li>
                                                 );
                                             })}

@@ -8,6 +8,8 @@ import { usePackages, useDeletePackage, useUpdatePackage, useCreatePackage } fro
 import { useQueryClient } from "@tanstack/react-query";
 import { packagesKeys } from "@/hooks/queries/usePackagesQuery";
 import { useNavigate } from "react-router-dom";
+import { useServices } from "@/hooks/queries";
+import { useMemo } from "react";
 
 const AddPackagePage = () => {
     const { t } = useLang();
@@ -39,6 +41,9 @@ const AddPackagePage = () => {
     // Fetch existing packages
     const { data: packagesData, isLoading: packagesLoading } = usePackages({ page: 1, limit: 100 });
     const packagesList: Package[] = packagesData?.data || [];
+    const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+    const { data: servicesResponse } = useServices({ limit: 1000 });
+    const services = servicesResponse?.data || [];
     const deleteMutation = useDeletePackage();
     const updatePackageMutation = useUpdatePackage();
     const createPackageMutation = useCreatePackage();
@@ -59,6 +64,44 @@ const AddPackagePage = () => {
             setIsLoading(false);
         }
     };
+
+    const itemsMap = useMemo(() => {
+        const m: Record<string, string> = {};
+        availableItems.forEach((it: any) => {
+            const display = it?.name || it?.nameEn || it?.nameAr || it?.en || it?.ar || it?.title || "(item)";
+            if (it && it._id) m[it._id] = display;
+            if (it && it.id) m[it.id] = display;
+        });
+        return m;
+    }, [availableItems]);
+
+    const packageMatchesService = (pkg: Package, serviceId: string) => {
+        const anyPkg: any = pkg as any;
+        if (!serviceId) return false;
+        if (anyPkg.service) {
+            if (typeof anyPkg.service === "string") return anyPkg.service === serviceId;
+            if (anyPkg.service._id) return anyPkg.service._id === serviceId;
+            if (anyPkg.service.id) return anyPkg.service.id === serviceId;
+        }
+        if (anyPkg.serviceId) return anyPkg.serviceId === serviceId;
+        return false;
+    };
+
+    const servicesWithCounts = useMemo(() => {
+        const map: { service: any; count: number }[] = [];
+        services.forEach((s) => {
+            const byPackages = packagesList.filter((p) => packageMatchesService(p, s._id)).length;
+            const byServiceList = (s.packages && s.packages.length) || 0;
+            const count = byPackages > 0 ? byPackages : byServiceList;
+            if (count > 0) map.push({ service: s, count });
+        });
+        return map;
+    }, [services, packagesList]);
+
+    const filteredPackages = useMemo(() => {
+        if (!selectedServiceId) return packagesList;
+        return packagesList.filter((p) => packageMatchesService(p, selectedServiceId));
+    }, [packagesList, selectedServiceId]);
 
     const handleSubmit = async () => {
         // Validation
@@ -397,10 +440,11 @@ const AddPackagePage = () => {
                     quantities[id] = 1;
                     dTypes[id] = "number";
                 }
-                // load note if present on the package item
-                if (typeof it.note === "string") {
-                    notes[id] = it.note;
-                }
+                // load note if present on the package item; handle both `it.note` and populated `it.item.note`
+                const noteFromItem = it && typeof it.note === "string" ? it.note : undefined;
+                const noteFromPopulated = it && it.item && typeof it.item.note === "string" ? it.item.note : undefined;
+                const noteVal = noteFromItem ?? noteFromPopulated ?? "";
+                notes[id] = noteVal;
             }
         });
         setSelectedItemIds(ids);
@@ -436,117 +480,152 @@ const AddPackagePage = () => {
                         <Loader2 className="text-light-500 dark:text-light-500 h-6 w-6 animate-spin" />
                     </div>
                 ) : (
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {packagesList.map((pkg, pkgIndex) => {
-                            const pkgId = pkg._id || (pkg as any).id || `pkg-${pkgIndex}`;
-                            return (
-                                <div
-                                    key={pkgId}
-                                    className="dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors"
+                    <>
+                        {/* Service tabs (All + services that have packages) */}
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedServiceId(null)}
+                                aria-pressed={selectedServiceId === null}
+                                className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                                    selectedServiceId === null
+                                        ? "bg-light-700 dark:bg-dark-700 dark:text-dark-50 text-white"
+                                        : "bg-light-100 text-light-900 dark:bg-dark-800 dark:text-dark-200"
+                                }`}
+                            >
+                                {t("all") || "All"}
+                            </button>
+
+                            {servicesWithCounts.map(({ service, count }) => (
+                                <button
+                                    key={service._id}
+                                    type="button"
+                                    onClick={() => setSelectedServiceId(service._id)}
+                                    aria-pressed={selectedServiceId === service._id}
+                                    className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                                        selectedServiceId === service._id
+                                            ? "bg-light-700 dark:bg-dark-700 dark:text-dark-50 text-white"
+                                            : "bg-light-100 text-light-900 dark:bg-dark-800 dark:text-dark-200"
+                                    }`}
                                 >
-                                    <div className="flex min-w-0 items-start justify-between gap-4">
-                                        <div className="min-w-0">
-                                            <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">
-                                                {pkg.nameEn || pkg.nameAr}
-                                            </div>
-                                            {pkg.description && (
-                                                <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description}</div>
-                                            )}
-                                        </div>
-                                        <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">
-                                            {pkg.price ? `${pkg.price} EGP` : "-"}
-                                        </div>
-                                    </div>
+                                    {service.en || service.name || service.title}
+                                    <span className="dark:bg-dark-700 ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 text-xs">{count}</span>
+                                </button>
+                            ))}
+                        </div>
 
-                                    {pkg.items && pkg.items.length > 0 && (
-                                        <div className="mt-1">
-                                            <div className="text-light-600 dark:text-dark-400 mb-2 text-xs">Items ({pkg.items.length})</div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {pkg.items.map((pkgItem, idx) => {
-                                                    const inner = (pkgItem as any).item || (pkgItem as any);
-                                                    const id = (inner && (inner._id || inner.id)) || `${pkgId}-${idx}`;
-                                                    const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
-                                                    const quantity = (pkgItem as any).quantity;
-                                                    return (
-                                                        <div
-                                                            key={id}
-                                                            className="bg-light-100 dark:bg-dark-700 inline-flex items-center rounded-full px-3 py-1 text-xs"
-                                                        >
-                                                            <span className="text-light-900 dark:text-dark-50 mr-2 font-medium">{name}</span>
-                                                            {typeof quantity !== "undefined" && (
-                                                                <span className="text-light-900 dark:text-dark-50 bg-dark-700 ml-1 inline-block rounded px-2 py-0.5 text-[11px]">
-                                                                    {typeof quantity === "number"
-                                                                        ? `x${quantity}`
-                                                                        : quantity === true
-                                                                          ? "✓"
-                                                                          : quantity}
-                                                                </span>
-                                                            )}
-                                                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {filteredPackages.map((pkg, pkgIndex) => {
+                                const pkgId = pkg._id || (pkg as any).id || `pkg-${pkgIndex}`;
+                                return (
+                                    <div
+                                        key={pkgId}
+                                        className="border-light-200 dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors"
+                                    >
+                                        <div className="flex min-w-0 items-start justify-between gap-4">
+                                            <div className="min-w-0">
+                                                <div className="text-light-900 dark:text-dark-50 truncate text-base font-medium">
+                                                    {pkg.nameEn || pkg.nameAr}
+                                                </div>
+                                                {pkg.description && (
+                                                    <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">{pkg.description}</div>
+                                                )}
+                                            </div>
+                                            <div className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                {pkg.price ? `${pkg.price} EGP` : "-"}
+                                            </div>
+                                        </div>
+
+                                        {pkg.items && pkg.items.length > 0 && (
+                                            <div className="mt-1">
+                                                <div className="text-light-600 dark:text-dark-400 mb-2 text-xs">Items ({pkg.items.length})</div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {pkg.items.map((pkgItem, idx) => {
+                                                        const inner = (pkgItem as any).item || (pkgItem as any);
+                                                        const id = (inner && (inner._id || inner.id)) || `${pkgId}-${idx}`;
+                                                        const name = inner?.name || inner?.nameEn || inner?.nameAr || "(item)";
+                                                        const quantity = (pkgItem as any).quantity;
+                                                        return (
+                                                            <div
+                                                                key={id}
+                                                                className="bg-light-100 dark:bg-dark-700 inline-flex items-center rounded-full px-3 py-1 text-xs"
+                                                            >
+                                                                <span className="text-light-900 dark:text-dark-50 mr-2 font-medium">{name}</span>
+                                                                {typeof quantity !== "undefined" && (
+                                                                    <span className="text-light-900 dark:text-dark-50 bg-light-100 dark:bg-dark-700 ml-1 inline-block rounded px-2 py-0.5 text-[11px]">
+                                                                        {typeof quantity === "number"
+                                                                            ? `x${quantity}`
+                                                                            : quantity === true
+                                                                              ? "✓"
+                                                                              : quantity}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="mt-3 flex items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    startEditPackage(pkg);
+                                                }}
+                                                className="bg-light-50 hover:bg-light-100 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                            >
+                                                <Check size={14} />
+                                                <span>{t("edit") || "Edit"}</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const ok = await showConfirm(
+                                                        t("confirm_delete") || "Are you sure you want to delete this package?",
+                                                        t("yes") || "Yes",
+                                                        t("no") || "No",
                                                     );
-                                                })}
-                                            </div>
+                                                    if (!ok) return;
+                                                    setDeletingId(pkg._id);
+                                                    deleteMutation.mutate(pkg._id, {
+                                                        onError: () => {
+                                                            setError(t("delete_failed") || "Failed to delete package");
+                                                            setDeletingId(null);
+                                                        },
+                                                        onSuccess: () => {
+                                                            setDeletingId(null);
+                                                        },
+                                                    });
+                                                }}
+                                                className="text-danger-600 hover:bg-danger-50 dark:hover:bg-dark-700 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                            >
+                                                {deletingId === pkg._id ? (
+                                                    <Loader2
+                                                        size={14}
+                                                        className="text-light-500 animate-spin"
+                                                    />
+                                                ) : (
+                                                    <Trash2
+                                                        size={14}
+                                                        className="text-danger-600"
+                                                    />
+                                                )}
+                                                <span className="text-danger-600">{t("delete") || "Delete"}</span>
+                                            </button>
                                         </div>
-                                    )}
-
-                                    <div className="mt-3 flex items-center justify-end gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                startEditPackage(pkg);
-                                            }}
-                                            className="bg-light-50 hover:bg-light-100 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
-                                        >
-                                            <Check size={14} />
-                                            <span>{t("edit") || "Edit"}</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                const ok = await showConfirm(
-                                                    t("confirm_delete") || "Are you sure you want to delete this package?",
-                                                    t("yes") || "Yes",
-                                                    t("no") || "No",
-                                                );
-                                                if (!ok) return;
-                                                setDeletingId(pkg._id);
-                                                deleteMutation.mutate(pkg._id, {
-                                                    onError: () => {
-                                                        setError(t("delete_failed") || "Failed to delete package");
-                                                        setDeletingId(null);
-                                                    },
-                                                    onSuccess: () => {
-                                                        setDeletingId(null);
-                                                    },
-                                                });
-                                            }}
-                                            className="text-danger-600 hover:bg-danger-50 dark:hover:bg-dark-700 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
-                                        >
-                                            {deletingId === pkg._id ? (
-                                                <Loader2
-                                                    size={14}
-                                                    className="text-light-500 animate-spin"
-                                                />
-                                            ) : (
-                                                <Trash2
-                                                    size={14}
-                                                    className="text-danger-600"
-                                                />
-                                            )}
-                                            <span className="text-danger-600">{t("delete") || "Delete"}</span>
-                                        </button>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
 
-                        {packagesList.length === 0 && (
-                            <p className="text-light-600 dark:text-dark-400 text-sm">{t("no_packages") || "No packages found."}</p>
-                        )}
-                    </div>
+                            {filteredPackages.length === 0 && (
+                                <p className="text-light-600 dark:text-dark-400 text-sm">{t("no_packages") || "No packages found."}</p>
+                            )}
+                        </div>
+                    </>
                 )}
             </div>
 
