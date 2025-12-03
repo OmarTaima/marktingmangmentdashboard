@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Loader2, Trash2, Edit2, Download, FileCheck, ChevronLeft, ChevronRight, Eye, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
-import { showAlert, showConfirm } from "@/utils/swal";
+import { showAlert, showConfirm, showToast } from "@/utils/swal";
 import { useClients, useServices, useQuotations, useDeleteQuotation, useConvertQuotationToContract, useItems } from "@/hooks/queries";
 import type { Quotation, QuotationQueryParams } from "@/api/requests/quotationsService";
 
@@ -143,6 +144,7 @@ const PreviewQuotation = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [quotationsResponse, quotations.length, displayedQuotations.length, totalQuotations, shouldFetchQuotations]);
 
+    const navigate = useNavigate();
     const deleteQuotationMutation = useDeleteQuotation();
     const convertQuotationMutation = useConvertQuotationToContract();
 
@@ -152,6 +154,7 @@ const PreviewQuotation = ({
     // Contract conversion modal
     const [showConvertModal, setShowConvertModal] = useState<boolean>(false);
     const [convertQuotationId, setConvertQuotationId] = useState<string | null>(null);
+    const [convertQuotation, setConvertQuotation] = useState<Quotation | null>(null);
     const [contractStartDate, setContractStartDate] = useState<string>("");
     const [contractEndDate, setContractEndDate] = useState<string>("");
     const [contractTerms, setContractTerms] = useState<string>("");
@@ -754,10 +757,38 @@ const PreviewQuotation = ({
     }, [autoDownloadQuotationId]);
 
     const handleConvertToContract = async () => {
-        if (!convertQuotationId) return;
+        if (!convertQuotationId || !convertQuotation) return;
         if (!contractStartDate || !contractEndDate) {
             showAlert(t("please_fill_dates") || "Please fill in start and end dates", "warning");
             return;
+        }
+
+        // Generate contract body from quotation
+        let contractBody = `Contract based on Quotation ${convertQuotation.quotationNumber || ""}\n\n`;
+        contractBody += `Client: ${convertQuotation.clientName || clientName}\n`;
+        contractBody += `Total Amount: ${convertQuotation.total || 0} EGP\n\n`;
+
+        if (convertQuotation.packages && convertQuotation.packages.length > 0) {
+            contractBody += "Services:\n";
+            convertQuotation.packages.forEach((pkg: any, index: number) => {
+                const pkgName = typeof pkg === "string" ? pkg : pkg.nameEn || pkg.name || `Package ${index + 1}`;
+                contractBody += `- ${pkgName}\n`;
+            });
+        }
+
+        if (convertQuotation.customServices && convertQuotation.customServices.length > 0) {
+            contractBody += "\nCustom Services:\n";
+            convertQuotation.customServices.forEach((cs: any) => {
+                contractBody += `- ${cs.en || cs.ar}: ${cs.price} EGP\n`;
+            });
+        }
+
+        if (convertQuotation.note) {
+            contractBody += `\nNotes: ${convertQuotation.note}\n`;
+        }
+
+        if (contractTerms) {
+            contractBody += `\nTerms:\n${contractTerms}\n`;
         }
 
         try {
@@ -767,23 +798,32 @@ const PreviewQuotation = ({
                     startDate: contractStartDate,
                     endDate: contractEndDate,
                     contractTerms: contractTerms || undefined,
+                    body: contractBody,
                 },
             });
 
             setShowConvertModal(false);
             setConvertQuotationId(null);
+            setConvertQuotation(null);
             setContractStartDate("");
             setContractEndDate("");
             setContractTerms("");
 
-            showAlert(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
+            showToast(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
+
+            // Navigate to contracts page
+            navigate("/contracts");
         } catch (error: any) {
             showAlert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract", "error");
         }
     };
 
-    const openConvertModal = (quotationId: string) => {
-        setConvertQuotationId(quotationId);
+    const openConvertModal = (quotation: Quotation) => {
+        setConvertQuotationId(quotation._id);
+        setConvertQuotation(quotation);
+        setContractStartDate("");
+        setContractEndDate("");
+        setContractTerms("");
         setShowConvertModal(true);
     };
 
@@ -946,7 +986,7 @@ const PreviewQuotation = ({
                                         </button>
                                         {quotation.status !== "approved" && (
                                             <button
-                                                onClick={() => openConvertModal(quotation._id)}
+                                                onClick={() => openConvertModal(quotation)}
                                                 className="btn-ghost text-green-600"
                                                 title={t("convert_to_contract") || "Convert to Contract"}
                                             >

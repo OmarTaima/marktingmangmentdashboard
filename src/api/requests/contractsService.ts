@@ -23,6 +23,7 @@ export interface Contract {
           }
         | string;
     contractTerms?: string[];
+    body?: string; // Full contract paragraph/text
     startDate: string;
     endDate: string;
     contractImage?: string;
@@ -116,6 +117,7 @@ export const createContract = async (contractData: {
     clientId: string;
     quotationId?: string;
     contractTerms?: string[];
+    body?: string;
     startDate: string;
     endDate: string;
     contractImage?: string;
@@ -137,6 +139,7 @@ export const updateContract = async (
         clientId?: string;
         quotationId?: string;
         contractTerms?: string[];
+        body?: string;
         startDate?: string;
         endDate?: string;
         contractImage?: string;

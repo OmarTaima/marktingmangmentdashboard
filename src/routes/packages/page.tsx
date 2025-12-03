@@ -178,114 +178,139 @@ const PackagesPage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredPackages.map((pkg) => (
-                            <div
-                                key={pkg._id}
-                                className={`card flex min-h-[400px] cursor-pointer flex-col justify-between p-4 transition-all duration-300 hover:shadow-lg sm:p-6 ${
-                                    selectedPackage?._id === pkg._id ? "ring-light-500 ring-2" : ""
-                                }`}
-                                onClick={() => setSelectedPackage(pkg)}
-                            >
-                                <div>
-                                    <div className="text-center">
-                                        <h3 className="card-title mb-2 text-lg font-semibold break-words sm:text-xl">
+                        {filteredPackages.map((pkg) => {
+                            return (
+                                <div
+                                    key={pkg._id}
+                                    className={`group to-light-50 dark:from-dark-800 dark:to-dark-900 relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                                        selectedPackage?._id === pkg._id
+                                            ? "border-primary-500 ring-primary-200 dark:ring-primary-900/50 ring-4"
+                                            : "border-light-300 dark:border-dark-600"
+                                    }`}
+                                    onClick={() => setSelectedPackage(pkg)}
+                                >
+                                    {/* Decorative gradient overlay */}
+                                    <div className="from-primary-400/20 to-primary-600/20 absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br blur-3xl"></div>
+
+                                    {/* Package Name Header */}
+                                    <div className="relative z-10 mb-6 text-center">
+                                        <h3 className="text-light-900 dark:text-dark-50 text-2xl font-bold tracking-tight">
                                             {lang === "ar" ? pkg.nameAr : pkg.nameEn}
                                         </h3>
-                                        <div className="mb-4">
-                                            <p className="text-light-500 dark:text-secdark-700 mb-4 text-2xl font-bold break-words sm:text-3xl">
-                                                {pkg.price} {lang === "ar" ? "ج.م" : "EGP"}
-                                            </p>
-                                        </div>
+                                        {pkg.description && <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{pkg.description}</p>}
                                     </div>
-                                    {pkg.description && <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{pkg.description}</p>}
 
-                                    {pkg.items && pkg.items.length > 0 && (
-                                        <ul className="mt-4 space-y-2 sm:space-y-3">
-                                            {pkg.items.map((pkgItem, idx) => {
-                                                const raw = pkgItem as any;
-                                                // Normalize to inner item object or id
-                                                const inner = raw?.item ?? raw;
+                                    {/* Features Section */}
+                                    <div className="relative z-10 mb-6 flex-1">
+                                        {/* Table Header */}
+                                        <div className="from-light-200 to-light-100 dark:from-dark-700 dark:to-dark-800 mb-4 rounded-t-xl bg-gradient-to-r p-3">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <h4 className="text-light-800 dark:text-dark-200 text-center text-sm font-bold tracking-wider uppercase">
+                                                    {lang === "ar" ? "الميزات" : "Features"}
+                                                </h4>
+                                                <h4 className="text-light-800 dark:text-dark-200 text-center text-sm font-bold tracking-wider uppercase">
+                                                    {lang === "ar" ? "المتاحة" : "Provided"}
+                                                </h4>
+                                            </div>
+                                        </div>
 
-                                                let id = undefined as string | undefined;
-                                                let name = "(item)";
-                                                let description = null as string | null;
+                                        {/* Items list */}
+                                        {pkg.items && pkg.items.length > 0 ? (
+                                            <div className="border-light-200 dark:border-dark-700 dark:bg-dark-900/30 space-y-2 rounded-b-xl border-2 border-t-0 bg-white/50 p-2">
+                                                {pkg.items.map((pkgItem, idx) => {
+                                                    const raw = pkgItem as any;
+                                                    const inner = raw?.item ?? raw;
 
-                                                if (typeof inner === "string" || typeof inner === "number") {
-                                                    id = String(inner);
-                                                    name = itemsMap[id] || id;
-                                                } else if (inner && typeof inner === "object") {
-                                                    id = inner._id || inner.id || undefined;
-                                                    // Try many possible name fields
-                                                    name =
-                                                        inner.name ||
-                                                        inner.nameEn ||
-                                                        inner.nameAr ||
-                                                        inner.en ||
-                                                        inner.ar ||
-                                                        inner.title ||
-                                                        itemsMap[id || ""] ||
-                                                        "(item)";
-                                                    description = inner.description || inner.desc || null;
-                                                }
+                                                    let id = undefined as string | undefined;
+                                                    let name = "(item)";
 
-                                                const quantity = raw?.quantity;
+                                                    if (typeof inner === "string" || typeof inner === "number") {
+                                                        id = String(inner);
+                                                        name = itemsMap[id] || id;
+                                                    } else if (inner && typeof inner === "object") {
+                                                        id = inner._id || inner.id || undefined;
+                                                        name =
+                                                            inner.name ||
+                                                            inner.nameEn ||
+                                                            inner.nameAr ||
+                                                            inner.en ||
+                                                            inner.ar ||
+                                                            inner.title ||
+                                                            itemsMap[id || ""] ||
+                                                            "(item)";
+                                                    }
 
-                                                const key = id || `${pkg._id}-${idx}`;
+                                                    const quantity = raw?.quantity;
+                                                    const note = raw?.note ?? inner?.note ?? "";
+                                                    const key = id || `${pkg._id}-${idx}`;
 
-                                                const note = raw?.note ?? inner?.note ?? "";
-
-                                                return (
-                                                    <li
-                                                        key={key}
-                                                        className="flex flex-col items-start gap-1"
-                                                    >
-                                                        <div className="flex items-start gap-2">
-                                                            <span className="text-dark-700 dark:text-dark-50 text-sm break-words sm:text-base">
-                                                                {name}
-                                                                {description && (
-                                                                    <span className="text-light-600 dark:text-dark-400 ml-1 text-xs">
-                                                                        - {description}
-                                                                    </span>
+                                                    return (
+                                                        <div
+                                                            key={key}
+                                                            className="border-light-200 dark:border-dark-600 dark:bg-dark-800 grid grid-cols-2 gap-4 rounded-lg border bg-white p-3 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md"
+                                                        >
+                                                            <div>
+                                                                <div className="text-light-900 dark:text-dark-50 text-sm font-medium">{name}</div>
+                                                                {note && (
+                                                                    <div className="text-light-600 dark:text-dark-400 mt-1 text-[11px]">{note}</div>
                                                                 )}
-                                                            </span>
-
-                                                            {typeof quantity !== "undefined" &&
-                                                                (typeof quantity === "boolean" ? (
-                                                                    <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-xs">
-                                                                        {quantity ? (
+                                                            </div>
+                                                            <div className="flex items-center justify-center">
+                                                                {typeof quantity === "boolean" ? (
+                                                                    quantity ? (
+                                                                        <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900/30">
                                                                             <Check
-                                                                                size={14}
-                                                                                className="text-green-500"
+                                                                                size={18}
+                                                                                className="text-green-600 dark:text-green-400"
                                                                             />
-                                                                        ) : (
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="rounded-full bg-red-100 p-1.5 dark:bg-red-900/30">
                                                                             <X
-                                                                                size={14}
-                                                                                className="text-danger-600"
+                                                                                size={18}
+                                                                                className="text-red-600 dark:text-red-400"
                                                                             />
-                                                                        )}
-                                                                    </span>
+                                                                        </div>
+                                                                    )
                                                                 ) : typeof quantity === "number" ? (
-                                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
-                                                                        x{quantity}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="bg-light-100 dark:bg-dark-700 text-light-900 dark:text-dark-50 ml-2 inline-block rounded-md px-2 py-0.5 text-xs">
+                                                                    <span className="from-light-300 to-light-200 text-light-900 dark:from-dark-600 dark:to-dark-700 dark:text-dark-50 rounded-full bg-gradient-to-r px-4 py-1.5 text-sm font-bold shadow-sm">
                                                                         {quantity}
                                                                     </span>
-                                                                ))}
+                                                                ) : quantity !== undefined && quantity !== null ? (
+                                                                    <span className="text-light-700 dark:text-dark-300 text-sm font-semibold">
+                                                                        {quantity}
+                                                                    </span>
+                                                                ) : (
+                                                                    <div className="rounded-full bg-green-100 p-1.5 dark:bg-green-900/30">
+                                                                        <Check
+                                                                            size={18}
+                                                                            className="text-green-600 dark:text-green-400"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <p className="text-light-500 dark:text-dark-500 text-center text-sm">
+                                                {lang === "ar" ? "لا توجد ميزات" : "No features"}
+                                            </p>
+                                        )}
+                                    </div>
 
-                                                        {note ? (
-                                                            <small className="text-light-600 dark:text-dark-400 mt-0.5 text-[11px]">{note}</small>
-                                                        ) : null}
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
+                                    {/* Price Section */}
+                                    <div className="from-primary-500 to-primary-600 relative z-10 mt-auto rounded-xl bg-gradient-to-r p-4 text-center shadow-lg">
+                                        <div className="text-sm font-medium text-white/80">{lang === "ar" ? "السعر" : "Price"}</div>
+                                        <div className="mt-1 flex items-center justify-center gap-2">
+                                            <span className="text-3xl font-bold text-white">{pkg.price}</span>
+                                            <span className="text-lg font-medium text-white/90">{lang === "ar" ? "ج.م" : "EGP"}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {packages.length === 0 && !isLoading && (

@@ -740,41 +740,60 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     </>
                 )}
 
-                {/* Objectives chips */}
+                {/* Objectives cards */}
                 {objectives.length > 0 && (
                     <div className="mb-3">
                         <div className="text-light-600 dark:text-dark-400 mb-2 text-sm">Added objectives</div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {objectives.map((obj, idx) => (
                                 <div
                                     key={obj.id}
-                                    className="border-light-200 bg-light-50 dark:border-dark-600 dark:bg-dark-700 text-light-900 dark:text-dark-50 inline-flex min-w-[160px] items-center gap-2 rounded-full border px-4 py-1 text-xs font-medium shadow-sm hover:shadow-md"
+                                    className="group dark:from-dark-800 relative flex cursor-default flex-col overflow-hidden rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-white to-orange-50 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:border-orange-700 dark:to-orange-900/20"
                                 >
-                                    <div className="flex flex-col">
-                                        <div className="text-light-900 dark:text-dark-50 font-medium">{obj.en}</div>
-                                        <div className="text-light-600 dark:text-dark-400 text-xs">{obj.ar}</div>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => {
-                                                setEditingObjectiveIndex(idx);
-                                                setObjectiveInputEn(obj.en || "");
-                                                setObjectiveInputAr(obj.ar || "");
-                                                setObjectiveDescEn(obj.enDesc || "");
-                                                setObjectiveDescAr(obj.arDesc || "");
-                                            }}
-                                            className="text-light-600 hover:text-light-800 p-1"
-                                            aria-label="Edit objective"
-                                        >
-                                            <Edit3 size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => removeObjective(idx)}
-                                            className="ml-1 p-1 text-red-500 hover:text-red-600"
-                                            aria-label="Remove objective"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                    {/* Decorative blur overlay */}
+                                    <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-orange-400/20 blur-3xl" />
+
+                                    {/* Content */}
+                                    <div className="relative z-10 flex flex-col gap-3 p-5">
+                                        {/* Title section */}
+                                        <div className="text-center">
+                                            <h4 className="text-lg font-bold text-orange-600 dark:text-orange-400">{obj.en || "No title"}</h4>
+                                            <p className="mt-1 text-sm text-orange-500 dark:text-orange-300">{obj.ar}</p>
+                                        </div>
+
+                                        {/* Description section */}
+                                        {(obj.enDesc || obj.arDesc) && (
+                                            <div className="border-t border-orange-200 pt-3 dark:border-orange-700">
+                                                {obj.enDesc && <p className="text-light-700 dark:text-dark-200 text-sm">{obj.enDesc}</p>}
+                                                {obj.arDesc && <p className="text-light-600 dark:text-dark-300 mt-1 text-sm">{obj.arDesc}</p>}
+                                            </div>
+                                        )}
+
+                                        {/* Action buttons */}
+                                        <div className="mt-auto flex items-center justify-center gap-2 border-t border-orange-200 pt-3 dark:border-orange-700">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingObjectiveIndex(idx);
+                                                    setObjectiveInputEn(obj.en || "");
+                                                    setObjectiveInputAr(obj.ar || "");
+                                                    setObjectiveDescEn(obj.enDesc || "");
+                                                    setObjectiveDescAr(obj.arDesc || "");
+                                                }}
+                                                className="flex items-center gap-1 rounded-lg bg-orange-100 px-3 py-1.5 text-xs font-medium text-orange-700 transition-colors hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-800/40"
+                                                aria-label="Edit objective"
+                                            >
+                                                <Edit3 size={12} />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => removeObjective(idx)}
+                                                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/40"
+                                                aria-label="Remove objective"
+                                            >
+                                                <Trash2 size={12} />
+                                                Remove
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -820,99 +839,107 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     </div>
 
                     {openPanel === "segments" && (
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {(clientData?.segments || []).length === 0 && <div className="text-dark-500">No segments available</div>}
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 {(clientData?.segments || []).map((s: any) => {
                                     const sid = typeof s === "string" ? s : s._id || s.id;
                                     const label = typeof s === "string" ? s : s.name || s.title || "Unnamed segment";
                                     const checked = selectedSegments.includes(sid);
-                                    const key = `segment-${sid}`;
                                     return (
                                         <div
                                             key={sid}
-                                            role="button"
-                                            tabIndex={0}
                                             onClick={() => isEditing && toggleSegment(sid)}
-                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleSegment(sid))}
-                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
+                                            className={`group to-light-50 dark:from-dark-800 dark:to-dark-900 relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                                                 checked
-                                                    ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
-                                                    : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                    ? "border-primary-500 ring-primary-200 dark:ring-primary-900/50 ring-4"
+                                                    : "border-light-300 dark:border-dark-600"
                                             }`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm">
-                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                </div>
-                                                <div />
-                                            </div>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleDetail(key);
-                                                    }}
-                                                    className="btn-primary text-sm"
-                                                >
-                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
-                                                </button>
-                                            </div>
-                                            {expandedDetails[key] && (
-                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
-                                                    {s.description && <div className="text-light-900 dark:text-dark-50 text-sm">{s.description}</div>}
-                                                    {Array.isArray(s.ageRange) && s.ageRange.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Age range: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.ageRange.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(s.productName) && s.productName.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Products: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.productName.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {s.population !== undefined && s.population !== null && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Population: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">
-                                                                {Array.isArray(s.population) ? s.population.join(", ") : s.population}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(s.gender) && s.gender.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Gender: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.gender.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(s.area) && s.area.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Area: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.area.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(s.governorate) && s.governorate.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Governorates: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.governorate.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {s.note && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Note: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{s.note}</span>
-                                                        </div>
-                                                    )}
-                                                    {s.metadata && (
-                                                        <pre className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                            {JSON.stringify(s.metadata, null, 2)}
-                                                        </pre>
-                                                    )}
+                                            {/* Decorative gradient overlay */}
+                                            <div className="from-primary-400/20 to-primary-600/20 absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br blur-3xl"></div>
+
+                                            {/* Selection indicator */}
+                                            {checked && (
+                                                <div className="bg-primary-500 absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110">
+                                                    <Check
+                                                        className="h-6 w-6 text-white"
+                                                        strokeWidth={3}
+                                                    />
                                                 </div>
                                             )}
+
+                                            {/* Segment Name */}
+                                            <div className="relative z-10 mb-4 text-center">
+                                                <h3 className="text-light-900 dark:text-dark-50 text-xl font-bold tracking-tight">{label}</h3>
+                                                {s.description && <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{s.description}</p>}
+                                            </div>
+
+                                            {/* Segment Details */}
+                                            <div className="border-light-200 dark:border-dark-700 dark:bg-dark-900/30 relative z-10 space-y-3 rounded-xl border-2 bg-white/50 p-4">
+                                                {Array.isArray(s.ageRange) && s.ageRange.length > 0 && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Age Range
+                                                        </span>
+                                                        <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                            {s.ageRange.join(", ")}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(s.productName) && s.productName.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Products
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.productName.join(", ")}</span>
+                                                    </div>
+                                                )}
+                                                {s.population !== undefined && s.population !== null && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Population
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                            {Array.isArray(s.population) ? s.population.join(", ") : s.population}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(s.gender) && s.gender.length > 0 && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Gender
+                                                        </span>
+                                                        <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                                            {s.gender.join(", ")}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(s.area) && s.area.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Area
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.area.join(", ")}</span>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(s.governorate) && s.governorate.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Governorate
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.governorate.join(", ")}</span>
+                                                    </div>
+                                                )}
+                                                {s.note && (
+                                                    <div className="border-light-200 dark:border-dark-700 flex flex-col gap-1 border-t pt-2">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Note
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.note}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -921,91 +948,130 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     )}
 
                     {openPanel === "competitors" && (
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {(clientData?.competitors || []).length === 0 && <div className="text-dark-500">No competitors available</div>}
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 {(clientData?.competitors || []).map((c: any) => {
                                     const cid = typeof c === "string" ? c : c._id || c.id;
                                     const label = typeof c === "string" ? c : c.name || "Unnamed competitor";
                                     const checked = selectedCompetitors.includes(cid);
-                                    const key = `competitor-${cid}`;
                                     return (
                                         <div
                                             key={cid}
-                                            role="button"
-                                            tabIndex={0}
                                             onClick={() => isEditing && toggleCompetitor(cid)}
-                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleCompetitor(cid))}
-                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
+                                            className={`group to-light-50 dark:from-dark-800 dark:to-dark-900 relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                                                 checked
-                                                    ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
-                                                    : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                    ? "border-orange-500 ring-4 ring-orange-200 dark:ring-orange-900/50"
+                                                    : "border-light-300 dark:border-dark-600"
                                             }`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm">
-                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                </div>
-                                                <div />
-                                            </div>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleDetail(key);
-                                                    }}
-                                                    className="btn-primary text-sm"
-                                                >
-                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
-                                                </button>
-                                            </div>
-                                            {expandedDetails[key] && (
-                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
-                                                    {c.description && <div className="text-light-900 dark:text-dark-50 text-sm">{c.description}</div>}
-                                                    {Array.isArray(c.swot_strengths) && c.swot_strengths.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT strengths: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_strengths.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(c.swot_weaknesses) && c.swot_weaknesses.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT weaknesses: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_weaknesses.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(c.swot_opportunities) && c.swot_opportunities.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT opportunities: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">
-                                                                {c.swot_opportunities.join(", ")}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(c.swot_threats) && c.swot_threats.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">SWOT threats: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{c.swot_threats.join(", ")}</span>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(c.socialLinks) && c.socialLinks.length > 0 && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Social links:</span>
-                                                            <ul className="text-light-600 dark:text-dark-400 ml-3 list-disc">
-                                                                {c.socialLinks.map((sl: any, idx: number) => (
-                                                                    <li
-                                                                        key={idx}
-                                                                        className="text-xs"
-                                                                    >
-                                                                        {(sl.platform || sl.name) + ": " + (sl.url || sl.value)}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
+                                            {/* Decorative gradient overlay */}
+                                            <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-orange-400/20 to-orange-600/20 blur-3xl"></div>
+
+                                            {/* Selection indicator */}
+                                            {checked && (
+                                                <div className="absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg transition-transform duration-300 group-hover:scale-110">
+                                                    <Check
+                                                        className="h-6 w-6 text-white"
+                                                        strokeWidth={3}
+                                                    />
                                                 </div>
                                             )}
+
+                                            {/* Competitor Name */}
+                                            <div className="relative z-10 mb-4 text-center">
+                                                <h3 className="text-light-900 dark:text-dark-50 text-xl font-bold tracking-tight">{label}</h3>
+                                                {c.description && <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{c.description}</p>}
+                                            </div>
+
+                                            {/* SWOT Analysis */}
+                                            <div className="border-light-200 dark:border-dark-700 dark:bg-dark-900/30 relative z-10 space-y-3 rounded-xl border-2 bg-white/50 p-4">
+                                                {Array.isArray(c.swot_strengths) && c.swot_strengths.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium tracking-wider text-green-600 uppercase dark:text-green-400">
+                                                            Strengths
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {c.swot_strengths.map((str: string, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                                                >
+                                                                    {str}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(c.swot_weaknesses) && c.swot_weaknesses.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium tracking-wider text-red-600 uppercase dark:text-red-400">
+                                                            Weaknesses
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {c.swot_weaknesses.map((wk: string, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                                                >
+                                                                    {wk}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(c.swot_opportunities) && c.swot_opportunities.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium tracking-wider text-blue-600 uppercase dark:text-blue-400">
+                                                            Opportunities
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {c.swot_opportunities.map((op: string, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                                                >
+                                                                    {op}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(c.swot_threats) && c.swot_threats.length > 0 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium tracking-wider text-yellow-600 uppercase dark:text-yellow-400">
+                                                            Threats
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {c.swot_threats.map((th: string, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                                >
+                                                                    {th}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {Array.isArray(c.socialLinks) && c.socialLinks.length > 0 && (
+                                                    <div className="border-light-200 dark:border-dark-700 flex flex-col gap-1 border-t pt-2">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Social Links
+                                                        </span>
+                                                        <div className="space-y-1">
+                                                            {c.socialLinks.map((sl: any, idx: number) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="text-light-900 dark:text-dark-50 text-xs"
+                                                                >
+                                                                    {sl.platform || sl.name}: {sl.url || sl.value}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -1014,75 +1080,80 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     )}
 
                     {openPanel === "branches" && (
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {(clientData?.branches || []).length === 0 && <div className="text-dark-500">No branches available</div>}
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 {(clientData?.branches || []).map((b: any) => {
                                     const bid = typeof b === "string" ? b : b._id || b.id;
                                     const label = typeof b === "string" ? b : b.name || b.address || "Unnamed branch";
                                     const checked = selectedBranches.includes(bid);
-                                    const key = `branch-${bid}`;
                                     return (
                                         <div
                                             key={bid}
-                                            role="button"
-                                            tabIndex={0}
                                             onClick={() => isEditing && toggleBranch(bid)}
-                                            onKeyDown={(e) => handleItemKeyDown(e, () => isEditing && toggleBranch(bid))}
-                                            className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
+                                            className={`group to-light-50 dark:from-dark-800 dark:to-dark-900 relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
                                                 checked
-                                                    ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
-                                                    : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
+                                                    ? "border-teal-500 ring-4 ring-teal-200 dark:ring-teal-900/50"
+                                                    : "border-light-300 dark:border-dark-600"
                                             }`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm">
-                                                    <div className="text-light-900 dark:text-dark-50 font-medium">{label}</div>
-                                                </div>
-                                                <div />
-                                            </div>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleDetail(key);
-                                                    }}
-                                                    className="btn-primary text-sm"
-                                                >
-                                                    {expandedDetails[key] ? "Hide details" : "Show details"}
-                                                </button>
-                                            </div>
-                                            {expandedDetails[key] && (
-                                                <div className="text-light-600 dark:text-dark-400 mt-2 space-y-1 rounded border-t pt-2 text-sm">
-                                                    {(b.mainOfficeAddress || b.address) && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Address: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">
-                                                                {b.mainOfficeAddress || b.address}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {b.city && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">City: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{b.city}</span>
-                                                        </div>
-                                                    )}
-                                                    {b.phone && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Phone: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{b.phone}</span>
-                                                        </div>
-                                                    )}
-                                                    {b.notes && (
-                                                        <div className="text-xs">
-                                                            <span className="text-light-900 dark:text-dark-50 font-medium">Notes: </span>
-                                                            <span className="text-light-600 dark:text-dark-400">{b.notes}</span>
-                                                        </div>
-                                                    )}
+                                            {/* Decorative gradient overlay */}
+                                            <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-teal-400/20 to-teal-600/20 blur-3xl"></div>
+
+                                            {/* Selection indicator */}
+                                            {checked && (
+                                                <div className="absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 shadow-lg transition-transform duration-300 group-hover:scale-110">
+                                                    <Check
+                                                        className="h-6 w-6 text-white"
+                                                        strokeWidth={3}
+                                                    />
                                                 </div>
                                             )}
+
+                                            {/* Branch Name */}
+                                            <div className="relative z-10 mb-4 text-center">
+                                                <h3 className="text-light-900 dark:text-dark-50 text-xl font-bold tracking-tight">{label}</h3>
+                                            </div>
+
+                                            {/* Branch Details */}
+                                            <div className="border-light-200 dark:border-dark-700 dark:bg-dark-900/30 relative z-10 space-y-3 rounded-xl border-2 bg-white/50 p-4">
+                                                {(b.mainOfficeAddress || b.address) && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Address
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">
+                                                            {b.mainOfficeAddress || b.address}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {b.city && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            City
+                                                        </span>
+                                                        <span className="inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                                            {b.city}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {b.phone && (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Phone
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">{b.phone}</span>
+                                                    </div>
+                                                )}
+                                                {b.notes && (
+                                                    <div className="border-light-200 dark:border-dark-700 flex flex-col gap-1 border-t pt-2">
+                                                        <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
+                                                            Notes
+                                                        </span>
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{b.notes}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -1272,32 +1343,57 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                         </div>
                     </>
                 )}
-                {/* Timeline chips list */}
+                {/* Timeline cards list */}
                 {timelineItems.length > 0 && (
                     <div className="mt-3">
                         <div className="text-light-600 dark:text-dark-400 mb-2 text-sm">Added timelines</div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {timelineItems.map((t) => (
                                 <div
                                     key={t.id}
-                                    className="border-light-200 bg-light-50 dark:border-dark-600 dark:bg-dark-700 text-light-900 dark:text-dark-50 inline-flex min-w-[160px] items-center gap-2 rounded-full border px-4 py-1 text-xs font-medium shadow-sm hover:shadow-md"
+                                    className="group dark:from-dark-800 relative flex cursor-default flex-col overflow-hidden rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-white to-emerald-50 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:border-emerald-700 dark:to-emerald-900/20"
                                 >
-                                    <div className="flex flex-col">
-                                        <div className="text-light-900 dark:text-dark-50 font-medium">
-                                            {t.start ? format(t.start, "yyyy-MM-dd") : "-"} → {t.end ? format(t.end, "yyyy-MM-dd") : "-"}
+                                    {/* Decorative blur overlay */}
+                                    <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-emerald-400/20 blur-3xl" />
+
+                                    {/* Content */}
+                                    <div className="relative z-10 flex flex-col gap-3 p-5">
+                                        {/* Date range header */}
+                                        <div className="text-center">
+                                            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1.5 dark:bg-emerald-900/40">
+                                                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                                    {t.start ? format(t.start, "yyyy-MM-dd") : "-"}
+                                                </span>
+                                                <span className="text-emerald-500">→</span>
+                                                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                                    {t.end ? format(t.end, "yyyy-MM-dd") : "-"}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="text-light-600 dark:text-dark-400 text-xs">
-                                            {t.objectiveEn || t.objectiveAr || "No objective"}
+
+                                        {/* Objectives section */}
+                                        <div className="border-t border-emerald-200 pt-3 dark:border-emerald-700">
+                                            <div className="mb-1 text-xs font-semibold text-emerald-600 uppercase dark:text-emerald-400">
+                                                Objective
+                                            </div>
+                                            {t.objectiveEn && <p className="text-light-700 dark:text-dark-200 text-sm">{t.objectiveEn}</p>}
+                                            {t.objectiveAr && <p className="text-light-600 dark:text-dark-300 mt-1 text-sm">{t.objectiveAr}</p>}
+                                            {!t.objectiveEn && !t.objectiveAr && (
+                                                <p className="text-light-500 dark:text-dark-400 text-sm">No objective</p>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => removeTimeline(t.id)}
-                                            className="p-1 text-red-500 hover:text-red-600"
-                                            aria-label="Remove timeline"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+
+                                        {/* Action button */}
+                                        <div className="mt-auto flex items-center justify-center border-t border-emerald-200 pt-3 dark:border-emerald-700">
+                                            <button
+                                                onClick={() => removeTimeline(t.id)}
+                                                className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/40"
+                                                aria-label="Remove timeline"
+                                            >
+                                                <Trash2 size={12} />
+                                                Remove
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

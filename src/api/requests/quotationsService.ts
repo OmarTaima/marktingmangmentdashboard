@@ -109,6 +109,7 @@ export interface ConvertToContractPayload {
     startDate: string;
     endDate: string;
     contractTerms?: string;
+    body?: string; // Full contract text
 }
 
 // ==================== API FUNCTIONS ====================
