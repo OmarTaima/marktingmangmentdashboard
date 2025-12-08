@@ -17,6 +17,7 @@ import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm, showToast } from "@/utils/swal";
 import { useContracts, useDeleteContract, useSignContract, useCompleteContract, useCancelContract, useRenewContract } from "@/hooks/queries";
+import { generateContractPDF } from "@/utils/contractPdfGenerator";
 import { getContractById } from "@/api/requests/contractsService";
 import type { ContractQueryParams } from "@/api/requests/contractsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
@@ -91,16 +92,30 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
     const handleDownloadContract = async (id: string) => {
         try {
-            // Try to fetch full contract data to get downloadable URL
-            const contract = await getContractById(id);
-            const url = (contract as any)?.contractImage;
-            if (url) {
-                window.open(url, "_blank");
-            } else {
-                showAlert(t("no_download_available") || "No downloadable file available", "warning");
-            }
+            // Fetch full contract data
+            const contractData = await getContractById(id);
+
+            // Ask user to choose language for PDF (default Arabic)
+            const languageChoice = await showConfirm(
+                t("choose_pdf_language") || "Download contract in Arabic or English?",
+                t("arabic") || "Arabic",
+                t("english") || "English",
+            );
+
+            const pdfLang = languageChoice ? "ar" : "en";
+
+            // Generate PDF using the contract data
+            await generateContractPDF({
+                contract: contractData,
+                clientName: clientName,
+                lang: pdfLang,
+                t: t as (key: string) => string,
+            });
+
+            showToast(t("contract_downloaded") || "Contract downloaded successfully", "success");
         } catch (error: any) {
-            showAlert(error?.response?.data?.message || t("failed_to_load_contract") || "Failed to load contract", "error");
+            console.error("Error downloading contract:", error);
+            showAlert(error?.response?.data?.message || t("failed_to_download_contract") || "Failed to download contract", "error");
         }
     };
 
@@ -269,7 +284,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
             <div className="card">
                 {contractsLoading ? (
                     <div className="flex items-center justify-center p-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-light-500" />
+                        <Loader2 className="text-light-500 h-8 w-8 animate-spin" />
                     </div>
                 ) : contracts.length === 0 ? (
                     <div className="py-12 text-center">
@@ -443,7 +458,11 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                 disabled={renewContractMutation.isPending}
                                 className="btn-primary flex-1"
                             >
-                                {renewContractMutation.isPending ? <Loader2 className="mx-auto h-5 w-5 animate-spin text-light-500" /> : t("renew") || "Renew"}
+                                {renewContractMutation.isPending ? (
+                                    <Loader2 className="text-light-500 mx-auto h-5 w-5 animate-spin" />
+                                ) : (
+                                    t("renew") || "Renew"
+                                )}
                             </button>
                             <button
                                 onClick={() => setShowRenewModal(false)}
@@ -481,7 +500,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                 className="btn-primary bg-danger-500 hover:bg-danger-600 flex-1"
                             >
                                 {cancelContractMutation.isPending ? (
-                                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-light-500" />
+                                    <Loader2 className="text-light-500 mx-auto h-5 w-5 animate-spin" />
                                 ) : (
                                     t("cancel_contract") || "Cancel Contract"
                                 )}

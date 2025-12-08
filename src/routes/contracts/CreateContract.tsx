@@ -1,12 +1,12 @@
 import { useState, useEffect, KeyboardEvent } from "react";
-import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X } from "lucide-react";
+import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X, GripVertical } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
-import { useCreateContract, useUpdateContract, useQuotations, useItems } from "@/hooks/queries";
+import { useCreateContract, useUpdateContract, useQuotations, useItems, useContracts } from "@/hooks/queries";
 import { useContractTerms } from "@/hooks/queries/useContractTermsQuery";
 import { getQuotationById } from "@/api/requests/quotationsService";
-import type { Contract } from "@/api/requests/contractsService";
+import { getContractById, type Contract } from "@/api/requests/contractsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
@@ -22,6 +22,10 @@ interface CreateContractProps {
 
 const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract, quotationId }: CreateContractProps) => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const v = t(key);
+        return v && v !== key ? v : fallback;
+    };
 
     const createContractMutation = useCreateContract();
     const updateContractMutation = useUpdateContract();
@@ -29,6 +33,10 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     // Fetch quotations for this client
     const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations({ page: 1, limit: 100, clientId });
     const clientQuotations = quotationsResponse?.data || [];
+
+    // Fetch all contracts to allow loading terms from existing contracts
+    const { data: contractsResponse, isLoading: contractsLoading } = useContracts({ page: 1, limit: 1000 });
+    const allContracts = contractsResponse?.data || [];
 
     // Fetch items for name resolution in subscription terms (used in generateSubscriptionTerm)
     const { data: itemsData, isLoading: itemsLoading } = useItems({ page: 1, limit: 1000 });
@@ -39,8 +47,8 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     const predefinedTerms = termsResponse?.data || [];
 
     const isSaving = createContractMutation.isPending || updateContractMutation.isPending;
-    // Wait until quotations, items and predefined terms are all loaded before rendering the page
-    const isLoading = quotationsLoading || itemsLoading || termsLoading;
+    // Wait until quotations, items, contracts and predefined terms are all loaded before rendering the page
+    const isLoading = quotationsLoading || itemsLoading || termsLoading || contractsLoading;
 
     // Form state
     const [inputKey, setInputKey] = useState<string>("");
@@ -85,6 +93,30 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     const [selectedQuotationId, setSelectedQuotationId] = useState<string>(
         quotationId || (typeof editContract?.quotationId === "string" ? editContract.quotationId : editContract?.quotationId?._id || ""),
     );
+    const [selectedContractId, setSelectedContractId] = useState<string>("");
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+    // Drag and drop handlers
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+
+        const newTerms = [...contractTermsList];
+        const draggedItem = newTerms[draggedIndex];
+        newTerms.splice(draggedIndex, 1);
+        newTerms.splice(index, 0, draggedItem);
+
+        setContractTermsList(newTerms);
+        setDraggedIndex(index);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+    };
 
     // Load quotation data if quotationId is provided
     useEffect(() => {
@@ -113,15 +145,14 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                 setEndDate(dayjs(qEnd));
             }
 
-            // Auto-generate Arabic contract term with package details
-            generateSubscriptionTerm(quotation);
+            // Do not auto-generate subscription term here — user must click the button to add it
         } catch (error: any) {
             console.error("Failed to load quotation:", error);
         }
     };
 
-    const generateSubscriptionTerm = (quotation: any) => {
-        if (!quotation.packages || quotation.packages.length === 0) return;
+    const generateSubscriptionTerm = (quotation: any): boolean => {
+        if (!quotation.packages || quotation.packages.length === 0) return false;
 
         // Helper: conservative keyword classifiers for ads and posts
         const adKeywords = ["إعلان", "إعلانات", "ad", "ads", "إعلان توظيف", "توظيف"];
@@ -209,8 +240,58 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
             valueAr: valueAr,
             isCustom: true,
         };
+        // Check against current list to avoid adding duplicates
+        const exists = contractTermsList.some((t) => t.isCustom && (t.key === newTerm.key || t.keyAr === newTerm.keyAr));
+        if (exists) {
+            showToast(tr("term_already_added", "This term already exists"), "warning");
+            return false;
+        }
 
         setContractTermsList((prev) => [...prev, newTerm]);
+        return true;
+    };
+
+    const loadContractTerms = async (contractId: string) => {
+        try {
+            const res = await getContractById(contractId);
+            // getContractById may return the Contract directly or an object with a `data` field (e.g., Axios response),
+            // so handle both shapes safely.
+            const contract: any = res && (res as any).data ? (res as any).data : res;
+
+            if (!contract.terms || contract.terms.length === 0) {
+                showToast(tr("no_terms_in_contract", "This contract has no terms"), "warning");
+                return;
+            }
+
+            // Map contract terms to the format we need
+            const loadedTerms = contract.terms.map((termItem: any) => {
+                if (termItem.isCustom) {
+                    return {
+                        key: termItem.customKey || "",
+                        keyAr: termItem.customKeyAr || "",
+                        value: termItem.customValue || "",
+                        valueAr: termItem.customValueAr || "",
+                        isCustom: true,
+                    };
+                } else {
+                    const term = termItem.term;
+                    return {
+                        termId: typeof term === "string" ? term : term?._id,
+                        key: term?.key || "",
+                        keyAr: term?.keyAr || "",
+                        value: term?.value || "",
+                        valueAr: term?.valueAr || "",
+                        isCustom: false,
+                    };
+                }
+            });
+
+            setContractTermsList(loadedTerms);
+            showToast(tr("terms_loaded", "Terms loaded successfully"), "success");
+        } catch (error: any) {
+            console.error("Failed to load contract terms:", error);
+            showAlert(t("failed_to_load_contract") || "Failed to load contract terms", "error");
+        }
     };
 
     const addPredefinedTerm = (termId: string) => {
@@ -220,7 +301,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         // Prevent adding the same predefined term more than once
         const exists = contractTermsList.some((ct) => ct.termId === termId);
         if (exists) {
-            showToast(t("term_already_added") || "This term was already added", "warning");
+            showToast(tr("term_already_added", "This term already exists"), "warning");
             return;
         }
 
@@ -390,7 +471,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
-                        <Loader2 className="text-light-500 mx-auto mb-4 h-12 w-12 animate-spin" />
+                    <Loader2 className="text-light-500 mx-auto mb-4 h-12 w-12 animate-spin" />
                     <p className="text-light-600 dark:text-dark-400">{t("loading_contract_data") || "Loading contract data..."}</p>
                 </div>
             </div>
@@ -422,6 +503,50 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
             <div className="card">
                 <div className="space-y-6">
                     {/* Quotation Selector */}
+                    {/* Contract Template Selector */}
+                    {allContracts.length > 0 && !editContract && (
+                        <div>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("load_terms_from_contract") || "Load Terms from Existing Contract"} ({t("optional") || "optional"})
+                            </label>
+                            <select
+                                value={selectedContractId}
+                                onChange={(e) => setSelectedContractId(e.target.value)}
+                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            >
+                                <option value="">{t("select_contract") || "-- Select a contract --"}</option>
+                                {allContracts.map((c: any) => {
+                                    const contractNumber = c.contractNumber || c._id?.slice(-6) || "N/A";
+                                    const clientDisplayName =
+                                        typeof c.clientId === "string"
+                                            ? c.clientName || c.customClientName
+                                            : c.clientId?.business?.businessName || c.clientId?.personal?.fullName || c.clientName || "Unknown";
+                                    return (
+                                        <option
+                                            key={c._id}
+                                            value={c._id}
+                                        >
+                                            {contractNumber} - {clientDisplayName}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            {selectedContractId && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        loadContractTerms(selectedContractId);
+                                        setSelectedContractId("");
+                                    }}
+                                    className="btn-ghost mt-2 flex items-center gap-2"
+                                >
+                                    <Plus size={16} />
+                                    {t("load_terms") || "Load Terms from Contract"}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     {clientQuotations.length > 0 && !editContract && (
                         <div>
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
@@ -453,14 +578,16 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                     </option>
                                 ))}
                             </select>
-                            {selectedQuotationId && (
+                                {selectedQuotationId && (
                                 <button
                                     type="button"
                                     onClick={async () => {
                                         try {
                                             const response = await getQuotationById(selectedQuotationId);
-                                            generateSubscriptionTerm(response.data);
-                                            showToast(t("term_generated") || "Subscription term generated successfully", "success");
+                                            const added = generateSubscriptionTerm(response.data);
+                                            if (added) {
+                                                showToast(tr("term_generated", "Subscription term generated successfully"), "success");
+                                            }
                                         } catch (error) {
                                             console.error("Failed to generate term:", error);
                                             showAlert(t("failed_to_generate_term") || "Failed to generate subscription term", "error");
@@ -558,7 +685,13 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                     {contractTermsList.map((term, index) => (
                                         <div
                                             key={index}
-                                            className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                            draggable={editingTermIndex !== index}
+                                            onDragStart={() => handleDragStart(index)}
+                                            onDragOver={(e) => handleDragOver(e, index)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2 transition-all ${
+                                                draggedIndex === index ? "scale-95 opacity-50" : "cursor-move hover:shadow-md"
+                                            } ${editingTermIndex === index ? "cursor-default" : ""}`}
                                         >
                                             {editingTermIndex === index ? (
                                                 <div className="w-full">
@@ -608,8 +741,14 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <>
-                                                    <div className="flex w-full flex-col">
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className="text-light-400 dark:text-dark-600 flex shrink-0 items-center justify-center"
+                                                        style={{ cursor: "grab" }}
+                                                    >
+                                                        <GripVertical size={18} />
+                                                    </div>
+                                                    <div className="flex flex-1 flex-col">
                                                         <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
                                                             {lang === "ar" ? term.keyAr : term.key}
                                                         </span>
@@ -619,7 +758,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex shrink-0 items-center gap-2">
                                                         <button
                                                             onClick={() => startEditTerm(index)}
                                                             className="btn-ghost flex items-center gap-2"
@@ -633,7 +772,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                                             <Trash2 size={14} />
                                                         </button>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -734,7 +873,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         >
                             {isSaving ? (
                                 <>
-                                    <Loader2 className="h-5 w-5 animate-spin text-light-500" />
+                                    <Loader2 className="text-light-500 h-5 w-5 animate-spin" />
                                     {t("saving") || "Saving..."}
                                 </>
                             ) : (

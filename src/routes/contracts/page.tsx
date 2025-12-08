@@ -1,14 +1,25 @@
 import { useState } from "react";
+import type { ComponentType } from "react";
 import { Loader2, FileCheck, Plus, Download, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { useClients, useContracts, useDeleteContract } from "@/hooks/queries";
 import { showAlert, showConfirm, showToast } from "@/utils/swal";
+import { generateContractPDF } from "@/utils/contractPdfGenerator";
 import { getContractById } from "@/api/requests/contractsService";
 import type { Client } from "@/api/interfaces/clientinterface";
 import type { Contract } from "@/api/requests/contractsService";
 import CreateContract from "./CreateContract";
 import PreviewContract from "./PreviewContract";
-import CustomContract from "./CustomContract";
+import CustomContractRaw from "./CustomContract";
+
+// Some modules may export a function typed to return void which TypeScript rejects as a JSX component;
+// cast the import to a ComponentType with the expected props to satisfy JSX usage.
+// Ensure the actual CustomContract implementation returns valid JSX — this cast only fixes the type error.
+const CustomContract = CustomContractRaw as unknown as ComponentType<{
+    onBack?: () => void;
+    onSuccess?: () => void;
+    editContract?: Contract | null;
+}>;
 
 type View = "list" | "create" | "preview" | "custom";
 
@@ -98,17 +109,45 @@ const ContractsPage = () => {
         }
     };
 
-    const handleDownloadContract = async (id: string) => {
+    const handleDownloadContract = async (id: string, clientNameForPdf?: string) => {
         try {
-            const contract = await getContractById(id);
-            const url = (contract as any)?.contractImage;
-            if (url) {
-                window.open(url, "_blank");
-            } else {
-                showAlert(t("no_download_available") || "No downloadable file available", "warning");
+            const contractData = await getContractById(id);
+
+            // Determine client name for the PDF
+            let displayName = clientNameForPdf;
+            if (!displayName) {
+                // Try to get from contract data
+                if (typeof contractData.clientId === "object" && contractData.clientId) {
+                    const client = contractData.clientId as any;
+                    displayName = client.business?.businessName || client.personal?.fullName || "Client";
+                } else if ((contractData as any).clientName || (contractData as any).clientNameAr) {
+                    displayName = lang === "ar" ? (contractData as any).clientNameAr : (contractData as any).clientName;
+                } else {
+                    displayName = "Client";
+                }
             }
+
+            // Ask user to choose language for PDF (default Arabic)
+            const languageChoice = await showConfirm(
+                t("choose_pdf_language") || "Download contract in Arabic or English?",
+                t("arabic") || "Arabic",
+                t("english") || "English",
+            );
+
+            const pdfLang = languageChoice ? "ar" : "en";
+
+            // Generate PDF using the contract data
+            await generateContractPDF({
+                contract: contractData,
+                clientName: displayName || "Client",
+                lang: pdfLang,
+                t: t as (key: string) => string,
+            });
+
+            showToast(t("contract_downloaded") || "Contract downloaded successfully", "success");
         } catch (error: any) {
-            showAlert(error?.response?.data?.message || t("failed_to_load_contract") || "Failed to load contract", "error");
+            console.error("Error downloading contract:", error);
+            showAlert(error?.response?.data?.message || t("failed_to_download_contract") || "Failed to download contract", "error");
         }
     };
 
@@ -151,6 +190,7 @@ const ContractsPage = () => {
             <CustomContract
                 onBack={handleBack}
                 onSuccess={handleBack}
+                editContract={editingContract}
             />
         );
     }
@@ -283,7 +323,7 @@ const ContractsPage = () => {
 
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => handleDownloadContract(contract._id)}
+                                                onClick={() => handleDownloadContract(contract._id, clientName)}
                                                 className="btn-ghost"
                                                 title={t("download_contract") || "Download"}
                                             >
@@ -292,10 +332,9 @@ const ContractsPage = () => {
                                             <button
                                                 onClick={() => {
                                                     setEditingContract(contract);
-                                                    setSelectedClient({
-                                                        business: { businessName: clientName },
-                                                    } as Client);
-                                                    setCurrentView("create");
+                                                    // Custom contracts should route to custom view
+                                                    setSelectedClient(null);
+                                                    setCurrentView("custom");
                                                 }}
                                                 className="btn-ghost"
                                                 title={t("edit") || "Edit"}
