@@ -13,6 +13,7 @@ import PreviewCampaigns from "./routes/planning/PreviewStratigy";
 import ManageCampaignPage from "./routes/planning/manage";
 import ServicesPage from "./routes/services/page";
 import ItemsPage from "./routes/items/page";
+import TermsPage from "./routes/terms/page";
 import QuotationsPage from "./routes/quotations/page";
 import PackagesPage from "./routes/packages/page";
 import AddPackagePage from "./routes/packages/add";
@@ -43,6 +44,7 @@ function App() {
                     },
                     { path: "services", element: <ServicesPage /> },
                     { path: "items", element: <ItemsPage /> },
+                    { path: "terms", element: <TermsPage /> },
                     { path: "quotations", element: <QuotationsPage /> },
                     { path: "packages", element: <PackagesPage /> },
                     { path: "packages/add", element: <AddPackagePage /> },

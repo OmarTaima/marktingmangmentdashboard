@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Loader2, FileCheck, Plus } from "lucide-react";
+import { Loader2, FileCheck, Plus, Download, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
-import { useClients, useContracts } from "@/hooks/queries";
+import { useClients, useContracts, useDeleteContract } from "@/hooks/queries";
+import { showAlert, showConfirm, showToast } from "@/utils/swal";
+import { getContractById } from "@/api/requests/contractsService";
 import type { Client } from "@/api/interfaces/clientinterface";
 import type { Contract } from "@/api/requests/contractsService";
 import CreateContract from "./CreateContract";
@@ -78,6 +80,38 @@ const ContractsPage = () => {
         return !cid || cid === "custom";
     });
 
+    const deleteContractMutation = useDeleteContract();
+
+    const handleDeleteContract = async (id: string) => {
+        const confirmed = await showConfirm(
+            t("confirm_delete_contract") || "Are you sure you want to delete this contract?",
+            t("yes") || "Yes",
+            t("no") || "No",
+        );
+        if (!confirmed) return;
+
+        try {
+            await deleteContractMutation.mutateAsync(id);
+            showToast(t("contract_deleted") || "Contract deleted successfully", "success");
+        } catch (error: any) {
+            showAlert(error?.response?.data?.message || t("failed_to_delete_contract") || "Failed to delete contract", "error");
+        }
+    };
+
+    const handleDownloadContract = async (id: string) => {
+        try {
+            const contract = await getContractById(id);
+            const url = (contract as any)?.contractImage;
+            if (url) {
+                window.open(url, "_blank");
+            } else {
+                showAlert(t("no_download_available") || "No downloadable file available", "warning");
+            }
+        } catch (error: any) {
+            showAlert(error?.response?.data?.message || t("failed_to_load_contract") || "Failed to load contract", "error");
+        }
+    };
+
     // Render based on current view
     if (currentView === "create") {
         const clientName = selectedClient?.business?.businessName || selectedClient?.personal?.fullName || t("unnamed_client") || "Unnamed";
@@ -126,8 +160,7 @@ const ContractsPage = () => {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="text-primary-500 mx-auto mb-4 h-12 w-12 animate-spin" />
-                    <p className="text-light-600 dark:text-dark-400">{t("loading") || "Loading..."}</p>
+                    <Loader2 className="text-light-500 mx-auto mb-4 h-12 w-12 animate-spin" />
                 </div>
             </div>
         );
@@ -154,7 +187,7 @@ const ContractsPage = () => {
             {/* Client Cards Grid */}
             {clientsLoading ? (
                 <div className="flex items-center justify-center py-12">
-                    <Loader2 className="text-primary-500 h-8 w-8 animate-spin" />
+                    <Loader2 className="text-light-500 h-8 w-8 animate-spin" />
                 </div>
             ) : clients.length === 0 ? (
                 <div className="card">
@@ -218,7 +251,10 @@ const ContractsPage = () => {
                                 return new Date(dateString).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US");
                             };
 
-                            const clientName = contract.customClientName || t("unnamed") || "Unnamed";
+                            const nameEn = contract.clientName || contract.customClientName || "";
+                            const nameAr = contract.clientNameAr || contract.customClientNameAr || "";
+                            const clientName =
+                                lang === "ar" ? nameAr || nameEn || t("unnamed") || "Unnamed" : nameEn || nameAr || t("unnamed") || "Unnamed";
 
                             return (
                                 <div
@@ -247,6 +283,13 @@ const ContractsPage = () => {
 
                                         <div className="flex items-center gap-2">
                                             <button
+                                                onClick={() => handleDownloadContract(contract._id)}
+                                                className="btn-ghost"
+                                                title={t("download_contract") || "Download"}
+                                            >
+                                                <Download size={16} />
+                                            </button>
+                                            <button
                                                 onClick={() => {
                                                     setEditingContract(contract);
                                                     setSelectedClient({
@@ -258,6 +301,13 @@ const ContractsPage = () => {
                                                 title={t("edit") || "Edit"}
                                             >
                                                 <FileCheck size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteContract(contract._id)}
+                                                className="btn-ghost text-danger-500"
+                                                title={t("delete") || "Delete"}
+                                            >
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>

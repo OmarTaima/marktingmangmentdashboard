@@ -1,9 +1,23 @@
 import { useState, useEffect } from "react";
-import { Loader2, Trash2, Edit2, FileCheck, ChevronLeft, ChevronRight, Plus, FileSignature, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import {
+    Loader2,
+    Trash2,
+    Edit2,
+    FileCheck,
+    ChevronLeft,
+    ChevronRight,
+    Plus,
+    FileSignature,
+    CheckCircle,
+    XCircle,
+    RefreshCw,
+    Download,
+} from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm, showToast } from "@/utils/swal";
 import { useContracts, useDeleteContract, useSignContract, useCompleteContract, useCancelContract, useRenewContract } from "@/hooks/queries";
+import { getContractById } from "@/api/requests/contractsService";
 import type { ContractQueryParams } from "@/api/requests/contractsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -72,6 +86,21 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
             showToast(t("contract_deleted") || "Contract deleted successfully", "success");
         } catch (error: any) {
             showAlert(error?.response?.data?.message || t("failed_to_delete_contract") || "Failed to delete contract", "error");
+        }
+    };
+
+    const handleDownloadContract = async (id: string) => {
+        try {
+            // Try to fetch full contract data to get downloadable URL
+            const contract = await getContractById(id);
+            const url = (contract as any)?.contractImage;
+            if (url) {
+                window.open(url, "_blank");
+            } else {
+                showAlert(t("no_download_available") || "No downloadable file available", "warning");
+            }
+        } catch (error: any) {
+            showAlert(error?.response?.data?.message || t("failed_to_load_contract") || "Failed to load contract", "error");
         }
     };
 
@@ -181,7 +210,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="text-primary-500 mx-auto mb-4 h-12 w-12 animate-spin" />
+                    <Loader2 className="text-light-500 mx-auto mb-4 h-12 w-12 animate-spin" />
                     <p className="text-light-600 dark:text-dark-400">{t("loading_contracts") || "Loading contracts..."}</p>
                 </div>
             </div>
@@ -240,7 +269,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
             <div className="card">
                 {contractsLoading ? (
                     <div className="flex items-center justify-center p-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                        <Loader2 className="h-8 w-8 animate-spin text-light-500" />
                     </div>
                 ) : contracts.length === 0 ? (
                     <div className="py-12 text-center">
@@ -255,107 +284,101 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                     </div>
                 ) : (
                     <>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("contract_number") || "Contract #"}
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("status") || "Status"}
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("start_date") || "Start Date"}
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("end_date") || "End Date"}
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("signed_date") || "Signed"}
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300">
-                                            {t("actions") || "Actions"}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {contracts.map((contract: any) => (
-                                        <tr
-                                            key={contract._id}
-                                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                                        >
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-white">{contract.contractNumber}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(contract.status)}</td>
-                                            <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                {formatDate(contract.startDate)}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                {formatDate(contract.endDate)}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                {formatDate(contract.signedDate)}
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {contract.status === "draft" && (
-                                                        <button
-                                                            onClick={() => handleSignContract(contract._id)}
-                                                            className="btn-ghost text-success-500"
-                                                            title={t("sign_contract") || "Sign Contract"}
-                                                        >
-                                                            <FileSignature className="h-4 w-4" />
-                                                        </button>
-                                                    )}
-                                                    {(contract.status === "active" || contract.status === "renewed") && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleCompleteContract(contract._id)}
-                                                                className="btn-ghost text-primary-500"
-                                                                title={t("complete_contract") || "Complete"}
-                                                            >
-                                                                <CheckCircle className="h-4 w-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => openRenewModal(contract._id)}
-                                                                className="rounded-lg p-2 text-purple-600 transition-colors hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20"
-                                                                title={t("renew_contract") || "Renew"}
-                                                            >
-                                                                <RefreshCw className="h-5 w-5" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {contract.status !== "cancelled" && contract.status !== "completed" && (
-                                                        <button
-                                                            onClick={() => openCancelModal(contract._id)}
-                                                            className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                                                            title={t("cancel_contract") || "Cancel"}
-                                                        >
-                                                            <XCircle className="h-5 w-5" />
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => onEdit(contract)}
-                                                        className="rounded-lg p-2 text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/20"
-                                                        title={t("edit") || "Edit"}
-                                                    >
-                                                        <Edit2 className="h-5 w-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteContract(contract._id)}
-                                                        className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                                                        title={t("delete") || "Delete"}
-                                                    >
-                                                        <Trash2 className="h-5 w-5" />
-                                                    </button>
+                        <div className="space-y-3">
+                            {contracts.map((contract: any) => (
+                                <div
+                                    key={contract._id}
+                                    className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="mb-2 flex items-center gap-3">
+                                                <h4 className="text-light-900 dark:text-dark-50 font-semibold">{contract.contractNumber}</h4>
+                                                {getStatusBadge(contract.status)}
+                                            </div>
+                                            <div className="text-light-600 dark:text-dark-400 mb-2 space-y-1 text-sm">
+                                                <p>
+                                                    {t("start_date") || "Start"}: {formatDate(contract.startDate)} → {t("end_date") || "End"}:{" "}
+                                                    {formatDate(contract.endDate)}
+                                                </p>
+                                                {contract.signedDate && (
+                                                    <p>
+                                                        {t("signed_date") || "Signed"}: {formatDate(contract.signedDate)}
+                                                    </p>
+                                                )}
+                                                {contract.note && <p className="italic">{contract.note}</p>}
+                                            </div>
+
+                                            {/* Display Contract Terms */}
+                                            {contract.terms && contract.terms.length > 0 && (
+                                                <div className="bg-light-100 dark:bg-dark-800 mt-3 rounded p-3">
+                                                    <h5 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
+                                                        {t("contract_terms") || "Contract Terms"}
+                                                    </h5>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {contract.terms.map((termItem: any, idx: number) => {
+                                                            let keyText = "";
+
+                                                            if (termItem.isCustom) {
+                                                                keyText = lang === "ar" ? termItem.customKeyAr : termItem.customKey;
+                                                            } else {
+                                                                const term = termItem.term;
+                                                                if (term && typeof term === "object") {
+                                                                    keyText = lang === "ar" ? term.keyAr : term.key;
+                                                                }
+                                                            }
+
+                                                            return (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-200 inline-flex items-center rounded-full px-3 py-1 text-xs"
+                                                                >
+                                                                    {keyText || "..."}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {(contract.status === "active" || contract.status === "renewed") && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleCompleteContract(contract._id)}
+                                                        className="btn-ghost text-primary-500"
+                                                        title={t("complete_contract") || "Complete"}
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            <button
+                                                onClick={() => handleDownloadContract(contract._id)}
+                                                className="btn-ghost"
+                                                title={t("download_contract") || "Download"}
+                                            >
+                                                <Download size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => onEdit(contract)}
+                                                className="btn-ghost"
+                                                title={t("edit") || "Edit"}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteContract(contract._id)}
+                                                className="btn-ghost text-danger-500"
+                                                title={t("delete") || "Delete"}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         {/* Pagination */}
@@ -420,7 +443,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                 disabled={renewContractMutation.isPending}
                                 className="btn-primary flex-1"
                             >
-                                {renewContractMutation.isPending ? <Loader2 className="mx-auto h-5 w-5 animate-spin" /> : t("renew") || "Renew"}
+                                {renewContractMutation.isPending ? <Loader2 className="mx-auto h-5 w-5 animate-spin text-light-500" /> : t("renew") || "Renew"}
                             </button>
                             <button
                                 onClick={() => setShowRenewModal(false)}
@@ -458,7 +481,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                 className="btn-primary bg-danger-500 hover:bg-danger-600 flex-1"
                             >
                                 {cancelContractMutation.isPending ? (
-                                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-light-500" />
                                 ) : (
                                     t("cancel_contract") || "Cancel Contract"
                                 )}

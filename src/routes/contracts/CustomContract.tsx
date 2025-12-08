@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
-import { Loader2, FileCheck } from "lucide-react";
+import { useState, KeyboardEvent } from "react";
+import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
-import { useCreateContract } from "@/hooks/queries";
+import { useCreateContract, useItems, useQuotations } from "@/hooks/queries";
+import { useContractTerms } from "@/hooks/queries/useContractTermsQuery";
+import { getQuotationById } from "@/api/requests/quotationsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 
 interface CustomContractProps {
     onBack: () => void;
@@ -17,93 +19,234 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
     const { t, lang } = useLang();
 
     const createContractMutation = useCreateContract();
+
+    // Fetch items for name resolution in subscription terms
+    const { data: itemsData } = useItems({ page: 1, limit: 1000 });
+    const items = itemsData?.data || [];
+
+    // Fetch custom quotations (quotations without real clientId)
+    const { data: quotationsResponse } = useQuotations({ page: 1, limit: 100 });
+    const allQuotations = quotationsResponse?.data || [];
+    // Filter for custom quotations (those with customName or clientName string)
+    const customQuotations = allQuotations.filter((q: any) => q.customName || (typeof q.clientName === "string" && q.clientName));
+
+    // Fetch predefined terms
+    const { data: termsResponse } = useContractTerms({ page: 1, limit: 100 });
+    const predefinedTerms = termsResponse?.data || [];
+
     const isSaving = createContractMutation.isPending;
 
     // Form state
     const [clientName, setClientName] = useState<string>("");
-    const [contractTermsInput, setContractTermsInput] = useState<string>("");
-    const [contractTermsList, setContractTermsList] = useState<string[]>([]);
-    const [contractBody, setContractBody] = useState<string>("");
+    const [clientNameAr, setClientNameAr] = useState<string>("");
+    const [selectedQuotationId, setSelectedQuotationId] = useState<string>("");
+    const [inputKey, setInputKey] = useState<string>("");
+    const [inputKeyAr, setInputKeyAr] = useState<string>("");
+    const [inputValue, setInputValue] = useState<string>("");
+    const [inputValueAr, setInputValueAr] = useState<string>("");
+    const [contractTermsList, setContractTermsList] = useState<
+        Array<{ termId?: string; key: string; keyAr: string; value: string; valueAr: string; isCustom: boolean }>
+    >([]);
+    const [editingTermIndex, setEditingTermIndex] = useState<number | null>(null);
+    const [editingTermKey, setEditingTermKey] = useState<string>("");
+    const [editingTermKeyAr, setEditingTermKeyAr] = useState<string>("");
+    const [editingTermValue, setEditingTermValue] = useState<string>("");
+    const [editingTermValueAr, setEditingTermValueAr] = useState<string>("");
     const [startDate, setStartDate] = useState<Dayjs | null>(null);
     const [endDate, setEndDate] = useState<Dayjs | null>(null);
-    const [signedDate, setSignedDate] = useState<Dayjs | null>(null);
     const [contractNote, setContractNote] = useState<string>("");
     const [status, setStatus] = useState<"draft" | "active" | "completed" | "cancelled" | "renewed">("draft");
 
-    // Auto-generate contract body when client name or dates change
-    useEffect(() => {
-        if (clientName.trim()) {
-            const generatedBody = generateContractBody();
-            setContractBody(generatedBody);
-        }
-    }, [clientName, startDate, endDate]);
-
-    const generateContractBody = (): string => {
-        const currency = lang === "ar" ? "ج.م" : "EGP";
-        const today = dayjs().format("DD/MM/YYYY");
-        
-        let contract = "══════════════════════════════════════════════════════════════\n";
-        contract += "                    SERVICE CONTRACT AGREEMENT\n";
-        contract += "══════════════════════════════════════════════════════════════\n\n";
-        
-        contract += `Contract Number: [AUTO-GENERATED]\n`;
-        contract += `Date: ${today}\n\n`;
-        
-        contract += "PARTIES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Client Name: ${clientName.trim() || "[To be filled]"}
-`;
-        contract += `Service Provider: [Your Company Name]\n\n`;
-        
-        contract += "SCOPE OF SERVICES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "[Please define the services to be provided]\n\n";
-        
-        contract += "FINANCIAL TERMS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Total Amount: [To be defined] ${currency}\n`;
-        contract += "Payment Terms: [To be defined]\n";
-        contract += "Payment Schedule: [To be defined]\n\n";
-        
-        contract += "CONTRACT DURATION:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Start Date: ${startDate ? startDate.format("DD/MM/YYYY") : "[To be filled]"}\n`;
-        contract += `End Date: ${endDate ? endDate.format("DD/MM/YYYY") : "[To be filled]"}\n\n`;
-        
-        contract += "TERMS AND CONDITIONS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "1. The service provider agrees to deliver the services outlined above.\n";
-        contract += "2. The client agrees to provide necessary cooperation and resources.\n";
-        contract += "3. All deliverables remain the property of the service provider until full payment.\n";
-        contract += "4. Either party may terminate this contract with [X] days written notice.\n";
-        contract += "5. Any modifications to this contract must be agreed upon in writing.\n\n";
-        
-        contract += "SIGNATURES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n\n";
-        contract += "Service Provider:\n";
-        contract += "Name: _______________________\n";
-        contract += "Signature: __________________\n";
-        contract += "Date: _______________________\n\n";
-        contract += "Client:\n";
-        contract += "Name: _______________________\n";
-        contract += "Signature: __________________\n";
-        contract += "Date: _______________________\n\n";
-        contract += "══════════════════════════════════════════════════════════════\n";
-        
-        return contract;
-    };
-
-    const addContractTerm = () => {
-        const term = contractTermsInput.trim();
+    const addPredefinedTerm = (termId: string) => {
+        const term = predefinedTerms.find((t) => t._id === termId);
         if (!term) return;
 
-        if (contractTermsList.includes(term)) {
-            showAlert(t("term_already_exists") || "This term already exists", "warning");
+        // Prevent duplicate predefined terms
+        const exists = contractTermsList.some((ct) => ct.termId === termId);
+        if (exists) {
+            showToast(t("term_already_added") || "This term was already added", "warning");
             return;
         }
 
-        setContractTermsList([...contractTermsList, term]);
-        setContractTermsInput("");
+        const newTerm = {
+            termId: term._id,
+            key: term.key,
+            keyAr: term.keyAr,
+            value: term.value || "",
+            valueAr: term.valueAr || "",
+            isCustom: false,
+        };
+
+        setContractTermsList((prev) => [...prev, newTerm]);
+    };
+
+    const generateSubscriptionTerm = (quotation: any) => {
+        if (!quotation.packages || quotation.packages.length === 0) return;
+
+        // Helper: conservative keyword classifiers for ads and posts
+        const adKeywords = ["إعلان", "إعلانات", "ad", "ads", "إعلان توظيف", "توظيف"];
+        const postKeywords = ["منشور", "بوست", "post", "posts", "منشورات"];
+
+        // Normalize packages into usable structure and prefer real item names
+        const packagesList: any[] = quotation.packages.map((pkg: any) => {
+            const pkgObj = typeof pkg === "object" ? pkg : {};
+            const pkgNameAr = pkgObj.nameAr || pkgObj.ar || pkgObj.name || "باقة";
+            const pkgNameEn = pkgObj.nameEn || pkgObj.en || pkgObj.name || "Package";
+
+            const pkgItems = (pkgObj.items || []).map((it: any) => {
+                // Extract quantity and item ID from the structure: { item: "id", quantity: number }
+                let quantity = 1;
+                let itemId: string | null = null;
+
+                if (typeof it === "string") {
+                    // Item is just a string ID
+                    itemId = it;
+                } else if (it && typeof it === "object") {
+                    // Item is an object with { item: "id", quantity: number }
+                    itemId = it.item || it._id;
+                    quantity = typeof it.quantity !== "undefined" ? it.quantity : 1;
+                }
+
+                // Try to resolve item from items list using the ID
+                let resolvedItem: any = null;
+                if (itemId && items.length > 0) {
+                    resolvedItem = items.find((i: any) => String(i._id) === String(itemId));
+                }
+
+                // Get names from resolved item
+                const itemNameAr = resolvedItem?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
+                const itemNameEn = resolvedItem?.nameEn || resolvedItem?.en || resolvedItem?.name || "Item";
+
+                // classify
+                const lower = (itemNameAr + " " + itemNameEn).toLowerCase();
+                const isAd = adKeywords.some((k) => lower.includes(k));
+                const isPost = postKeywords.some((k) => lower.includes(k));
+
+                return { nameAr: itemNameAr, nameEn: itemNameEn, quantity, isAd, isPost };
+            });
+
+            return { nameAr: pkgNameAr, nameEn: pkgNameEn, items: pkgItems };
+        });
+
+        // Build items lines using real item names
+        const itemsListAr = packagesList
+            .flatMap((pkg: any) => pkg.items.map((item: any) => `  - ${item.nameAr || item.nameEn} (${item.quantity})`))
+            .join("\n");
+
+        const itemsListEn = packagesList
+            .flatMap((pkg: any) => pkg.items.map((item: any) => `  - ${item.nameEn || item.nameAr} (${item.quantity})`))
+            .join("\n");
+
+        // Totals
+        const totalAds = packagesList
+            .flatMap((p: any) => p.items)
+            .filter((it: any) => it.isAd)
+            .reduce((s: number, i: any) => s + i.quantity, 0);
+        const totalPosts = packagesList
+            .flatMap((p: any) => p.items)
+            .filter((it: any) => it.isPost)
+            .reduce((s: number, i: any) => s + i.quantity, 0);
+        const totalAllItems = packagesList.flatMap((p: any) => p.items).reduce((s: number, i: any) => s + i.quantity, 0);
+
+        const postsPerDay = Math.ceil((totalPosts || totalAllItems) / 30) || 0;
+        const postsPerHour = Math.max(0, Math.ceil((totalPosts || totalAllItems) / (30 * 24)));
+
+        const packageNamesAr = packagesList.map((p: any) => p.nameAr).join("، ");
+        const packageNamesEn = packagesList.map((p: any) => p.nameEn).join(", ");
+
+        // Use the exact text template requested and fill placeholders
+        const adsTextAr = totalAds > 0 ? `${totalAds}` : `...`;
+        const postsDailyText = postsPerDay > 0 ? `${postsPerDay}` : `...`;
+
+        const valueAr = `التعاقد على الباقة ( ) التالية منصات التواصل الاجتماعي بقيمة: حيث مصري / شهرياً وتشمل التالي ( ويتم رفع نسخة من الباقة المتفق عليها بكافة تفاصيلها مع التعاقد )  \n\nالاشتراك في الباقة المتفق عليها: ${packageNamesAr}\n\nمحتوى الباقة:\n${itemsListAr}\n\nنشر وإعداد المحتوى الإعلاني والتسويقي لعدد (${adsTextAr}) إعلاناً شهرياً "من أي من التالي بناءاً على خطط كل شهر ( صور - مقاطع فيديو قصيرة - إعلانات توظيف - إعلانات عن فروع جديدة - تعديل للمشاركات )" بمعدل النشر (${postsPerHour}) كل ساعة.  تقدم خطة شهرية في بداية كل شهر، وتقرير تفصيلي بوضع جميع إنجازات ومهام الصفحة في نهاية الشهر.  تقديم استراتيجية سنوية ( للسوشيال ميديا ).  تغيير غلاف الصفحة مرة كل شهر.  نشر المحتوى على كل من المنصات التالية ( فيس بوك، إنستجرام، تيك توك ) مع عدد (${postsDailyText}) منشور يومياً على جميع المنصات`;
+
+        const valueEn = `Subscription to the following social media channels:  \n\nAgreed Package: ${packageNamesEn}\n\nPackage Contents:\n${itemsListEn}\n\nPublishing and preparing promotional/marketing content for (${adsTextAr}) ads monthly "from any of the following based on the content of each month (images - short videos - recruitment ads - ads for new branches - post edits)" with a publishing rate of (${postsPerHour}) per hour.  The monthly plan is provided at the beginning of each month, and a detailed report of all achievements and page tasks is provided at the end of the month.  Provision of an annual strategy (for social media).  Change of the page cover once a month.  Publishing content on each of the following platforms (Facebook, Instagram, TikTok) with a number of (${postsDailyText}) posts daily across all platforms.`;
+
+        const newTerm = {
+            key: "Social Media Subscription",
+            keyAr: "اشتراك وسائل التواصل الاجتماعي",
+            value: valueEn,
+            valueAr: valueAr,
+            isCustom: true,
+        };
+
+        setContractTermsList((prev) => [...prev, newTerm]);
+    };
+
+    const addCustomTerm = () => {
+        const key = inputKey.trim();
+        const keyAr = inputKeyAr.trim();
+        const value = inputValue.trim();
+        const valueAr = inputValueAr.trim();
+
+        if (!key || !keyAr) {
+            showAlert(t("term_keys_required") || "Term keys in both languages are required", "warning");
+            return;
+        }
+
+        const newTerm = {
+            key,
+            keyAr,
+            value,
+            valueAr,
+            isCustom: true,
+        };
+
+        setContractTermsList([...contractTermsList, newTerm]);
+        setInputKey("");
+        setInputKeyAr("");
+        setInputValue("");
+        setInputValueAr("");
+    };
+
+    const handleCustomTermKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            addCustomTerm();
+        }
+    };
+
+    const startEditTerm = (index: number) => {
+        const term = contractTermsList[index];
+        setEditingTermIndex(index);
+        setEditingTermKey(term.key);
+        setEditingTermKeyAr(term.keyAr);
+        setEditingTermValue(term.value);
+        setEditingTermValueAr(term.valueAr);
+    };
+
+    const saveEditTerm = () => {
+        if (editingTermIndex === null) return;
+
+        if (!editingTermKey.trim() || !editingTermKeyAr.trim()) {
+            showAlert(t("term_keys_required") || "Term keys in both languages are required", "warning");
+            return;
+        }
+
+        const updatedTerms = [...contractTermsList];
+        const existingTerm = updatedTerms[editingTermIndex];
+        updatedTerms[editingTermIndex] = {
+            ...existingTerm,
+            key: editingTermKey.trim(),
+            keyAr: editingTermKeyAr.trim(),
+            value: editingTermValue.trim(),
+            valueAr: editingTermValueAr.trim(),
+        };
+
+        setContractTermsList(updatedTerms);
+        setEditingTermIndex(null);
+        setEditingTermKey("");
+        setEditingTermKeyAr("");
+        setEditingTermValue("");
+        setEditingTermValueAr("");
+    };
+
+    const cancelEditTerm = () => {
+        setEditingTermIndex(null);
+        setEditingTermKey("");
+        setEditingTermKeyAr("");
+        setEditingTermValue("");
+        setEditingTermValueAr("");
     };
 
     const removeTerm = (index: number) => {
@@ -126,17 +269,35 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
             return;
         }
 
-        // For custom contracts without a real client, we need to create a placeholder
-        // Note: This depends on your backend implementation
-        // You may need to adjust this based on how your backend handles custom contracts
+        // Build payload for custom contracts without client references
+        // Backend requires either clientId OR both clientName + clientNameAr
         const contractData = {
-            clientId: "custom", // Placeholder - adjust based on backend
-            customClientName: clientName.trim(), // Custom field to store client name
-            contractTerms: contractTermsList.length > 0 ? contractTermsList : undefined,
-            body: contractBody.trim() || undefined,
+            clientName: clientName.trim(),
+            clientNameAr: clientNameAr.trim() || clientName.trim(), // fallback to English if Arabic not provided
+            quotationId: selectedQuotationId || undefined,
+            terms:
+                contractTermsList.length > 0
+                    ? contractTermsList.map((term, index) => {
+                          if (term.isCustom) {
+                              return {
+                                  customKey: term.key,
+                                  customKeyAr: term.keyAr,
+                                  customValue: term.value,
+                                  customValueAr: term.valueAr,
+                                  order: index,
+                                  isCustom: true,
+                              };
+                          } else {
+                              return {
+                                  term: term.termId,
+                                  order: index,
+                                  isCustom: false,
+                              };
+                          }
+                      })
+                    : [],
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
-            signedDate: signedDate ? signedDate.toISOString() : undefined,
             status,
             note: contractNote.trim() || undefined,
         };
@@ -156,6 +317,7 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
 
     return (
         <div className="space-y-6">
+            <style>{`.custom-date-input{color:var(--color-light-900) !important;} .dark .custom-date-input{color:var(--color-white) !important;} .custom-date-input::placeholder{color:var(--color-light-400) !important;} .dark .custom-date-input::placeholder{color:var(--color-dark-50) !important;}`}</style>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -176,21 +338,81 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
             <div className="card">
                 <div className="space-y-6">
                     {/* Client Name */}
-                    <div>
-                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("client_name") || "Client Name"} *</label>
-                        <input
-                            type="text"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                            placeholder={t("enter_client_name") || "Enter client name..."}
-                        />
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <div>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("client_name") || "Client Name"} *
+                            </label>
+                            <input
+                                type="text"
+                                value={clientName}
+                                onChange={(e) => setClientName(e.target.value)}
+                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                placeholder={t("enter_client_name") || "Enter client name..."}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("client_name_ar") || "Client Name (Arabic)"}
+                            </label>
+                            <input
+                                type="text"
+                                value={clientNameAr}
+                                onChange={(e) => setClientNameAr(e.target.value)}
+                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                placeholder={t("enter_client_name_ar") || "الاسم (بالعربية)"}
+                            />
+                        </div>
                     </div>
+
+                    {/* Quotation Selection */}
+                    {customQuotations.length > 0 && (
+                        <div>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("select_quotation") || "Select Custom Quotation"} ({t("optional") || "optional"})
+                            </label>
+                            <select
+                                value={selectedQuotationId}
+                                onChange={(e) => setSelectedQuotationId(e.target.value)}
+                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            >
+                                <option value="">{t("no_quotation") || "No Quotation"}</option>
+                                {customQuotations.map((q: any) => (
+                                    <option
+                                        key={q._id}
+                                        value={q._id}
+                                    >
+                                        {q.customName || q.clientName || q.quotationNumber} - {q.total} {lang === "ar" ? "ج.م" : "EGP"}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedQuotationId && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            const response = await getQuotationById(selectedQuotationId);
+                                            generateSubscriptionTerm(response.data);
+                                            showToast(t("term_generated") || "Subscription term generated successfully", "success");
+                                        } catch (error) {
+                                            showAlert(t("failed_to_load_quotation") || "Failed to load quotation", "error");
+                                        }
+                                    }}
+                                    className="btn-ghost mt-2 text-sm"
+                                >
+                                    <Plus size={16} />
+                                    {t("generate_subscription_term") || "Generate Subscription Term from Package"}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     {/* Dates Section */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("start_date") || "Start Date"} *</label>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("start_date") || "Start Date"} *
+                            </label>
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DatePicker
                                     value={startDate}
@@ -199,6 +421,13 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
+                                            className:
+                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            inputProps: {
+                                                placeholder: "MM/DD/YYYY",
+                                                className:
+                                                    "text-sm text-light-900 dark:text-white placeholder-light-500 dark:placeholder-dark-50 custom-date-input",
+                                            },
                                         },
                                     }}
                                 />
@@ -206,7 +435,9 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                         </div>
 
                         <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("end_date") || "End Date"} *</label>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("end_date") || "End Date"} *
+                            </label>
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DatePicker
                                     value={endDate}
@@ -216,22 +447,13 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                        },
-                                    }}
-                                />
-                            </LocalizationProvider>
-                        </div>
-
-                        <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("signed_date") || "Signed Date"}</label>
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DatePicker
-                                    value={signedDate}
-                                    onChange={(newValue) => setSignedDate(newValue)}
-                                    slotProps={{
-                                        textField: {
-                                            fullWidth: true,
-                                            size: "small",
+                                            className:
+                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            inputProps: {
+                                                placeholder: "MM/DD/YYYY",
+                                                className:
+                                                    "text-sm text-light-900 dark:text-white placeholder-light-500 dark:placeholder-dark-50 custom-date-input",
+                                            },
                                         },
                                     }}
                                 />
@@ -245,7 +467,7 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as any)}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
                         >
                             <option value="draft">{t("draft") || "Draft"}</option>
                             <option value="active">{t("active") || "Active"}</option>
@@ -255,56 +477,174 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                         </select>
                     </div>
 
-                    {/* Contract Body */}
+                    {/* Contract Terms Management */}
                     <div>
-                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("contract_body") || "Contract Body"}</label>
-                        <textarea
-                            value={contractBody}
-                            onChange={(e) => setContractBody(e.target.value)}
-                            rows={12}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full resize-none rounded-lg border px-4 py-2 font-mono text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                            placeholder={t("enter_contract_body") || "Enter the full contract text..."}
-                        />
-                    </div>
+                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                            {t("contract_terms") || "Contract Terms"}
+                        </label>
 
-                    {/* Contract Terms */}
-                    <div>
-                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("contract_terms") || "Contract Terms"}</label>
-                        <div className="mb-3 flex gap-2">
-                            <input
-                                type="text"
-                                value={contractTermsInput}
-                                onChange={(e) => setContractTermsInput(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && addContractTerm()}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 flex-1 rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                                placeholder={t("add_contract_term") || "Add a contract term..."}
-                            />
-                            <button
-                                onClick={addContractTerm}
-                                className="btn-primary"
-                            >
-                                {t("add") || "Add"}
-                            </button>
-                        </div>
-
-                        {contractTermsList.length > 0 && (
-                            <div className="space-y-2">
-                                {contractTermsList.map((term, index) => (
-                                    <div
-                                        key={index}
-                                        className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-700 flex items-center justify-between rounded-lg border p-3"
-                                    >
-                                        <span className="text-light-900 dark:text-dark-50">{term}</span>
-                                        <button
-                                            onClick={() => removeTerm(index)}
-                                            className="text-danger-500 hover:text-danger-600"
+                        <div className="card">
+                            {/* Display existing terms */}
+                            {contractTermsList.length > 0 && (
+                                <div className="mb-4 grid gap-3">
+                                    {contractTermsList.map((term, index) => (
+                                        <div
+                                            key={index}
+                                            className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 rounded-lg border bg-white px-3 py-2"
                                         >
-                                            ×
-                                        </button>
+                                            {editingTermIndex === index ? (
+                                                <div className="flex w-full flex-col gap-3">
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            value={editingTermKey}
+                                                            onChange={(e) => setEditingTermKey(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_key") || "Term Key (English)"}
+                                                        />
+                                                        <input
+                                                            value={editingTermKeyAr}
+                                                            onChange={(e) => setEditingTermKeyAr(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_key_ar") || "المفتاح (بالعربية)"}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <textarea
+                                                            value={editingTermValue}
+                                                            onChange={(e) => setEditingTermValue(e.target.value)}
+                                                            rows={3}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 resize-none rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_value") || "Value (English)"}
+                                                        />
+                                                        <textarea
+                                                            value={editingTermValueAr}
+                                                            onChange={(e) => setEditingTermValueAr(e.target.value)}
+                                                            rows={3}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 resize-none rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_value_ar") || "القيمة (بالعربية)"}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={saveEditTerm}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <Check size={14} />
+                                                            {t("save")}
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditTerm}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <X size={14} />
+                                                            {t("cancel")}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                            {lang === "ar" ? term.keyAr : term.key}
+                                                        </span>
+                                                        {(term.value || term.valueAr) && (
+                                                            <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                {lang === "ar" ? term.valueAr : term.value}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => startEditTerm(index)}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeTerm(index)}
+                                                            className="btn-ghost text-danger-500 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Predefined Terms Selection */}
+                            {predefinedTerms.length > 0 && (
+                                <div className="mb-4">
+                                    <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
+                                        {t("select_predefined_terms") || "Select Predefined Terms"}
+                                    </h4>
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                        {predefinedTerms.map((term) => {
+                                            const isSelected = contractTermsList.some((ct) => ct.termId === term._id);
+                                            return (
+                                                <button
+                                                    key={term._id}
+                                                    onClick={() => addPredefinedTerm(term._id)}
+                                                    className={`flex flex-col items-start rounded-lg p-3 text-left text-sm transition-colors ${
+                                                        isSelected
+                                                            ? "btn-primary"
+                                                            : "border-light-300 dark:border-dark-600 bg-light-50 hover:bg-light-100 dark:bg-dark-800 dark:hover:bg-dark-700 text-light-900 dark:text-dark-50 border"
+                                                    }`}
+                                                >
+                                                    <span className="font-medium">{lang === "ar" ? term.keyAr : term.key}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                ))}
+                                </div>
+                            )}
+
+                            {/* Add Custom Term */}
+                            <div className="border-light-300 dark:border-dark-600 dark:bg-dark-900 rounded-lg border bg-white p-3">
+                                <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
+                                    {t("or_add_custom_term") || "Or Add Custom Term"}
+                                </h4>
+                                <div className="flex gap-2">
+                                    <input
+                                        value={inputKey}
+                                        onChange={(e) => setInputKey(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_key") || "Term Key (e.g., Payment)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputKeyAr}
+                                        onChange={(e) => setInputKeyAr(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_key_ar") || "المفتاح (مثال: الدفع)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_value") || "Value (e.g., 50% advance)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputValueAr}
+                                        onChange={(e) => setInputValueAr(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_value_ar") || "القيمة (مثال: 50% مقدم)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <button
+                                        onClick={addCustomTerm}
+                                        className="btn-primary flex items-center gap-2"
+                                    >
+                                        <Plus size={14} />
+                                        {t("add")}
+                                    </button>
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Notes */}
@@ -314,7 +654,7 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                             value={contractNote}
                             onChange={(e) => setContractNote(e.target.value)}
                             rows={3}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full resize-none rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full resize-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
                             placeholder={t("add_notes") || "Add any additional notes..."}
                         />
                     </div>
@@ -328,7 +668,7 @@ const CustomContract = ({ onBack, onSuccess }: CustomContractProps) => {
                         >
                             {isSaving ? (
                                 <>
-                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <Loader2 className="h-5 w-5 animate-spin text-light-500" />
                                     {t("saving") || "Saving..."}
                                 </>
                             ) : (

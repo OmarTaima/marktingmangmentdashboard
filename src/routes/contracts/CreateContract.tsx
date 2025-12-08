@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { Loader2, FileCheck } from "lucide-react";
+import { useState, useEffect, KeyboardEvent } from "react";
+import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
 import { useCreateContract, useUpdateContract, useQuotations, useItems } from "@/hooks/queries";
+import { useContractTerms } from "@/hooks/queries/useContractTermsQuery";
 import { getQuotationById } from "@/api/requests/quotationsService";
 import type { Contract } from "@/api/requests/contractsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
@@ -29,288 +30,293 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations({ page: 1, limit: 100, clientId });
     const clientQuotations = quotationsResponse?.data || [];
 
-    // Fetch items for detailed info
-    const { data: itemsResponse, isLoading: itemsLoading } = useItems({ limit: 1000 });
-    const items = itemsResponse?.data || [];
+    // Fetch items for name resolution in subscription terms (used in generateSubscriptionTerm)
+    const { data: itemsData, isLoading: itemsLoading } = useItems({ page: 1, limit: 1000 });
+    const items = itemsData?.data || [];
+
+    // Fetch predefined terms
+    const { data: termsResponse, isLoading: termsLoading } = useContractTerms({ page: 1, limit: 100 });
+    const predefinedTerms = termsResponse?.data || [];
 
     const isSaving = createContractMutation.isPending || updateContractMutation.isPending;
-    const isLoading = quotationsLoading || itemsLoading;
+    // Wait until quotations, items and predefined terms are all loaded before rendering the page
+    const isLoading = quotationsLoading || itemsLoading || termsLoading;
 
     // Form state
-    const [contractTermsInput, setContractTermsInput] = useState<string>("");
-    const [contractTermsList, setContractTermsList] = useState<string[]>(editContract?.contractTerms || []);
-    const [contractBody, setContractBody] = useState<string>(editContract?.body || "");
+    const [inputKey, setInputKey] = useState<string>("");
+    const [inputKeyAr, setInputKeyAr] = useState<string>("");
+    const [inputValue, setInputValue] = useState<string>("");
+    const [inputValueAr, setInputValueAr] = useState<string>("");
+    const [contractTermsList, setContractTermsList] = useState<
+        Array<{ termId?: string; key: string; keyAr: string; value: string; valueAr: string; isCustom: boolean }>
+    >(
+        (editContract?.terms || []).map((termItem: any) => {
+            if (termItem.isCustom) {
+                return {
+                    key: termItem.customKey || "",
+                    keyAr: termItem.customKeyAr || "",
+                    value: termItem.customValue || "",
+                    valueAr: termItem.customValueAr || "",
+                    isCustom: true,
+                };
+            } else {
+                // For predefined terms, fetch from term reference
+                const term = termItem.term;
+                return {
+                    termId: typeof term === "string" ? term : term?._id,
+                    key: term?.key || "",
+                    keyAr: term?.keyAr || "",
+                    value: term?.value || "",
+                    valueAr: term?.valueAr || "",
+                    isCustom: false,
+                };
+            }
+        }),
+    );
+    const [editingTermIndex, setEditingTermIndex] = useState<number | null>(null);
+    const [editingTermKey, setEditingTermKey] = useState<string>("");
+    const [editingTermKeyAr, setEditingTermKeyAr] = useState<string>("");
+    const [editingTermValue, setEditingTermValue] = useState<string>("");
+    const [editingTermValueAr, setEditingTermValueAr] = useState<string>("");
     const [startDate, setStartDate] = useState<Dayjs | null>(editContract?.startDate ? dayjs(editContract.startDate) : null);
     const [endDate, setEndDate] = useState<Dayjs | null>(editContract?.endDate ? dayjs(editContract.endDate) : null);
-    const [signedDate, setSignedDate] = useState<Dayjs | null>(editContract?.signedDate ? dayjs(editContract.signedDate) : null);
     const [contractNote, setContractNote] = useState<string>(editContract?.note || "");
     const [status, setStatus] = useState<"draft" | "active" | "completed" | "cancelled" | "renewed">(editContract?.status || "draft");
     const [selectedQuotationId, setSelectedQuotationId] = useState<string>(
         quotationId || (typeof editContract?.quotationId === "string" ? editContract.quotationId : editContract?.quotationId?._id || ""),
     );
 
-    // Load quotation data if quotationId is provided, or generate default template
+    // Load quotation data if quotationId is provided
     useEffect(() => {
         if (quotationId && !editContract) {
             loadQuotationData(quotationId);
-        } else if (!editContract && !contractBody) {
-            // Generate default contract body template
-            const defaultBody = generateDefaultContractBody();
-            setContractBody(defaultBody);
         }
     }, [quotationId]);
-
-    // Update contract body when dates change
-    useEffect(() => {
-        if (!selectedQuotationId && !editContract && (startDate || endDate)) {
-            const defaultBody = generateDefaultContractBody();
-            setContractBody(defaultBody);
-        }
-    }, [startDate, endDate]);
 
     const loadQuotationData = async (qId: string) => {
         try {
             const response = await getQuotationById(qId);
             const quotation = response.data;
 
-            // Pre-fill contract body with quotation details
-            const quotationSummary = generateQuotationSummary(quotation);
-            setContractBody(quotationSummary);
+            // Pre-fill dates: prefer explicit quotation start/end fields, fall back to validUntil
+            const qStart = (quotation as any).startDate || (quotation as any).validFrom || null;
+            const qEnd = (quotation as any).endDate || (quotation as any).validUntil || null;
 
-            // Pre-fill dates
-            if (quotation.validUntil) {
+            if (qStart) {
+                setStartDate(dayjs(qStart));
+            } else {
+                // If no start provided, default to now
                 setStartDate(dayjs());
-                setEndDate(dayjs(quotation.validUntil));
             }
+
+            if (qEnd) {
+                setEndDate(dayjs(qEnd));
+            }
+
+            // Auto-generate Arabic contract term with package details
+            generateSubscriptionTerm(quotation);
         } catch (error: any) {
             console.error("Failed to load quotation:", error);
         }
     };
 
-    const generateDefaultContractBody = (): string => {
-        const currency = lang === "ar" ? "ج.م" : "EGP";
-        const today = dayjs().format("DD/MM/YYYY");
-        
-        let contract = "══════════════════════════════════════════════════════════════\n";
-        contract += "                    SERVICE CONTRACT AGREEMENT\n";
-        contract += "══════════════════════════════════════════════════════════════\n\n";
-        
-        contract += `Contract Number: [AUTO-GENERATED]\n`;
-        contract += `Date: ${today}\n\n`;
-        
-        contract += "PARTIES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Client Name: ${clientName}\n`;
-        contract += `Service Provider: [Your Company Name]\n\n`;
-        
-        contract += "SCOPE OF SERVICES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "[Please define the services and deliverables to be provided under this contract]\n\n";
-        
-        contract += "FINANCIAL TERMS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Total Contract Value: [Amount] ${currency}\n`;
-        contract += "Payment Terms: [Define payment schedule]\n";
-        contract += "Payment Method: [Specify payment method]\n\n";
-        
-        contract += "CONTRACT DURATION:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Start Date: ${startDate ? startDate.format("DD/MM/YYYY") : "[To be specified]"}\n`;
-        contract += `End Date: ${endDate ? endDate.format("DD/MM/YYYY") : "[To be specified]"}\n`;
-        const durationText = startDate && endDate ? `Duration: ${endDate.diff(startDate, 'month')} months` : "Duration: [To be calculated]";
-        contract += `${durationText}\n\n`;
-        
-        contract += "TERMS AND CONDITIONS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "1. Service Delivery: The service provider agrees to deliver all services as outlined in the scope of work.\n";
-        contract += "2. Client Obligations: The client agrees to provide timely feedback, necessary resources, and access as required.\n";
-        contract += "3. Payment Terms: Payment shall be made according to the schedule specified in the financial terms section.\n";
-        contract += "4. Intellectual Property: All deliverables remain the property of the service provider until full payment is received.\n";
-        contract += "5. Confidentiality: Both parties agree to maintain confidentiality of all proprietary information.\n";
-        contract += "6. Termination: Either party may terminate this contract with 30 days written notice.\n";
-        contract += "7. Liability: The service provider's liability is limited to the total contract value.\n";
-        contract += "8. Modifications: Any changes to this contract must be agreed upon in writing by both parties.\n\n";
-        
-        contract += "DELIVERABLES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "[List all expected deliverables with timelines]\n\n";
-        
-        contract += "SIGNATURES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n\n";
-        contract += "Service Provider:\n";
-        contract += "Name: _______________________\n";
-        contract += "Signature: __________________\n";
-        contract += `Date: ${today}\n\n`;
-        contract += "Client:\n";
-        contract += `Name: ${clientName}\n`;
-        contract += "Signature: __________________\n";
-        contract += `Date: ${today}\n\n`;
-        contract += "══════════════════════════════════════════════════════════════\n";
-        
-        return contract;
+    const generateSubscriptionTerm = (quotation: any) => {
+        if (!quotation.packages || quotation.packages.length === 0) return;
+
+        // Helper: conservative keyword classifiers for ads and posts
+        const adKeywords = ["إعلان", "إعلانات", "ad", "ads", "إعلان توظيف", "توظيف"];
+        const postKeywords = ["منشور", "بوست", "post", "posts", "منشورات"];
+
+        // Normalize packages into usable structure and prefer real item names
+        const packagesList: any[] = quotation.packages.map((pkg: any) => {
+            const pkgObj = typeof pkg === "object" ? pkg : {};
+            const pkgNameAr = pkgObj.nameAr || pkgObj.ar || pkgObj.name || "باقة";
+            const pkgNameEn = pkgObj.nameEn || pkgObj.en || pkgObj.name || "Package";
+
+            const pkgItems = (pkgObj.items || []).map((it: any) => {
+                // Extract quantity and item ID from the structure: { item: "id", quantity: number }
+                let quantity = 1;
+                let itemId: string | null = null;
+
+                if (typeof it === "string") {
+                    // Item is just a string ID
+                    itemId = it;
+                } else if (it && typeof it === "object") {
+                    // Item is an object with { item: "id", quantity: number }
+                    itemId = it.item || it._id;
+                    quantity = typeof it.quantity !== "undefined" ? it.quantity : 1;
+                }
+
+                // Try to resolve item from items list using the ID
+                let resolvedItem: any = null;
+                if (itemId && items.length > 0) {
+                    resolvedItem = items.find((i: any) => String(i._id) === String(itemId));
+                }
+
+                // Get names from resolved item
+                const itemNameAr = resolvedItem?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
+                const itemNameEn = resolvedItem?.nameEn || resolvedItem?.en || resolvedItem?.name || "Item";
+
+                // classify
+                const lower = (itemNameAr + " " + itemNameEn).toLowerCase();
+                const isAd = adKeywords.some((k) => lower.includes(k));
+                const isPost = postKeywords.some((k) => lower.includes(k));
+
+                return { nameAr: itemNameAr, nameEn: itemNameEn, quantity, isAd, isPost };
+            });
+
+            return { nameAr: pkgNameAr, nameEn: pkgNameEn, items: pkgItems };
+        });
+
+        // Build items lines using real item names
+        const itemsListAr = packagesList
+            .flatMap((pkg: any) => pkg.items.map((item: any) => `  - ${item.nameAr || item.nameEn} (${item.quantity})`))
+            .join("\n");
+
+        const itemsListEn = packagesList
+            .flatMap((pkg: any) => pkg.items.map((item: any) => `  - ${item.nameEn || item.nameAr} (${item.quantity})`))
+            .join("\n");
+
+        // Totals
+        const totalAds = packagesList
+            .flatMap((p: any) => p.items)
+            .filter((it: any) => it.isAd)
+            .reduce((s: number, i: any) => s + i.quantity, 0);
+        const totalPosts = packagesList
+            .flatMap((p: any) => p.items)
+            .filter((it: any) => it.isPost)
+            .reduce((s: number, i: any) => s + i.quantity, 0);
+        const totalAllItems = packagesList.flatMap((p: any) => p.items).reduce((s: number, i: any) => s + i.quantity, 0);
+
+        const postsPerDay = Math.ceil((totalPosts || totalAllItems) / 30) || 0;
+        const postsPerHour = Math.max(0, Math.ceil((totalPosts || totalAllItems) / (30 * 24)));
+
+        const packageNamesAr = packagesList.map((p: any) => p.nameAr).join("، ");
+        const packageNamesEn = packagesList.map((p: any) => p.nameEn).join(", ");
+
+        // Use the exact text template requested and fill placeholders
+        const adsTextAr = totalAds > 0 ? `${totalAds}` : `...`;
+        const postsDailyText = postsPerDay > 0 ? `${postsPerDay}` : `...`;
+
+        const valueAr = `التعاقد على الباقة (${packageNamesAr} ) التالية منصات التواصل الاجتماعي بقيمة: حيث مصري / شهرياً وتشمل التالي ( ويتم رفع نسخة من الباقة المتفق عليها بكافة تفاصيلها مع التعاقد )  \n\nالاشتراك في الباقة المتفق عليها: ${packageNamesAr}\n\nمحتوى الباقة:\n${itemsListAr}\n\nنشر وإعداد المحتوى الإعلاني والتسويقي لعدد (${adsTextAr}) إعلاناً شهرياً "من أي من التالي بناءاً على خطط كل شهر ( صور - مقاطع فيديو قصيرة - إعلانات توظيف - إعلانات عن فروع جديدة - تعديل للمشاركات )" بمعدل النشر (${postsPerHour}) كل ساعة.  تقدم خطة شهرية في بداية كل شهر، وتقرير تفصيلي بوضع جميع إنجازات ومهام الصفحة في نهاية الشهر.  تقديم استراتيجية سنوية ( للسوشيال ميديا ).  تغيير غلاف الصفحة مرة كل شهر.  نشر المحتوى على كل من المنصات التالية ( فيس بوك، إنستجرام، تيك توك ) مع عدد (${postsDailyText}) منشور يومياً على جميع المنصات`;
+
+        const valueEn = `Subscription to the following social media channels:  \n\nAgreed Package: ${packageNamesEn}\n\nPackage Contents:\n${itemsListEn}\n\nPublishing and preparing promotional/marketing content for (${adsTextAr}) ads monthly "from any of the following based on the content of each month (images - short videos - recruitment ads - ads for new branches - post edits)" with a publishing rate of (${postsPerHour}) per hour.  The monthly plan is provided at the beginning of each month, and a detailed report of all achievements and page tasks is provided at the end of the month.  Provision of an annual strategy (for social media).  Change of the page cover once a month.  Publishing content on each of the following platforms (Facebook, Instagram, TikTok) with a number of (${postsDailyText}) posts daily across all platforms.`;
+
+        const newTerm = {
+            key: "Social Media Subscription",
+            keyAr: "اشتراك وسائل التواصل الاجتماعي",
+            value: valueEn,
+            valueAr: valueAr,
+            isCustom: true,
+        };
+
+        setContractTermsList((prev) => [...prev, newTerm]);
     };
 
-    const generateQuotationSummary = (quotation: any): string => {
-        const currency = lang === "ar" ? "ج.م" : "EGP";
-        const today = dayjs().format("DD/MM/YYYY");
-        
-        let contract = "══════════════════════════════════════════════════════════════\n";
-        contract += "                    SERVICE CONTRACT AGREEMENT\n";
-        contract += "══════════════════════════════════════════════════════════════\n\n";
-        
-        contract += `Contract Number: ${quotation.quotationNumber || "[AUTO-GENERATED]"}\n`;
-        contract += `Date: ${today}\n\n`;
-        
-        contract += "PARTIES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Client Name: ${quotation.clientName || clientName}\n`;
-        contract += `Service Provider: [Your Company Name]\n\n`;
-        
-        contract += "SCOPE OF SERVICES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n\n";
-
-        if (quotation.packages && quotation.packages.length > 0) {
-            contract += "Services Included:\n\n";
-            quotation.packages.forEach((pkg: any, pkgIndex: number) => {
-                const pkgObj = typeof pkg === "object" ? pkg : {};
-                const pkgName = pkgObj.nameEn || pkgObj.name || pkgObj.ar || `Package ${pkgIndex + 1}`;
-                const pkgPrice = pkgObj.price || 0;
-                
-                contract += `${pkgIndex + 1}. ${pkgName} - ${pkgPrice.toFixed(2)} ${currency}\n`;
-                
-                // Add package items if available
-                if (pkgObj.items && Array.isArray(pkgObj.items) && pkgObj.items.length > 0) {
-                    pkgObj.items.forEach((it: any) => {
-                        const itemObj = (it && (it.item || it)) || {};
-                        let itemName = itemObj?.name || itemObj?.nameEn || itemObj?.nameAr || "Item";
-                        const quantity = typeof it?.quantity !== "undefined" ? it.quantity : itemObj?.quantity;
-                        
-                        // Try to find item details from items list
-                        if ((!itemName || itemName === "(item)") && items.length > 0) {
-                            const itemId = typeof itemObj === "string" ? itemObj : itemObj?._id || itemObj?.id;
-                            if (itemId) {
-                                const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
-                                if (foundItem) {
-                                    itemName = (foundItem as any).name || (foundItem as any).nameEn || (foundItem as any).nameAr || itemName;
-                                }
-                            }
-                        }
-                        
-                        const qtyText = typeof quantity !== "undefined" ? ` (Qty: ${quantity})` : "";
-                        contract += `   • ${itemName}${qtyText}\n`;
-                    });
-                }
-                contract += "\n";
-            });
-        }
-
-        if (quotation.servicesPricing && quotation.servicesPricing.length > 0) {
-            if (!quotation.packages || quotation.packages.length === 0) {
-                contract += "Services Included:\n\n";
-            }
-            quotation.servicesPricing.forEach((sp: any, idx: number) => {
-                const service = sp.service;
-                if (!service) return;
-                const serviceName = (lang === "ar" ? service.ar : service.en) || "Service";
-                const price = sp.customPrice || service.price || 0;
-                contract += `${idx + 1}. ${serviceName} - ${price.toFixed(2)} ${currency}\n`;
-            });
-            contract += "\n";
-        }
-
-        if (quotation.customServices && quotation.customServices.length > 0) {
-            contract += "Custom Services:\n\n";
-            quotation.customServices.forEach((cs: any, idx: number) => {
-                const serviceName = lang === "ar" ? cs.ar : cs.en;
-                let finalPrice = cs.price;
-                let priceDetail = "";
-                
-                if (cs.discount && cs.discount > 0) {
-                    if (cs.discountType === "percentage") {
-                        const discountAmt = (cs.price * cs.discount) / 100;
-                        finalPrice = cs.price - discountAmt;
-                        priceDetail = ` (Original: ${cs.price.toFixed(2)} ${currency}, Discount: ${cs.discount}%)`;
-                    } else {
-                        finalPrice = cs.price - cs.discount;
-                        priceDetail = ` (Discount: ${cs.discount.toFixed(2)} ${currency})`;
-                    }
-                }
-                
-                contract += `${idx + 1}. ${serviceName} - ${finalPrice.toFixed(2)} ${currency}${priceDetail}\n`;
-            });
-            contract += "\n";
-        }
-
-        contract += "FINANCIAL TERMS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        
-        const subtotal = quotation.subtotal || quotation.total || 0;
-        contract += `Subtotal: ${subtotal.toFixed(2)} ${currency}\n`;
-        
-        if (quotation.discount && quotation.discount > 0) {
-            const discountType = quotation.discountType === "percentage" ? "%" : currency;
-            contract += `Discount: ${quotation.discount} ${discountType}\n`;
-        }
-        
-        contract += `TOTAL AMOUNT: ${(quotation.total || 0).toFixed(2)} ${currency}\n\n`;
-        
-        contract += "Payment Terms: [To be defined]\n";
-        contract += "Payment Schedule: [To be defined]\n\n";
-        
-        contract += "CONTRACT DURATION:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += `Start Date: [To be filled]\n`;
-        contract += `End Date: [To be filled]\n`;
-        if (quotation.validUntil) {
-            contract += `Valid Until: ${dayjs(quotation.validUntil).format("DD/MM/YYYY")}\n`;
-        }
-        contract += "\n";
-        
-        contract += "TERMS AND CONDITIONS:\n";
-        contract += "──────────────────────────────────────────────────────────────\n";
-        contract += "1. The service provider agrees to deliver the services outlined above.\n";
-        contract += "2. The client agrees to provide necessary cooperation and resources.\n";
-        contract += "3. All deliverables remain the property of the service provider until full payment.\n";
-        contract += "4. Either party may terminate this contract with [X] days written notice.\n";
-        contract += "5. Any modifications to this contract must be agreed upon in writing.\n\n";
-        
-        if (quotation.note) {
-            contract += "ADDITIONAL NOTES:\n";
-            contract += "──────────────────────────────────────────────────────────────\n";
-            contract += `${quotation.note}\n\n`;
-        }
-        
-        contract += "SIGNATURES:\n";
-        contract += "──────────────────────────────────────────────────────────────\n\n";
-        contract += "Service Provider:\n";
-        contract += "Name: _______________________\n";
-        contract += "Signature: __________________\n";
-        contract += "Date: _______________________\n\n";
-        contract += "Client:\n";
-        contract += "Name: _______________________\n";
-        contract += "Signature: __________________\n";
-        contract += "Date: _______________________\n\n";
-        contract += "══════════════════════════════════════════════════════════════\n";
-        
-        return contract;
-    };
-
-    const addContractTerm = () => {
-        const term = contractTermsInput.trim();
+    const addPredefinedTerm = (termId: string) => {
+        const term = predefinedTerms.find((t) => t._id === termId);
         if (!term) return;
 
-        if (contractTermsList.includes(term)) {
-            showAlert(t("term_already_exists") || "This term already exists", "warning");
+        // Prevent adding the same predefined term more than once
+        const exists = contractTermsList.some((ct) => ct.termId === termId);
+        if (exists) {
+            showToast(t("term_already_added") || "This term was already added", "warning");
             return;
         }
 
-        setContractTermsList([...contractTermsList, term]);
-        setContractTermsInput("");
+        const newTerm = {
+            termId: term._id,
+            key: term.key,
+            keyAr: term.keyAr,
+            value: term.value || "",
+            valueAr: term.valueAr || "",
+            isCustom: false,
+        };
+
+        setContractTermsList((prev) => [...prev, newTerm]);
+    };
+
+    const addCustomTerm = () => {
+        const key = inputKey.trim();
+        const keyAr = inputKeyAr.trim();
+        const value = inputValue.trim();
+        const valueAr = inputValueAr.trim();
+
+        if (!key || !keyAr) {
+            showAlert(t("term_keys_required") || "Term keys in both languages are required", "warning");
+            return;
+        }
+
+        const newTerm = {
+            key,
+            keyAr,
+            value,
+            valueAr,
+            isCustom: true,
+        };
+
+        setContractTermsList([...contractTermsList, newTerm]);
+        setInputKey("");
+        setInputKeyAr("");
+        setInputValue("");
+        setInputValueAr("");
+    };
+
+    const handleCustomTermKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            addCustomTerm();
+        }
+    };
+
+    const startEditTerm = (index: number) => {
+        const term = contractTermsList[index];
+        setEditingTermIndex(index);
+        setEditingTermKey(term.key);
+        setEditingTermKeyAr(term.keyAr);
+        setEditingTermValue(term.value);
+        setEditingTermValueAr(term.valueAr);
+    };
+
+    const saveEditTerm = () => {
+        if (editingTermIndex === null) return;
+
+        if (!editingTermKey.trim() || !editingTermKeyAr.trim()) {
+            showAlert(t("term_keys_required") || "Term keys in both languages are required", "warning");
+            return;
+        }
+
+        const updatedTerms = [...contractTermsList];
+        const existingTerm = updatedTerms[editingTermIndex];
+        updatedTerms[editingTermIndex] = {
+            ...existingTerm,
+            key: editingTermKey.trim(),
+            keyAr: editingTermKeyAr.trim(),
+            value: editingTermValue.trim(),
+            valueAr: editingTermValueAr.trim(),
+        };
+
+        setContractTermsList(updatedTerms);
+        setEditingTermIndex(null);
+        setEditingTermKey("");
+        setEditingTermKeyAr("");
+        setEditingTermValue("");
+        setEditingTermValueAr("");
+    };
+
+    const cancelEditTerm = () => {
+        setEditingTermIndex(null);
+        setEditingTermKey("");
+        setEditingTermKeyAr("");
+        setEditingTermValue("");
+        setEditingTermValueAr("");
     };
 
     const removeTerm = (index: number) => {
         setContractTermsList(contractTermsList.filter((_, i) => i !== index));
     };
+
+    // Deprecated helper removed
 
     const handleSave = async () => {
         if (!clientId) {
@@ -331,11 +337,29 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         const contractData = {
             clientId,
             quotationId: selectedQuotationId || undefined,
-            contractTerms: contractTermsList.length > 0 ? contractTermsList : undefined,
-            body: contractBody.trim() || undefined,
+            terms:
+                contractTermsList.length > 0
+                    ? contractTermsList.map((term, index) => {
+                          if (term.isCustom) {
+                              return {
+                                  customKey: term.key,
+                                  customKeyAr: term.keyAr,
+                                  customValue: term.value,
+                                  customValueAr: term.valueAr,
+                                  order: index,
+                                  isCustom: true,
+                              };
+                          } else {
+                              return {
+                                  term: term.termId,
+                                  order: index,
+                                  isCustom: false,
+                              };
+                          }
+                      })
+                    : [],
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
-            signedDate: signedDate ? signedDate.toISOString() : undefined,
             status,
             note: contractNote.trim() || undefined,
         };
@@ -366,7 +390,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="text-primary-500 mx-auto mb-4 h-12 w-12 animate-spin" />
+                        <Loader2 className="text-light-500 mx-auto mb-4 h-12 w-12 animate-spin" />
                     <p className="text-light-600 dark:text-dark-400">{t("loading_contract_data") || "Loading contract data..."}</p>
                 </div>
             </div>
@@ -375,6 +399,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
 
     return (
         <div className="space-y-6">
+            <style>{`.custom-date-input{color:var(--color-light-900) !important;} .dark .custom-date-input{color:var(--color-white) !important;} .custom-date-input::placeholder{color:var(--color-light-400) !important;} .dark .custom-date-input::placeholder{color:var(--color-dark-50) !important;}`}</style>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -385,9 +410,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         <LocalizedArrow className="h-5 w-5" />
                     </button>
                     <div>
-                        <h1 className="page-title">
-                            {editContract ? t("edit_contract") || "Edit Contract" : t("create_contract") || "Create Contract"}
-                        </h1>
+                        <h1 className="page-title">{/* Dates Section */}</h1>
                         <p className="text-light-600 dark:text-dark-400 mt-1">
                             {t("for_client") || "For"}: {clientName}
                         </p>
@@ -412,26 +435,52 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                     if (qId) {
                                         loadQuotationData(qId);
                                     } else {
-                                        const defaultBody = generateDefaultContractBody();
-                                        setContractBody(defaultBody);
+                                        // Clear any pre-filled dates when no quotation is selected
+                                        setStartDate(null);
+                                        setEndDate(null);
                                     }
                                 }}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
                             >
                                 <option value="">{t("none") || "None - Create New"}</option>
                                 {clientQuotations.map((q: any) => (
-                                    <option key={q._id} value={q._id}>
-                                        {q.quotationNumber || `Quotation ${q._id.slice(-6)}`} - {(q.total || 0).toFixed(2)} {lang === "ar" ? "ج.م" : "EGP"}
+                                    <option
+                                        key={q._id}
+                                        value={q._id}
+                                    >
+                                        {q.quotationNumber || `Quotation ${q._id.slice(-6)}`} - {(q.total || 0).toFixed(2)}{" "}
+                                        {lang === "ar" ? "ج.م" : "EGP"}
                                     </option>
                                 ))}
                             </select>
+                            {selectedQuotationId && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            const response = await getQuotationById(selectedQuotationId);
+                                            generateSubscriptionTerm(response.data);
+                                            showToast(t("term_generated") || "Subscription term generated successfully", "success");
+                                        } catch (error) {
+                                            console.error("Failed to generate term:", error);
+                                            showAlert(t("failed_to_generate_term") || "Failed to generate subscription term", "error");
+                                        }
+                                    }}
+                                    className="btn-ghost mt-2 flex items-center gap-2"
+                                >
+                                    <Plus size={16} />
+                                    {t("generate_subscription_term") || "Generate Subscription Term from Package"}
+                                </button>
+                            )}
                         </div>
                     )}
 
                     {/* Dates Section */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("start_date") || "Start Date"} *</label>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("start_date") || "Start Date"} *
+                            </label>
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DatePicker
                                     value={startDate}
@@ -440,6 +489,13 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
+                                            className:
+                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            inputProps: {
+                                                placeholder: "MM/DD/YYYY",
+                                                className:
+                                                    "text-sm text-light-900 dark:text-white placeholder-light-500 dark:placeholder-dark-50 custom-date-input",
+                                            },
                                         },
                                     }}
                                 />
@@ -447,7 +503,9 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         </div>
 
                         <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("end_date") || "End Date"} *</label>
+                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                                {t("end_date") || "End Date"} *
+                            </label>
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DatePicker
                                     value={endDate}
@@ -457,24 +515,13 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                        },
-                                    }}
-                                />
-                            </LocalizationProvider>
-                        </div>
-
-                        <div>
-                            <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
-                                {t("signed_date") || "Signed Date"}
-                            </label>
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DatePicker
-                                    value={signedDate}
-                                    onChange={(newValue) => setSignedDate(newValue)}
-                                    slotProps={{
-                                        textField: {
-                                            fullWidth: true,
-                                            size: "small",
+                                            className:
+                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            inputProps: {
+                                                placeholder: "MM/DD/YYYY",
+                                                className:
+                                                    "text-sm text-light-900 dark:text-white placeholder-light-500 dark:placeholder-dark-50 custom-date-input",
+                                            },
                                         },
                                     }}
                                 />
@@ -488,7 +535,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as any)}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
                         >
                             <option value="draft">{t("draft") || "Draft"}</option>
                             <option value="active">{t("active") || "Active"}</option>
@@ -498,56 +545,172 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         </select>
                     </div>
 
-                    {/* Contract Body */}
+                    {/* Contract Terms Management */}
                     <div>
-                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("contract_body") || "Contract Body"}</label>
-                        <textarea
-                            value={contractBody}
-                            onChange={(e) => setContractBody(e.target.value)}
-                            rows={12}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full resize-none rounded-lg border px-4 py-2 font-mono text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                            placeholder={t("enter_contract_body") || "Enter the full contract text..."}
-                        />
-                    </div>
+                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
+                            {t("contract_terms") || "Contract Terms"}
+                        </label>
 
-                    {/* Contract Terms */}
-                    <div>
-                        <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("contract_terms") || "Contract Terms"}</label>
-                        <div className="mb-3 flex gap-2">
-                            <input
-                                type="text"
-                                value={contractTermsInput}
-                                onChange={(e) => setContractTermsInput(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && addContractTerm()}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 flex-1 rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                                placeholder={t("add_contract_term") || "Add a contract term..."}
-                            />
-                            <button
-                                onClick={addContractTerm}
-                                className="btn-primary"
-                            >
-                                {t("add") || "Add"}
-                            </button>
-                        </div>
-
-                        {contractTermsList.length > 0 && (
-                            <div className="space-y-2">
-                                {contractTermsList.map((term, index) => (
-                                    <div
-                                        key={index}
-                                        className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-700 flex items-center justify-between rounded-lg border p-3"
-                                    >
-                                        <span className="text-light-900 dark:text-dark-50">{term}</span>
-                                        <button
-                                            onClick={() => removeTerm(index)}
-                                            className="text-danger-500 hover:text-danger-600"
+                        <div className="card">
+                            {/* Display existing terms */}
+                            {contractTermsList.length > 0 && (
+                                <div className="mb-4 grid gap-3">
+                                    {contractTermsList.map((term, index) => (
+                                        <div
+                                            key={index}
+                                            className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
                                         >
-                                            ×
-                                        </button>
+                                            {editingTermIndex === index ? (
+                                                <div className="w-full">
+                                                    <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                                                        <input
+                                                            value={editingTermKey}
+                                                            onChange={(e) => setEditingTermKey(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_key") || "Term Key"}
+                                                        />
+                                                        <input
+                                                            value={editingTermKeyAr}
+                                                            onChange={(e) => setEditingTermKeyAr(e.target.value)}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_key_ar") || "المفتاح (بالعربية)"}
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                                        <textarea
+                                                            value={editingTermValue}
+                                                            onChange={(e) => setEditingTermValue(e.target.value)}
+                                                            rows={4}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 resize-vertical w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_value") || "Value"}
+                                                        />
+                                                        <textarea
+                                                            value={editingTermValueAr}
+                                                            onChange={(e) => setEditingTermValueAr(e.target.value)}
+                                                            rows={4}
+                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 resize-vertical w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                                            placeholder={t("term_value_ar") || "القيمة (بالعربية)"}
+                                                        />
+                                                    </div>
+                                                    <div className="mt-2 flex justify-end gap-2">
+                                                        <button
+                                                            onClick={saveEditTerm}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <Check size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditTerm}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="flex w-full flex-col">
+                                                        <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                            {lang === "ar" ? term.keyAr : term.key}
+                                                        </span>
+                                                        {(term.value || term.valueAr) && (
+                                                            <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                {lang === "ar" ? term.valueAr : term.value}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => startEditTerm(index)}
+                                                            className="btn-ghost flex items-center gap-2"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeTerm(index)}
+                                                            className="btn-ghost text-danger-500 flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Predefined Terms Selection */}
+                            {predefinedTerms.length > 0 && (
+                                <div className="mb-4">
+                                    <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
+                                        {t("select_predefined_terms") || "Select Predefined Terms"}
+                                    </h4>
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                        {predefinedTerms.map((term) => {
+                                            const isSelected = contractTermsList.some((ct) => ct.termId === term._id);
+                                            return (
+                                                <button
+                                                    key={term._id}
+                                                    onClick={() => addPredefinedTerm(term._id)}
+                                                    className={`flex flex-col items-start rounded-lg p-3 text-left text-sm transition-colors ${
+                                                        isSelected
+                                                            ? "btn-primary"
+                                                            : "border-light-300 dark:border-dark-600 bg-light-50 hover:bg-light-100 dark:bg-dark-800 dark:hover:bg-dark-700 text-light-900 dark:text-dark-50 border"
+                                                    }`}
+                                                >
+                                                    <span className="font-medium">{lang === "ar" ? term.keyAr : term.key}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                ))}
+                                </div>
+                            )}
+
+                            {/* Add Custom Term */}
+                            <div className="border-light-300 dark:border-dark-600 dark:bg-dark-900 rounded-lg border bg-white p-3">
+                                <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
+                                    {t("or_add_custom_term") || "Or Add Custom Term"}
+                                </h4>
+                                <div className="flex gap-2">
+                                    <input
+                                        value={inputKey}
+                                        onChange={(e) => setInputKey(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_key") || "Term Key (e.g., Payment)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputKeyAr}
+                                        onChange={(e) => setInputKeyAr(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_key_ar") || "المفتاح (مثال: الدفع)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_value") || "Value (e.g., 50% advance)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <input
+                                        value={inputValueAr}
+                                        onChange={(e) => setInputValueAr(e.target.value)}
+                                        onKeyDown={handleCustomTermKeyDown}
+                                        placeholder={t("term_value_ar") || "القيمة (مثال: 50% مقدم)"}
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                    />
+                                    <button
+                                        onClick={addCustomTerm}
+                                        className="btn-primary flex items-center gap-2"
+                                    >
+                                        <Plus size={14} />
+                                        {t("add")}
+                                    </button>
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Notes */}
@@ -557,7 +720,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                             value={contractNote}
                             onChange={(e) => setContractNote(e.target.value)}
                             rows={3}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full resize-none rounded-lg border px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full resize-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
                             placeholder={t("add_notes") || "Add any additional notes..."}
                         />
                     </div>
@@ -571,7 +734,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         >
                             {isSaving ? (
                                 <>
-                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <Loader2 className="h-5 w-5 animate-spin text-light-500" />
                                     {t("saving") || "Saving..."}
                                 </>
                             ) : (

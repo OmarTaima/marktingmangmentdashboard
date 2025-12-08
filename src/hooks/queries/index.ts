@@ -32,3 +32,6 @@ export * from "./useCompetitorsQuery";
 
 // Plans/Campaigns
 export * from "./usePlansQuery";
+
+// Contract Terms
+export * from "./useContractTermsQuery";

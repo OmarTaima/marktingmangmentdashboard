@@ -155,17 +155,35 @@ export const createQuotation = async (payload: CreateQuotationPayload): Promise<
  */
 export const getQuotationById = async (id: string): Promise<{ data: Quotation }> => {
     return withCache(`/quotations/${id}`, async () => {
-        // Try to explicitly request `packages` population (current model), which
-        // should avoid the backend attempting to populate the old `services` path.
+        // Try different populate formats to get nested items
         try {
-            const response = await api.get(`/quotations/${id}`, { params: { populate: "packages" } });
+            // Try comma-separated nested path first
+            const response = await api.get(`/quotations/${id}`, {
+                params: { populate: "packages,packages.items" },
+            });
             return response.data;
         } catch (err: any) {
-            // If server complains about populate/path, retry without params as a fallback.
             const msg = err?.response?.data?.message || err?.message || "";
             if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
-                const fallback = await api.get(`/quotations/${id}`);
-                return fallback.data;
+                try {
+                    // Try array format
+                    const fallback = await api.get(`/quotations/${id}`, {
+                        params: { populate: ["packages", "packages.items"] },
+                    });
+                    return fallback.data;
+                } catch {
+                    try {
+                        // Try just packages
+                        const simpleFallback = await api.get(`/quotations/${id}`, {
+                            params: { populate: "packages" },
+                        });
+                        return simpleFallback.data;
+                    } catch {
+                        // Final fallback - no populate
+                        const noPopulate = await api.get(`/quotations/${id}`);
+                        return noPopulate.data;
+                    }
+                }
             }
             throw err;
         }

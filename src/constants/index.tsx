@@ -78,7 +78,11 @@ export const navbarLinks = [
                 icon: Target,
                 path: "/packages/add",
             },
-
+            {
+                label: "Terms",
+                icon: FileSignature,
+                path: "/terms",
+            },
             {
                 label: "Services",
                 icon: Briefcase,

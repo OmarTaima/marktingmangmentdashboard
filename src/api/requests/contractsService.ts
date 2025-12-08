@@ -6,6 +6,17 @@ import { withCache, invalidateCachePattern } from "../../utils/apiCache";
  * Handles CRUD operations and status management for contracts
  */
 
+export interface ContractTermItem {
+    _id?: string;
+    term?: { _id: string; key: string; keyAr: string; value?: string; valueAr?: string } | string;
+    customKey?: string;
+    customKeyAr?: string;
+    customValue?: string;
+    customValueAr?: string;
+    order: number;
+    isCustom: boolean;
+}
+
 export interface Contract {
     _id: string;
     contractNumber: string;
@@ -22,7 +33,8 @@ export interface Contract {
               quotationNumber?: string;
           }
         | string;
-    contractTerms?: string[];
+    terms?: ContractTermItem[];
+    contractTerms?: string[]; // Legacy field for backward compatibility
     body?: string; // Full contract paragraph/text
     startDate: string;
     endDate: string;
