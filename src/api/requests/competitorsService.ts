@@ -178,7 +178,10 @@ export const createCompetitor = async (clientId: string, competitorData: any): P
 export const createCompetitors = async (clientId: string, competitorsData: any[]): Promise<Competitor[]> => {
     try {
         // Transform all competitors to backend payload format
-        const payloads = competitorsData.map((competitorData) => transformCompetitorToBackendPayload(competitorData));
+        const payloads = competitorsData.map((competitorData) => ({
+            ...transformCompetitorToBackendPayload(competitorData),
+            clientId,
+        }));
 
         // Send bulk request to create all competitors at once
         const response = await axiosInstance.post(`/clients/${clientId}/competitors/bulk`, payloads);

@@ -112,6 +112,38 @@ export interface ConvertToContractPayload {
     body?: string; // Full contract text
 }
 
+const normalizeQuotationListResponse = (raw: any, params?: QuotationQueryParams): QuotationListResponse => {
+    const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+          ? raw.data
+          : Array.isArray(raw?.quotations)
+            ? raw.quotations
+            : Array.isArray(raw?.data?.quotations)
+              ? raw.data.quotations
+              : [];
+
+    const page = Number(raw?.meta?.page ?? raw?.page ?? params?.page ?? 1);
+    const limit = Number(raw?.meta?.limit ?? raw?.limit ?? params?.limit ?? (list.length || 20));
+    const total = Number(raw?.meta?.total ?? raw?.totalCount ?? raw?.total ?? list.length);
+    const totalPages = Number(raw?.meta?.totalPages ?? raw?.pageCount ?? Math.max(1, Math.ceil(total / Math.max(limit, 1))));
+
+    return {
+        data: list,
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages,
+        },
+    };
+};
+
+const normalizeQuotationEntityResponse = (raw: any): { data: Quotation } => {
+    const entity = raw?.data?.quotation || raw?.quotation || raw?.data || raw;
+    return { data: entity as Quotation };
+};
+
 // ==================== API FUNCTIONS ====================
 
 /**
@@ -125,13 +157,13 @@ export const getQuotations = async (params?: QuotationQueryParams, signal?: Abor
             // avoids servers that still try to populate the removed `services` path.
             try {
                 const response = await api.get("/quotations", { params: { ...params, populate: "packages" }, signal });
-                return response.data;
+                return normalizeQuotationListResponse(response.data, params);
             } catch (err: any) {
                 const msg = err?.response?.data?.message || err?.message || "";
                 if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
                     // Retry without populate param as a fallback so the UI can still render data
                     const fallback = await api.get("/quotations", { params, signal });
-                    return fallback.data;
+                    return normalizeQuotationListResponse(fallback.data, params);
                 }
                 throw err;
             }
@@ -161,7 +193,7 @@ export const getQuotationById = async (id: string): Promise<{ data: Quotation }>
             const response = await api.get(`/quotations/${id}`, {
                 params: { populate: "packages,packages.items" },
             });
-            return response.data;
+            return normalizeQuotationEntityResponse(response.data);
         } catch (err: any) {
             const msg = err?.response?.data?.message || err?.message || "";
             if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
@@ -170,18 +202,18 @@ export const getQuotationById = async (id: string): Promise<{ data: Quotation }>
                     const fallback = await api.get(`/quotations/${id}`, {
                         params: { populate: ["packages", "packages.items"] },
                     });
-                    return fallback.data;
+                    return normalizeQuotationEntityResponse(fallback.data);
                 } catch {
                     try {
                         // Try just packages
                         const simpleFallback = await api.get(`/quotations/${id}`, {
                             params: { populate: "packages" },
                         });
-                        return simpleFallback.data;
+                        return normalizeQuotationEntityResponse(simpleFallback.data);
                     } catch {
                         // Final fallback - no populate
                         const noPopulate = await api.get(`/quotations/${id}`);
-                        return noPopulate.data;
+                        return normalizeQuotationEntityResponse(noPopulate.data);
                     }
                 }
             }

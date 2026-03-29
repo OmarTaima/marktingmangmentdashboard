@@ -1,5 +1,5 @@
 import { useState, useEffect, KeyboardEvent } from "react";
-import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X, GripVertical } from "lucide-react";
+import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X, GripVertical, Sparkles } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
@@ -473,33 +473,47 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10">
             <style>{`.custom-date-input{color:var(--color-light-900) !important;} .dark .custom-date-input{color:var(--color-white) !important;} .custom-date-input::placeholder{color:var(--color-light-400) !important;} .dark .custom-date-input::placeholder{color:var(--color-dark-50) !important;}`}</style>
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="btn-ghost"
-                    >
-                        <LocalizedArrow className="h-5 w-5" />
-                    </button>
-                    <div>
-                        <h1 className="page-title">
-                            {editContract
-                                ? t("edit_custom_contract") || "Edit Custom Contract"
-                                : t("create_custom_contract") || "Create Custom Contract"}
-                        </h1>
-                        <p className="text-light-600 dark:text-dark-400 mt-1">{t("for_client_without_account") || "For client without account"}</p>
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-light-200 bg-white p-5 shadow-sm dark:border-dark-800 dark:bg-dark-900 sm:p-6">
+                <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-light-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-14 -left-14 h-40 w-40 rounded-full bg-secdark-700/10 blur-3xl" />
+
+                <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={onBack}
+                            className="btn-secondary"
+                        >
+                            <LocalizedArrow className="h-5 w-5" />
+                        </button>
+                        <div>
+                            <p className="text-light-500 dark:text-dark-400 text-[11px] font-black uppercase tracking-wider">
+                                {editContract ? tr("edit_custom_contract", "Edit Custom Contract") : tr("create_custom_contract", "Create Custom Contract")}
+                            </p>
+                            <h1 className="text-light-900 dark:text-dark-50 text-2xl font-black tracking-tight">
+                                {editContract ? tr("edit_custom_contract", "Edit Custom Contract") : tr("create_custom_contract", "Create Custom Contract")}
+                            </h1>
+                            <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                {tr("for_client_without_account", "For client without account")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                        <Sparkles size={13} />
+                        Custom Contract
                     </div>
                 </div>
             </div>
 
             {/* Form */}
-            <div className="card">
+            <div className="card rounded-[1.75rem] border-light-200/80 bg-white/90 shadow-sm dark:border-dark-800 dark:bg-dark-900/90">
                 <div className="space-y-6">
                     {/* Client Name */}
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <div>
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("client_name") || "Client Name"} *
@@ -508,7 +522,7 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                 type="text"
                                 value={clientName}
                                 onChange={(e) => setClientName(e.target.value)}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                className="input w-full"
                                 placeholder={t("enter_client_name") || "Enter client name..."}
                             />
                         </div>
@@ -520,22 +534,23 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                 type="text"
                                 value={clientNameAr}
                                 onChange={(e) => setClientNameAr(e.target.value)}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                className="input w-full"
                                 placeholder={t("enter_client_name_ar") || "الاسم (بالعربية)"}
                             />
                         </div>
                     </div>
+                    </div>
 
                     {/* Contract Template Selector */}
                     {allContracts.length > 0 && (
-                        <div>
+                        <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("load_terms_from_contract") || "Load Terms from Existing Contract"} ({t("optional") || "optional"})
                             </label>
                             <select
                                 value={selectedContractId}
                                 onChange={(e) => setSelectedContractId(e.target.value)}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                className="input w-full"
                             >
                                 <option value="">{t("select_contract") || "-- Select a contract --"}</option>
                                 {allContracts.map((c: any) => {
@@ -572,14 +587,14 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
 
                     {/* Quotation Selection */}
                     {customQuotations.length > 0 && (
-                        <div>
+                        <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("select_quotation") || "Select Custom Quotation"} ({t("optional") || "optional"})
                             </label>
                             <select
                                 value={selectedQuotationId}
                                 onChange={(e) => setSelectedQuotationId(e.target.value)}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                className="input w-full"
                             >
                                 <option value="">{t("no_quotation") || "No Quotation"}</option>
                                 {customQuotations.map((q: any) => (
@@ -615,7 +630,8 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                     )}
 
                     {/* Dates Section */}
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div>
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("start_date") || "Start Date"} *
@@ -628,8 +644,7 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                            className:
-                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            className: "input h-10",
                                             inputProps: {
                                                 placeholder: "MM/DD/YYYY",
                                                 className:
@@ -654,8 +669,7 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                            className:
-                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            className: "input h-10",
                                             inputProps: {
                                                 placeholder: "MM/DD/YYYY",
                                                 className:
@@ -666,15 +680,16 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                 />
                             </LocalizationProvider>
                         </div>
+                        </div>
                     </div>
 
                     {/* Status */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("status") || "Status"}</label>
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as any)}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            className="input w-full"
                         >
                             <option value="draft">{t("draft") || "Draft"}</option>
                             <option value="active">{t("active") || "Active"}</option>
@@ -685,12 +700,12 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                     </div>
 
                     {/* Contract Terms Management */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                             {t("contract_terms") || "Contract Terms"}
                         </label>
 
-                        <div className="card">
+                        <div className="rounded-2xl border border-light-200 bg-white/80 p-4 dark:border-dark-700 dark:bg-dark-900/60">
                             {/* Display existing terms */}
                             {contractTermsList.length > 0 && (
                                 <div className="mb-4 grid gap-3">
@@ -867,13 +882,13 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                     </div>
 
                     {/* Notes */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("notes") || "Notes"}</label>
                         <textarea
                             value={contractNote}
                             onChange={(e) => setContractNote(e.target.value)}
                             rows={3}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full resize-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            className="input w-full resize-none"
                             placeholder={t("add_notes") || "Add any additional notes..."}
                         />
                     </div>

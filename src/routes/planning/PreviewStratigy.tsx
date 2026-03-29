@@ -19,6 +19,10 @@ interface PreviewCampaignsProps {
 
 const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, onBack, onCreateNew, onEdit }: PreviewCampaignsProps) => {
     const { t } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -52,7 +56,7 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                 return campaign.client.business?.businessName || campaign.client.personal?.fullName || "";
             }
             if (campaign.clientId && typeof campaign.clientId === "string") {
-                const client = clients.find((c) => String(c.id) === String(campaign.clientId) || String(c._id) === String(campaign.clientId));
+                const client = clients.find((c: any) => String(c.id) === String(campaign.clientId) || String(c._id) === String(campaign.clientId));
                 if (client) return client.business?.businessName || client.personal?.fullName || "";
             }
             return campaign.clientName || "";
@@ -157,8 +161,10 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
 
     return (
         <div className="space-y-6">
-            <div className="card bg-dark-50 dark:bg-dark-800/50">
-                <div className="flex items-center gap-4">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-10 h-52 w-52 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-secdark-700/15 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex items-center gap-4">
                     <button
                         onClick={() => {
                             try {
@@ -166,39 +172,42 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                                 handleBack && handleBack();
                             } catch (err) {}
                         }}
-                        className="btn-ghost"
+                        className="btn-ghost rounded-xl"
                     >
                         <LocalizedArrow size={20} />
                     </button>
                     <div className="flex-1">
+                        <span className="inline-flex items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                            Strategy Preview
+                        </span>
                         <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">{clientName}</h2>
-                        <p className="text-light-600 dark:text-dark-50 text-sm">{t("campaigns") || "Campaigns"}</p>
+                        <p className="text-light-600 dark:text-dark-300 text-sm">{tr("campaigns", "Campaigns")}</p>
                     </div>
                     <button
                         onClick={handleCreateNew}
-                        className="btn-primary"
+                        className="btn-primary rounded-xl"
                     >
                         <Plus
                             size={16}
                             className="mr-2"
                         />
-                        {t("create_new") || "Create New"}
+                        {tr("create_new", "Create New")}
                     </button>
                 </div>
-            </div>
+            </section>
 
             {!displayedCampaigns.length && (
-                <div className="card">
+                <div className="rounded-3xl border border-light-200/80 bg-white/90 p-6 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70">
                     <div className="flex flex-col items-center justify-center py-12">
                         <p className="text-light-600 dark:text-dark-400 mb-4 max-w-lg text-center text-lg">
-                            {t("no_campaigns_for_client") || "There are no campaigns for this client"}
+                            {tr("no_campaigns_for_client", "There are no campaigns for this client")}
                         </p>
                         <div className="mt-4">
                             <button
                                 onClick={handleCreateNew}
-                                className="btn-primary px-6"
+                                className="btn-primary rounded-xl px-6"
                             >
-                                {t("create_campaign") || "Create Campaign"}
+                                {tr("create_campaign", "Create Campaign")}
                             </button>
                         </div>
                     </div>
@@ -208,7 +217,7 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
             {/* Preview Modal */}
             {showPreviewModal && selectedCampaign && (
                 <div className="bg-opacity-40 fixed inset-0 z-50 flex items-center justify-center bg-black">
-                    <div className="dark:bg-dark-800 w-full max-w-2xl rounded bg-white p-6">
+                    <div className="dark:bg-dark-800 w-full max-w-2xl rounded-2xl border border-light-200/80 bg-white p-6 shadow-xl dark:border-dark-700/80">
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-light-900 dark:text-dark-50 text-lg font-bold">
@@ -221,7 +230,7 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
-                                    className="btn-ghost"
+                                    className="btn-ghost rounded-xl"
                                     onClick={() => {
                                         closePreview();
                                     }}
@@ -406,16 +415,16 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
             )}
 
             {displayedCampaigns.length > 0 && (
-                <div className="card">
+                <div className="rounded-3xl border border-light-200/80 bg-white/90 p-5 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70 sm:p-6">
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="card-title">{t("existing_campaigns") || "Existing Campaigns"}</h3>
+                        <h3 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("existing_campaigns", "Existing Campaigns")}</h3>
                     </div>
 
                     <div className="space-y-3">
                         {displayedCampaigns.map((campaign) => (
                             <div
                                 key={campaign._id}
-                                className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                className="rounded-2xl border border-light-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800/70"
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -434,22 +443,22 @@ const PreviewCampaigns = ({ clientId: propClientId, clientName: propClientName, 
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleEdit(campaign)}
-                                            className="btn-ghost"
-                                            title={t("edit") || "Edit"}
+                                            className="btn-ghost rounded-xl"
+                                            title={tr("edit", "Edit")}
                                         >
                                             <Edit2 size={16} />
                                         </button>
                                         <button
                                             onClick={() => openPreview(campaign)}
-                                            className="btn-ghost text-blue-600"
-                                            title={t("preview") || "Preview"}
+                                            className="btn-ghost text-blue-600 rounded-xl"
+                                            title={tr("preview", "Preview")}
                                         >
                                             <Eye size={16} />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteCampaign(campaign._id || "")}
-                                            className="btn-ghost text-danger-500"
-                                            title={t("delete") || "Delete"}
+                                            className="btn-ghost text-danger-500 rounded-xl"
+                                            title={tr("delete", "Delete")}
                                             disabled={isDeleting === campaign._id}
                                         >
                                             {isDeleting === campaign._id ? (

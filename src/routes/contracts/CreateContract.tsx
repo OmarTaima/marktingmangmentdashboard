@@ -1,5 +1,5 @@
-import { useState, useEffect, KeyboardEvent } from "react";
-import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X, GripVertical } from "lucide-react";
+import { useState, useEffect, useMemo, KeyboardEvent } from "react";
+import { Loader2, FileCheck, Plus, Edit2, Trash2, Check, X, GripVertical, Sparkles } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
@@ -30,9 +30,38 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     const createContractMutation = useCreateContract();
     const updateContractMutation = useUpdateContract();
 
-    // Fetch quotations for this client
-    const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations({ page: 1, limit: 100, clientId });
-    const clientQuotations = quotationsResponse?.data || [];
+    // Fetch quotations and resolve only those belonging to the selected client.
+    // Some backends may ignore clientId filter or return different response shapes,
+    // so we safely normalize and filter on the frontend as well.
+    const { data: quotationsResponse, isLoading: quotationsLoading } = useQuotations(
+        { page: 1, limit: 1000, clientId },
+        { enabled: !!clientId },
+    );
+
+    const clientQuotations = useMemo(() => {
+        const normalizeId = (value: any): string => {
+            if (!value) return "";
+            if (typeof value === "string") return value;
+            if (typeof value === "object") return String(value._id || value.id || "");
+            return String(value);
+        };
+
+        const source = Array.isArray((quotationsResponse as any)?.data)
+            ? (quotationsResponse as any).data
+            : Array.isArray((quotationsResponse as any)?.quotations)
+              ? (quotationsResponse as any).quotations
+              : Array.isArray((quotationsResponse as any)?.data?.quotations)
+                ? (quotationsResponse as any).data.quotations
+                : [];
+
+        const selectedClientId = normalizeId(clientId);
+        if (!selectedClientId) return [];
+
+        return source.filter((q: any) => {
+            const qClientId = normalizeId(q?.clientId || q?.client);
+            return qClientId && qClientId === selectedClientId;
+        });
+    }, [quotationsResponse, clientId]);
 
     // Fetch all contracts to allow loading terms from existing contracts
     const { data: contractsResponse, isLoading: contractsLoading } = useContracts({ page: 1, limit: 1000 });
@@ -44,7 +73,8 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
 
     // Fetch predefined terms
     const { data: termsResponse, isLoading: termsLoading } = useContractTerms({ page: 1, limit: 100 });
-    const predefinedTerms = termsResponse?.data || [];
+    const predefinedTerms = Array.isArray(termsResponse) ? termsResponse : termsResponse?.data || [];
+    const getTermId = (term: any) => String(term?._id ?? term?.id ?? "");
 
     const isSaving = createContractMutation.isPending || updateContractMutation.isPending;
     // Wait until quotations, items, contracts and predefined terms are all loaded before rendering the page
@@ -124,6 +154,33 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
             loadQuotationData(quotationId);
         }
     }, [quotationId]);
+
+    // Hydrate predefined terms in selected contract terms list when a contract stores only term IDs
+    useEffect(() => {
+        if (!predefinedTerms.length) return;
+
+        setContractTermsList((prev) => {
+            let changed = false;
+            const next = prev.map((ct: any) => {
+                if (ct.isCustom || !ct.termId) return ct;
+                if (ct.key || ct.keyAr || ct.value || ct.valueAr) return ct;
+
+                const found = predefinedTerms.find((p: any) => getTermId(p) === String(ct.termId));
+                if (!found) return ct;
+
+                changed = true;
+                return {
+                    ...ct,
+                    key: found.key || "",
+                    keyAr: found.keyAr || "",
+                    value: found.value || "",
+                    valueAr: found.valueAr || "",
+                };
+            });
+
+            return changed ? next : prev;
+        });
+    }, [predefinedTerms]);
 
     const loadQuotationData = async (qId: string) => {
         try {
@@ -295,7 +352,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     };
 
     const addPredefinedTerm = (termId: string) => {
-        const term = predefinedTerms.find((t) => t._id === termId);
+        const term = predefinedTerms.find((t: any) => getTermId(t) === String(termId));
         if (!term) return;
 
         // Prevent adding the same predefined term more than once
@@ -306,7 +363,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         }
 
         const newTerm = {
-            termId: term._id,
+            termId: getTermId(term),
             key: term.key,
             keyAr: term.keyAr,
             value: term.value || "",
@@ -479,40 +536,55 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10">
             <style>{`.custom-date-input{color:var(--color-light-900) !important;} .dark .custom-date-input{color:var(--color-white) !important;} .custom-date-input::placeholder{color:var(--color-light-400) !important;} .dark .custom-date-input::placeholder{color:var(--color-dark-50) !important;}`}</style>
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="btn-ghost"
-                    >
-                        <LocalizedArrow className="h-5 w-5" />
-                    </button>
-                    <div>
-                        <h1 className="page-title">{/* Dates Section */}</h1>
-                        <p className="text-light-600 dark:text-dark-400 mt-1">
-                            {t("for_client") || "For"}: {clientName}
-                        </p>
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-light-200 bg-white p-5 shadow-sm dark:border-dark-800 dark:bg-dark-900 sm:p-6">
+                <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-light-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-14 -left-14 h-40 w-40 rounded-full bg-secdark-700/10 blur-3xl" />
+
+                <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={onBack}
+                            className="btn-secondary"
+                        >
+                            <LocalizedArrow className="h-5 w-5" />
+                        </button>
+                        <div>
+                            <p className="text-light-500 dark:text-dark-400 text-[11px] font-black uppercase tracking-wider">
+                                {editContract ? tr("update_contract", "Update Contract") : tr("create_contract", "Create Contract")}
+                            </p>
+                            <h1 className="text-light-900 dark:text-dark-50 text-2xl font-black tracking-tight">
+                                {editContract ? tr("edit_contract", "Edit Contract") : tr("create_contract", "Create Contract")}
+                            </h1>
+                            <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                {tr("for_client", "For")}: {clientName}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                        <Sparkles size={13} />
+                        Contract Builder
                     </div>
                 </div>
             </div>
 
             {/* Form */}
-            <div className="card">
+            <div className="card rounded-[1.75rem] border-light-200/80 bg-white/90 shadow-sm dark:border-dark-800 dark:bg-dark-900/90">
                 <div className="space-y-6">
                     {/* Quotation Selector */}
                     {/* Contract Template Selector */}
                     {allContracts.length > 0 && !editContract && (
-                        <div>
+                        <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("load_terms_from_contract") || "Load Terms from Existing Contract"} ({t("optional") || "optional"})
                             </label>
                             <select
                                 value={selectedContractId}
                                 onChange={(e) => setSelectedContractId(e.target.value)}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                className="input w-full"
                             >
                                 <option value="">{t("select_contract") || "-- Select a contract --"}</option>
                                 {allContracts.map((c: any) => {
@@ -547,8 +619,8 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                         </div>
                     )}
 
-                    {clientQuotations.length > 0 && !editContract && (
-                        <div>
+                    {!editContract && (
+                        <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("select_quotation") || "Select Quotation (Optional)"}
                             </label>
@@ -565,9 +637,15 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                         setEndDate(null);
                                     }
                                 }}
-                                className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                                disabled={quotationsLoading || clientQuotations.length === 0}
+                                className="input w-full"
                             >
                                 <option value="">{t("none") || "None - Create New"}</option>
+                                {!quotationsLoading && clientQuotations.length === 0 && (
+                                    <option value="" disabled>
+                                        {t("no_quotations_yet") || "No quotations yet"}
+                                    </option>
+                                )}
                                 {clientQuotations.map((q: any) => (
                                     <option
                                         key={q._id}
@@ -603,7 +681,8 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                     )}
 
                     {/* Dates Section */}
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div>
                             <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                                 {t("start_date") || "Start Date"} *
@@ -616,8 +695,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                            className:
-                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            className: "input h-10",
                                             inputProps: {
                                                 placeholder: "MM/DD/YYYY",
                                                 className:
@@ -642,8 +720,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                         textField: {
                                             fullWidth: true,
                                             size: "small",
-                                            className:
-                                                "border-light-300 dark:border-dark-700 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border px-3 py-2 h-10",
+                                            className: "input h-10",
                                             inputProps: {
                                                 placeholder: "MM/DD/YYYY",
                                                 className:
@@ -654,15 +731,16 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                 />
                             </LocalizationProvider>
                         </div>
+                        </div>
                     </div>
 
                     {/* Status */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("status") || "Status"}</label>
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as any)}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full appearance-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            className="input w-full"
                         >
                             <option value="draft">{t("draft") || "Draft"}</option>
                             <option value="active">{t("active") || "Active"}</option>
@@ -673,12 +751,12 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                     </div>
 
                     {/* Contract Terms Management */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">
                             {t("contract_terms") || "Contract Terms"}
                         </label>
 
-                        <div className="card">
+                        <div className="rounded-2xl border border-light-200 bg-white/80 p-4 dark:border-dark-700 dark:bg-dark-900/60">
                             {/* Display existing terms */}
                             {contractTermsList.length > 0 && (
                                 <div className="mb-4 grid gap-3">
@@ -787,11 +865,12 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                     </h4>
                                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                         {predefinedTerms.map((term) => {
-                                            const isSelected = contractTermsList.some((ct) => ct.termId === term._id);
+                                            const id = getTermId(term);
+                                            const isSelected = contractTermsList.some((ct) => String(ct.termId || "") === id);
                                             return (
                                                 <button
-                                                    key={term._id}
-                                                    onClick={() => addPredefinedTerm(term._id)}
+                                                    key={id}
+                                                    onClick={() => addPredefinedTerm(id)}
                                                     className={`flex flex-col items-start rounded-lg p-3 text-left text-sm transition-colors ${
                                                         isSelected
                                                             ? "btn-primary"
@@ -853,13 +932,13 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                     </div>
 
                     {/* Notes */}
-                    <div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-800/50">
                         <label className="text-light-700 dark:text-dark-300 mb-2 block text-sm font-medium">{t("notes") || "Notes"}</label>
                         <textarea
                             value={contractNote}
                             onChange={(e) => setContractNote(e.target.value)}
                             rows={3}
-                            className="border-light-300 dark:border-dark-600 bg-light-50 dark:bg-dark-800 text-light-900 dark:text-dark-50 focus:border-primary-500 focus:ring-primary-500/20 w-full resize-none rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none"
+                            className="input w-full resize-none"
                             placeholder={t("add_notes") || "Add any additional notes..."}
                         />
                     </div>

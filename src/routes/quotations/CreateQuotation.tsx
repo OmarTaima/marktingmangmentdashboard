@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, FileText, Loader2, Trash2, Check, X } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showToast } from "@/utils/swal";
-import { useServices, useCreateQuotation, useUpdateQuotation, useItems } from "@/hooks/queries";
+import { useServices, useCreateQuotation, useUpdateQuotation, useItems, usePackages } from "@/hooks/queries";
 import { getQuotationById } from "@/api/requests/quotationsService";
 import type { CustomService, CreateQuotationPayload } from "@/api/requests/quotationsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
@@ -21,11 +21,71 @@ interface CreateQuotationProps {
 
 const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotation }: CreateQuotationProps) => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
+
+    const getEntityId = (entity: any): string => String(entity?._id ?? entity?.id ?? "");
 
     const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
     const services = servicesResponse?.data || [];
+    const { data: packagesResponse } = usePackages({ limit: 1000 });
+    const allPackagesCatalog = packagesResponse?.data || [];
     const { data: itemsResponse } = useItems({ limit: 1000 });
     const items = itemsResponse?.data || [];
+
+    const packageMap = useMemo(() => {
+        const map = new Map<string, any>();
+        (allPackagesCatalog || []).forEach((pkg: any) => {
+            const id = getEntityId(pkg);
+            if (id) map.set(id, pkg);
+        });
+        return map;
+    }, [allPackagesCatalog]);
+
+    const resolvePackageRef = (ref: any): any | null => {
+        if (!ref) return null;
+
+        // Direct string id
+        if (typeof ref === "string") {
+            return packageMap.get(String(ref)) || { _id: String(ref) };
+        }
+
+        // Wrapped refs e.g. { package: "id" } or { package: {...} }
+        const nested = ref.package ?? ref.packageId ?? ref.pkg;
+        if (nested) {
+            if (typeof nested === "string") {
+                return packageMap.get(String(nested)) || { _id: String(nested) };
+            }
+            const nestedId = getEntityId(nested);
+            if (nestedId) return packageMap.get(nestedId) || nested;
+        }
+
+        // Direct package object or object holding only id
+        const refId = getEntityId(ref);
+        if (refId) return packageMap.get(refId) || ref;
+
+        return null;
+    };
+
+    const getServicePackages = (service: any): any[] => {
+        const fromPackages = Array.isArray(service?.packages) ? service.packages : [];
+        const fromPackageIds = Array.isArray(service?.packageIds) ? service.packageIds : [];
+        const fromSinglePackage = service?.package ? [service.package] : [];
+        const allRefs = [...fromPackages, ...fromPackageIds, ...fromSinglePackage];
+
+        const resolved = allRefs.map(resolvePackageRef).filter(Boolean);
+
+        // De-duplicate by id so mixed shapes don't duplicate cards
+        const dedupMap = new Map<string, any>();
+        resolved.forEach((pkg: any) => {
+            const pkgId = getEntityId(pkg);
+            if (pkgId) dedupMap.set(pkgId, pkg);
+        });
+
+        return Array.from(dedupMap.values());
+    };
 
     const createQuotationMutation = useCreateQuotation();
     const updateQuotationMutation = useUpdateQuotation();
@@ -34,9 +94,11 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
     // Form state
     const [selectedPackages, setSelectedPackages] = useState<string[]>(
-        editQuotation?.packages?.map((p: any) => (typeof p === "string" ? p : p._id)) ||
-            editQuotation?.services?.map((s: any) => (typeof s === "string" ? s : s._id)) ||
+        editQuotation?.packages?.map((p: any) => (typeof p === "string" ? p : getEntityId(p))) ||
             [],
+    );
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+        editQuotation?.services?.map((s: any) => (typeof s === "string" ? s : getEntityId(s))) || [],
     );
     const [customServices, setCustomServices] = useState<CustomService[]>(editQuotation?.customServices || []);
     const [quotationNote, setQuotationNote] = useState<string>(editQuotation?.note || "");
@@ -60,11 +122,11 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
     };
 
     // For tabbed services (like CustomQuotation) we show a single service's packages at a time
-    const servicesWithPackages = services.filter((s: any) => s.packages && s.packages.length > 0);
+    const servicesWithPackages = services.filter((s: any) => getServicePackages(s).length > 0);
 
     useEffect(() => {
         if (!expandedServiceId && servicesWithPackages.length > 0) {
-            setExpandedServiceId(servicesWithPackages[0]._id);
+            setExpandedServiceId(getEntityId(servicesWithPackages[0]));
         }
     }, [servicesWithPackages]);
 
@@ -73,6 +135,14 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
             setSelectedPackages(selectedPackages.filter((id) => id !== packageId));
         } else {
             setSelectedPackages([...selectedPackages, packageId]);
+        }
+    };
+
+    const toggleService = (serviceId: string) => {
+        if (selectedServiceIds.includes(serviceId)) {
+            setSelectedServiceIds(selectedServiceIds.filter((id) => id !== serviceId));
+        } else {
+            setSelectedServiceIds([...selectedServiceIds, serviceId]);
         }
     };
 
@@ -102,17 +172,25 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
     };
 
     const calculateSubtotal = () => {
-        const allPackages = services.flatMap((s: any) => s.packages || []);
+        const allPackages = services.flatMap((s: any) => getServicePackages(s));
         const servicesTotal = selectedPackages.reduce((sum, pkgId) => {
-            const pkg = allPackages.find((p: any) => p._id === pkgId);
+            const pkg = allPackages.find((p: any) => getEntityId(p) === String(pkgId));
             return sum + (pkg?.price || 0);
+        }, 0);
+
+        const directServicesTotal = services.reduce((sum, service: any) => {
+            const serviceId = getEntityId(service);
+            const hasPackages = getServicePackages(service).length > 0;
+            if (hasPackages) return sum;
+            if (!selectedServiceIds.includes(serviceId)) return sum;
+            return sum + (Number(service?.price) || 0);
         }, 0);
 
         const customServicesTotal = customServices.reduce((sum, customService) => {
             return sum + customService.price;
         }, 0);
 
-        return servicesTotal + customServicesTotal;
+        return servicesTotal + directServicesTotal + customServicesTotal;
     };
 
     const calculateTotal = () => {
@@ -131,8 +209,8 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
     const handleCreateOrUpdateQuotation = async () => {
         // Require selecting at least one package before creating a quotation
-        if (selectedPackages.length === 0) {
-            showAlert(t("please_select_package") || "Please select at least one package", "warning");
+        if (selectedPackages.length === 0 && selectedServiceIds.length === 0 && customServices.length === 0) {
+            showAlert(t("please_select_services") || "Please select at least one service", "warning");
             return;
         }
 
@@ -147,6 +225,7 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
             const payload: CreateQuotationPayload = {
                 packages: packageIds.length > 0 ? packageIds : undefined,
+                services: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
                 customServices: customServices.length > 0 ? customServices : undefined,
                 clientName: clientId ? undefined : enteredClientName || undefined,
                 discountValue: parseFloat(discountValue) || 0,
@@ -216,25 +295,29 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="card bg-dark-50 dark:bg-dark-800/50">
-                <div className="flex items-center gap-4">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-10 h-52 w-52 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-secdark-700/15 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex items-start gap-4">
                     <button
                         onClick={onBack}
-                        className="btn-ghost"
+                        className="btn-ghost rounded-xl"
                     >
                         <LocalizedArrow size={20} />
                     </button>
                     <div>
-                        <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">
-                            {editQuotation ? t("edit_quotation") || "Edit Quotation" : t("create_quotation") || "Create Quotation"}
+                        <span className="inline-flex items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                            Quotation Builder
+                        </span>
+                        <h2 className="text-light-900 dark:text-dark-50 mt-3 text-xl font-bold sm:text-2xl">
+                            {editQuotation ? tr("edit_quotation", "Edit Quotation") : tr("create_quotation", "Create Quotation")}
                         </h2>
-                        <p className="text-light-600 dark:text-dark-50 text-sm">{clientName}</p>
+                        <p className="text-light-600 dark:text-dark-300 mt-1 text-sm">{clientName}</p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="card">
+            <div className="rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
                 {/* Client Name Input (for custom quotations) */}
                 {!clientId && (
                     <div className="mb-6">
@@ -267,14 +350,16 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                 <>
                                     <div className="mb-4 flex gap-2 overflow-auto">
                                         {servicesWithPackages.map((service) => {
-                                            const selectedCount = (service.packages ?? []).filter((pkg: any) =>
-                                                selectedPackages.includes(pkg._id),
+                                            const serviceId = getEntityId(service);
+                                            const servicePackages = getServicePackages(service);
+                                            const selectedCount = servicePackages.filter((pkg: any) =>
+                                                selectedPackages.includes(getEntityId(pkg)),
                                             ).length;
-                                            const isActive = expandedServiceId === service._id;
+                                            const isActive = expandedServiceId === serviceId;
                                             return (
                                                 <button
-                                                    key={service._id}
-                                                    onClick={() => setExpandedServiceId(service._id)}
+                                                    key={serviceId}
+                                                    onClick={() => setExpandedServiceId(serviceId)}
                                                     className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
                                                         isActive
                                                             ? "bg-light-500 dark:bg-secdark-700 text-white"
@@ -284,7 +369,7 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                     <div className="flex items-center gap-2">
                                                         <span>{lang === "ar" ? service.ar : service.en}</span>
                                                         <span className="bg-light-600 rounded-full px-2 py-0.5 text-xs text-white">
-                                                            {service.packages?.length ?? 0}
+                                                            {servicePackages.length}
                                                         </span>
                                                         {selectedCount > 0 && <span className="ml-1 text-xs">{selectedCount} selected</span>}
                                                     </div>
@@ -295,13 +380,18 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
                                     {expandedServiceId &&
                                         (() => {
-                                            const selectedService = servicesWithPackages.find((s: any) => s._id === expandedServiceId);
+                                            const selectedService = servicesWithPackages.find(
+                                                (s: any) => getEntityId(s) === String(expandedServiceId),
+                                            );
                                             if (!selectedService) return null;
+                                            const selectedServicePackages = getServicePackages(selectedService);
                                             return (
                                                 <div className="dark:bg-dark-900 border-light-600 dark:border-dark-700 border-t bg-white px-0 py-3">
                                                     <div className="grid grid-cols-1 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-3">
-                                                        {(selectedService.packages || []).map((pkg: any) => {
-                                                            const isSelected = selectedPackages.includes(pkg._id);
+                                                        {selectedServicePackages.map((pkg: any) => {
+                                                            const pkgId = getEntityId(pkg);
+                                                            if (!pkgId) return null;
+                                                            const isSelected = selectedPackages.includes(pkgId);
                                                             const pkgItems: Array<{ label: string; quantity?: number | string | boolean }> = (
                                                                 pkg.items || []
                                                             ).map((it: any) => {
@@ -325,8 +415,8 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
                                                             return (
                                                                 <div
-                                                                    key={pkg._id}
-                                                                    onClick={() => togglePackage(pkg._id)}
+                                                                    key={pkgId}
+                                                                    onClick={() => togglePackage(pkgId)}
                                                                     className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
                                                                         isSelected
                                                                             ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
@@ -412,21 +502,39 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                             ) : (
                                 <div className="space-y-3">
                                     {services.map((service) => {
-                                        const isExpanded = expandedServiceId === service._id;
-                                        const hasPackages = service.packages && service.packages.length > 0;
+                                        const serviceId = getEntityId(service);
+                                        const isExpanded = expandedServiceId === serviceId;
+                                        const isServiceSelected = selectedServiceIds.includes(serviceId);
+                                        const servicePackages = getServicePackages(service);
+                                        const hasPackages = servicePackages.length > 0;
                                         const selectedCount = hasPackages
-                                            ? (service.packages ?? []).filter((pkg: any) => selectedPackages.includes(pkg._id)).length
+                                            ? servicePackages.filter((pkg: any) => selectedPackages.includes(getEntityId(pkg))).length
                                             : 0;
 
                                         return (
                                             <div
-                                                key={service._id}
-                                                className="border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-800 overflow-hidden rounded-lg border"
+                                                key={serviceId}
+                                                onClick={!hasPackages ? () => toggleService(serviceId) : undefined}
+                                                className={`overflow-hidden rounded-lg border ${
+                                                    !hasPackages
+                                                        ? "cursor-pointer"
+                                                        : ""
+                                                } ${
+                                                    !hasPackages && isServiceSelected
+                                                        ? "border-light-500 dark:border-secdark-700 bg-light-500 dark:bg-secdark-700 text-white"
+                                                        : "border-light-600 dark:border-dark-700 bg-light-50 dark:bg-dark-800"
+                                                }`}
                                             >
                                                 <div className="flex items-center justify-between px-4 py-3">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="text-light-900 dark:text-dark-50 text-base font-semibold">
+                                                            <div
+                                                                className={`text-base font-semibold ${
+                                                                    !hasPackages && isServiceSelected
+                                                                        ? "text-white"
+                                                                        : "text-light-900 dark:text-dark-50"
+                                                                }`}
+                                                            >
                                                                 {lang === "ar" ? service.ar : service.en}
                                                             </div>
                                                             {selectedCount > 0 && (
@@ -434,27 +542,44 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                                     {selectedCount} {t("selected") || "selected"}
                                                                 </span>
                                                             )}
+                                                            {!hasPackages && isServiceSelected && (
+                                                                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium text-white">
+                                                                    {t("selected") || "selected"}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         {service.description && (
-                                                            <div className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                                            <div
+                                                                className={`mt-1 text-sm ${
+                                                                    !hasPackages && isServiceSelected
+                                                                        ? "text-white/90"
+                                                                        : "text-light-600 dark:text-dark-400"
+                                                                }`}
+                                                            >
                                                                 {service.description}
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         {service.price != null && (
-                                                            <div className="text-light-900 dark:text-dark-50 text-sm font-medium">
+                                                            <div
+                                                                className={`text-sm font-medium ${
+                                                                    !hasPackages && isServiceSelected
+                                                                        ? "text-white"
+                                                                        : "text-light-900 dark:text-dark-50"
+                                                                }`}
+                                                            >
                                                                 {service.price} {lang === "ar" ? "ج.م" : "EGP"}
                                                             </div>
                                                         )}
                                                         {hasPackages && (
                                                             <button
-                                                                onClick={() => toggleExpandService(service._id)}
+                                                                onClick={() => toggleExpandService(serviceId)}
                                                                 className="btn-primary text-sm"
                                                             >
                                                                 {isExpanded
                                                                     ? t("hide_packages") || "Hide"
-                                                                    : `${t("view") || "View"} ${service.packages?.length || 0} ${t("packages") || "packages"}`}
+                                                                    : `${t("view") || "View"} ${servicePackages.length} ${t("packages") || "packages"}`}
                                                             </button>
                                                         )}
                                                     </div>
@@ -463,8 +588,10 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                 {isExpanded && hasPackages && (
                                                     <div className="dark:bg-dark-900 border-light-600 dark:border-dark-700 border-t bg-white px-4 py-3">
                                                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                                            {(service.packages || []).map((pkg: any) => {
-                                                                const isSelected = selectedPackages.includes(pkg._id);
+                                                            {servicePackages.map((pkg: any) => {
+                                                                const pkgId = getEntityId(pkg);
+                                                                if (!pkgId) return null;
+                                                                const isSelected = selectedPackages.includes(pkgId);
                                                                 const pkgItems: Array<{ label: string; quantity?: number | string | boolean }> = (
                                                                     pkg.items || []
                                                                 ).map((it: any) => {
@@ -490,8 +617,8 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
 
                                                                 return (
                                                                     <div
-                                                                        key={pkg._id}
-                                                                        onClick={() => togglePackage(pkg._id)}
+                                                                        key={pkgId}
+                                                                        onClick={() => togglePackage(pkgId)}
                                                                         className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
                                                                             isSelected
                                                                                 ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
@@ -581,6 +708,59 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                     })}
                                 </div>
                             )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Always-available packages picker: handles APIs that don't return service->packages relations */}
+                <div className="mb-6">
+                    <h4 className="text-light-900 dark:text-dark-50 mb-3 font-semibold">{t("select_packages") || "Select Packages"}</h4>
+                    {allPackagesCatalog.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {allPackagesCatalog.map((pkg: any) => {
+                                const pkgId = getEntityId(pkg);
+                                if (!pkgId) return null;
+                                const isSelected = selectedPackages.includes(pkgId);
+                                return (
+                                    <div
+                                        key={pkgId}
+                                        onClick={() => togglePackage(pkgId)}
+                                        className={`cursor-pointer rounded-lg border px-3 py-3 transition-all hover:shadow-md ${
+                                            isSelected
+                                                ? "border-light-500 bg-light-500 dark:bg-secdark-700 dark:border-secdark-700 text-white shadow-sm"
+                                                : "border-light-600 dark:border-dark-700 dark:bg-dark-800 text-light-900 dark:text-dark-50 hover:border-light-500 dark:hover:border-secdark-700 bg-white"
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0 flex-1">
+                                                <div
+                                                    className={`mb-1 text-sm font-medium ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                                >
+                                                    {lang === "ar" ? pkg.nameAr || pkg.ar || pkg.nameEn : pkg.nameEn || pkg.en || pkg.nameAr}
+                                                </div>
+                                                {(pkg.description || pkg.descriptionAr) && (
+                                                    <div
+                                                        className={`line-clamp-2 text-xs ${isSelected ? "text-white opacity-90" : "text-light-600 dark:text-dark-400"}`}
+                                                    >
+                                                        {lang === "ar"
+                                                            ? pkg.descriptionAr || pkg.description || ""
+                                                            : pkg.description || pkg.descriptionAr || ""}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div
+                                                className={`text-sm font-semibold whitespace-nowrap ${isSelected ? "text-white" : "text-light-900 dark:text-dark-50"}`}
+                                            >
+                                                {Number(pkg.price) || 0} {lang === "ar" ? "ج.م" : "EGP"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="border-light-600 dark:border-dark-700 text-light-600 dark:text-dark-400 rounded-lg border border-dashed px-4 py-3 text-sm">
+                            {t("no_packages_available") || "No packages available"}
                         </div>
                     )}
                 </div>

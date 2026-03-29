@@ -27,6 +27,10 @@ const PreviewQuotation = ({
     autoDownloadQuotationId,
 }: PreviewQuotationProps) => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
 
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize] = useState<number>(20);
@@ -843,45 +847,51 @@ const PreviewQuotation = ({
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="card bg-dark-50 dark:bg-dark-800/50">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="btn-ghost"
-                    >
-                        <LocalizedArrow size={20} />
-                    </button>
-                    <div className="flex-1">
-                        <h2 className="text-light-900 dark:text-dark-50 text-xl font-bold">{clientName}</h2>
-                        <p className="text-light-600 dark:text-dark-50 text-sm">{t("quotations") || "Quotations"}</p>
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-10 h-52 w-52 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-secdark-700/15 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-4">
+                        <button
+                            onClick={onBack}
+                            className="btn-ghost rounded-xl"
+                        >
+                            <LocalizedArrow size={20} />
+                        </button>
+                        <div>
+                            <span className="inline-flex items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                                Quotation Preview
+                            </span>
+                            <h2 className="text-light-900 dark:text-dark-50 mt-3 text-xl font-bold sm:text-2xl">{clientName}</h2>
+                            <p className="text-light-600 dark:text-dark-300 mt-1 text-sm">{tr("quotations", "Quotations")}</p>
+                        </div>
                     </div>
                     <button
                         onClick={onCreateNew}
-                        className="btn-primary"
+                        className="btn-primary rounded-xl"
                     >
                         <Plus
                             size={16}
                             className="mr-2"
                         />
-                        {t("create_new") || "Create New"}
+                        {tr("create_new", "Create New")}
                     </button>
                 </div>
-            </div>
+            </section>
 
             {/* Empty State */}
             {!quotationsLoading && displayedQuotations.length === 0 && (
-                <div className="card">
+                <div className="rounded-3xl border border-light-200/80 bg-white/90 p-6 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70">
                     <div className="flex flex-col items-center justify-center py-12">
                         <p className="text-light-600 dark:text-dark-400 mb-4 max-w-lg text-center text-lg">
-                            {t("no_quotations_for_client") || "There are no quotations for this client"}
+                            {tr("no_quotations_for_client", "There are no quotations for this client")}
                         </p>
                         <div className="mt-4">
                             <button
                                 onClick={onCreateNew}
-                                className="btn-primary px-6"
+                                className="btn-primary rounded-xl px-6"
                             >
-                                {t("create_quotation") || "Create Quotation"}
+                                {tr("create_quotation", "Create Quotation")}
                             </button>
                         </div>
                     </div>
@@ -890,9 +900,9 @@ const PreviewQuotation = ({
 
             {/* Quotations List */}
             {displayedQuotations.length > 0 && (
-                <div className="card">
+                <div className="rounded-3xl border border-light-200/80 bg-white/90 p-5 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70 sm:p-6">
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="card-title">{t("existing_quotations") || "Existing Quotations"}</h3>
+                        <h3 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("existing_quotations", "Existing Quotations")}</h3>
                     </div>
 
                     {/* Filters */}
@@ -903,14 +913,14 @@ const PreviewQuotation = ({
                                 setStatusFilter(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 rounded-lg border bg-transparent px-3 py-2 text-sm"
+                            className="input rounded-xl"
                         >
-                            <option value="">{t("all_statuses") || "All Statuses"}</option>
-                            <option value="draft">{t("draft") || "Draft"}</option>
-                            <option value="sent">{t("sent") || "Sent"}</option>
-                            <option value="approved">{t("approved") || "Approved"}</option>
-                            <option value="rejected">{t("rejected") || "Rejected"}</option>
-                            <option value="expired">{t("expired") || "Expired"}</option>
+                            <option value="">{tr("all_statuses", "All Statuses")}</option>
+                            <option value="draft">{tr("draft", "Draft")}</option>
+                            <option value="sent">{tr("sent", "Sent")}</option>
+                            <option value="approved">{tr("approved", "Approved")}</option>
+                            <option value="rejected">{tr("rejected", "Rejected")}</option>
+                            <option value="expired">{tr("expired", "Expired")}</option>
                         </select>
                     </div>
 
@@ -918,7 +928,7 @@ const PreviewQuotation = ({
                         {displayedQuotations.map((quotation) => (
                             <div
                                 key={quotation._id}
-                                className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                className="rounded-2xl border border-light-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800/70"
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -956,23 +966,23 @@ const PreviewQuotation = ({
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => onEdit(quotation)}
-                                            className="btn-ghost"
-                                            title={t("edit") || "Edit"}
+                                            className="btn-ghost rounded-xl"
+                                            title={tr("edit", "Edit")}
                                             disabled={quotation.status === "approved"}
                                         >
                                             <Edit2 size={16} />
                                         </button>
                                         <button
                                             onClick={() => handlePreviewPDF(quotation)}
-                                            className="btn-ghost text-blue-600"
-                                            title={t("preview_pdf") || "Preview PDF"}
+                                            className="btn-ghost text-blue-600 rounded-xl"
+                                            title={tr("preview_pdf", "Preview PDF")}
                                         >
                                             <Eye size={16} />
                                         </button>
                                         <button
                                             onClick={() => handleDownloadPDF(quotation._id)}
-                                            className="btn-ghost"
-                                            title={t("download_pdf") || "Download PDF"}
+                                            className="btn-ghost rounded-xl"
+                                            title={tr("download_pdf", "Download PDF")}
                                             disabled={isDownloading === quotation._id}
                                         >
                                             {isDownloading === quotation._id ? (
@@ -987,16 +997,16 @@ const PreviewQuotation = ({
                                         {quotation.status !== "approved" && (
                                             <button
                                                 onClick={() => openConvertModal(quotation)}
-                                                className="btn-ghost text-green-600"
-                                                title={t("convert_to_contract") || "Convert to Contract"}
+                                                className="btn-ghost text-green-600 rounded-xl"
+                                                title={tr("convert_to_contract", "Convert to Contract")}
                                             >
                                                 <FileCheck size={16} />
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDeleteQuotation(quotation._id)}
-                                            className="btn-ghost text-danger-500"
-                                            title={t("delete") || "Delete"}
+                                            className="btn-ghost text-danger-500 rounded-xl"
+                                            title={tr("delete", "Delete")}
                                             disabled={isDeleting === quotation._id}
                                         >
                                             {isDeleting === quotation._id ? (
@@ -1016,16 +1026,16 @@ const PreviewQuotation = ({
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="border-light-600 dark:border-dark-700 mt-6 flex items-center justify-between border-t pt-4">
+                        <div className="border-light-200 dark:border-dark-700 mt-6 flex items-center justify-between border-t pt-4">
                             <div className="text-light-600 dark:text-dark-400 text-sm">
-                                {t("showing") || "Showing"} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalQuotations)}{" "}
-                                {t("of") || "of"} {totalQuotations}
+                                {tr("showing", "Showing")} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalQuotations)}{" "}
+                                {tr("of", "of")} {totalQuotations}
                             </div>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="btn-ghost"
+                                    className="btn-ghost rounded-xl"
                                 >
                                     <ChevronLeft size={20} />
                                 </button>
@@ -1035,7 +1045,7 @@ const PreviewQuotation = ({
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="btn-ghost"
+                                    className="btn-ghost rounded-xl"
                                 >
                                     <ChevronRight size={20} />
                                 </button>
@@ -1048,9 +1058,9 @@ const PreviewQuotation = ({
             {/* Convert to Contract Modal */}
             {showConvertModal && (
                 <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-                    <div className="dark:bg-dark-800 mx-4 w-full max-w-md rounded-lg bg-white p-6">
+                    <div className="dark:bg-dark-800 mx-4 w-full max-w-md rounded-2xl border border-light-200/80 bg-white p-6 shadow-xl dark:border-dark-700/80">
                         <h3 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-bold">
-                            {t("convert_to_contract") || "Convert to Contract"}
+                            {tr("convert_to_contract", "Convert to Contract")}
                         </h3>
                         <div className="space-y-4">
                             <div>
@@ -1059,7 +1069,7 @@ const PreviewQuotation = ({
                                     type="date"
                                     value={contractStartDate}
                                     onChange={(e) => setContractStartDate(e.target.value)}
-                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    className="input w-full rounded-xl"
                                 />
                             </div>
                             <div>
@@ -1068,7 +1078,7 @@ const PreviewQuotation = ({
                                     type="date"
                                     value={contractEndDate}
                                     onChange={(e) => setContractEndDate(e.target.value)}
-                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    className="input w-full rounded-xl"
                                 />
                             </div>
                             <div>
@@ -1080,7 +1090,7 @@ const PreviewQuotation = ({
                                     onChange={(e) => setContractTerms(e.target.value)}
                                     placeholder={t("contract_terms_placeholder") || "Enter contract terms..."}
                                     rows={3}
-                                    className="border-light-600 dark:border-dark-700 text-light-900 dark:text-dark-50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+                                    className="input w-full rounded-xl"
                                 />
                             </div>
                         </div>
@@ -1093,14 +1103,14 @@ const PreviewQuotation = ({
                                     setContractEndDate("");
                                     setContractTerms("");
                                 }}
-                                className="btn-ghost"
+                                className="btn-ghost rounded-xl"
                                 disabled={isConverting !== null}
                             >
-                                {t("cancel") || "Cancel"}
+                                {tr("cancel", "Cancel")}
                             </button>
                             <button
                                 onClick={handleConvertToContract}
-                                className="btn-primary flex items-center gap-2"
+                                className="btn-primary flex items-center gap-2 rounded-xl"
                                 disabled={isConverting !== null || !contractStartDate || !contractEndDate}
                             >
                                 {isConverting ? (
@@ -1111,7 +1121,7 @@ const PreviewQuotation = ({
                                 ) : (
                                     <FileCheck size={16} />
                                 )}
-                                {t("convert") || "Convert"}
+                                {tr("convert", "Convert")}
                             </button>
                         </div>
                     </div>

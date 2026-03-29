@@ -269,17 +269,20 @@ export const getClients = async (): Promise<Client[]> => {
     try {
         // Request all clients with populated relationships in a single efficient request
         const response = await axiosInstance.get(CLIENTS_ENDPOINT, {
-            params: {
-                populate: "segments,competitors,branches",
-            },
+            
         });
 
-        // Handle nested data structure - backend might return {data: [...]} or [...]
+        // Handle multiple response shapes: [...], { data: [...] }, { clients: [...] }, or { data: { clients: [...] } }
+        const responseData = response.data;
         let data;
-        if (Array.isArray(response.data)) {
-            data = response.data;
-        } else if (Array.isArray(response.data.data)) {
-            data = response.data.data;
+        if (Array.isArray(responseData)) {
+            data = responseData;
+        } else if (Array.isArray(responseData?.clients)) {
+            data = responseData.clients;
+        } else if (Array.isArray(responseData?.data)) {
+            data = responseData.data;
+        } else if (Array.isArray(responseData?.data?.clients)) {
+            data = responseData.data.clients;
         } else {
             data = [];
         }
@@ -299,21 +302,31 @@ export const getClientsWithFilters = async (filters: ClientFilterParams = {}): P
     try {
         const queryString = buildQueryString(filters);
         const url = queryString
-            ? `${CLIENTS_ENDPOINT}?${queryString}&populate=segments,competitors,branches`
-            : `${CLIENTS_ENDPOINT}?populate=segments,competitors,branches`;
+            ? `${CLIENTS_ENDPOINT}?${queryString}`
+            : `${CLIENTS_ENDPOINT}`;
 
         const response = await axiosInstance.get(url);
 
-        // Handle paginated response format
-        const data = response.data.data || response.data;
-        const meta = response.data.meta || {
-            total: Array.isArray(data) ? data.length : 0,
-            page: filters.page || 1,
-            limit: filters.limit || 20,
-            totalPages: 1,
+        // Handle paginated response formats: { data: [...] }, { clients: [...] }, { data: { clients: [...] } }
+        const responseData = response.data;
+        const rawClients = Array.isArray(responseData)
+            ? responseData
+            : Array.isArray(responseData?.clients)
+              ? responseData.clients
+              : Array.isArray(responseData?.data)
+                ? responseData.data
+                : Array.isArray(responseData?.data?.clients)
+                  ? responseData.data.clients
+                  : [];
+
+        const meta = responseData?.meta || {
+            total: Number(responseData?.totalCount) || rawClients.length,
+            page: Number(responseData?.page) || filters.page || 1,
+            limit: Number(responseData?.limit) || filters.limit || 20,
+            totalPages: Number(responseData?.pageCount) || 1,
         };
 
-        const clients = Array.isArray(data) ? data.map(transformToFrontendFormat).filter((c): c is Client => c !== null) : [];
+        const clients = rawClients.map(transformToFrontendFormat).filter((c: Client | null): c is Client => c !== null);
 
         return {
             data: clients,
@@ -372,7 +385,7 @@ export const getClientById = async (clientId: string): Promise<Client | null> =>
         try {
             const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, {
                 params: {
-                    populate: "segments,competitors,branches",
+                    
                 },
             });
 

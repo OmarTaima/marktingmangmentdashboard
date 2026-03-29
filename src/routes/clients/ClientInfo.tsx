@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Users, Mail, Phone, MapPin, Edit2, Target, Plus, Trash2 } from "lucide-react";
-import { SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
+import { Users, Mail, Phone, MapPin, Edit2, Target, Plus, Trash2, Globe } from "lucide-react";
+import { SiBehance, SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useQueryClient } from "@tanstack/react-query";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
@@ -45,6 +45,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     fullPage = false,
 }) => {
     const { t } = useLang();
+    const tx = (key: string, fallback: string): string => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -482,7 +486,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
             try {
                 // Fetch fresh client from cache/server and log it for debugging
-                const fresh = await queryClient.fetchQuery({ queryKey: clientsKeys.detail(clientId) });
+                await queryClient.fetchQuery({ queryKey: clientsKeys.detail(clientId) });
             } catch (e) {
                 // ignore
             }
@@ -519,13 +523,25 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     };
 
     const inputBaseClass =
-        "w-full rounded-lg border border-light-300 bg-light-50 px-3 py-2 text-sm text-light-900 placeholder-light-400 focus:border-light-500 focus:ring-light-200 dark:border-dark-800 dark:bg-dark-800 dark:text-dark-50";
+        "w-full rounded-xl border border-light-200 bg-white/90 px-3 py-2 text-sm text-light-900 placeholder-light-400 shadow-sm transition-all duration-200 focus:border-light-500 focus:outline-none focus:ring-2 focus:ring-light-500/20 dark:border-dark-700 dark:bg-dark-800/80 dark:text-dark-50";
 
     const buttonGhostClass =
-        "rounded-lg border border-light-200 bg-light-100 px-2.5 py-1 text-xs text-light-500 hover:bg-light-200 dark:border-dark-700 dark:bg-dark-900/40 dark:text-dark-50 dark:hover:bg-dark-800";
+        "rounded-xl border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-500 hover:bg-light-100 dark:border-dark-700 dark:bg-dark-900/50 dark:text-dark-50 dark:hover:bg-dark-800";
 
     const buttonAddClass =
-        "rounded-lg border border-light-200 bg-light-100 px-3 py-1 text-xs font-medium text-light-500 hover:bg-light-200 dark:border-dark-700 dark:bg-dark-900/40 dark:text-dark-50 dark:hover:bg-dark-800";
+        "rounded-xl border border-light-200 bg-light-50 px-3 py-1 text-xs font-semibold text-light-600 hover:bg-light-100 dark:border-dark-700 dark:bg-dark-900/50 dark:text-dark-100 dark:hover:bg-dark-800";
+
+    const surfaceClass =
+        "card rounded-[1.5rem] border-light-200/80 bg-white/90 shadow-sm backdrop-blur-sm dark:border-dark-800 dark:bg-dark-900/90 transition-all duration-300 hover:-translate-y-[1px] hover:shadow-md";
+
+    const sectionsCount = (editing ? draft?.segments : client?.segments)?.length || 0;
+    const competitorsCount = (editing ? draft?.competitors : client?.competitors)?.length || 0;
+    const branchesCount = (editing ? draft?.branches : client?.branches)?.length || 0;
+    const socialLinksCount = (editing ? draft?.socialLinks?.business : client?.socialLinks?.business)?.length || 0;
+    const swotItemsCount = ((editing ? draft?.swot?.strengths : client?.swot?.strengths)?.length || 0) +
+        ((editing ? draft?.swot?.weaknesses : client?.swot?.weaknesses)?.length || 0) +
+        ((editing ? draft?.swot?.opportunities : client?.swot?.opportunities)?.length || 0) +
+        ((editing ? draft?.swot?.threats : client?.swot?.threats)?.length || 0);
 
     // small helpers to display validation state for a given value
     const makeInvalidClass = (invalid: boolean): string => (invalid ? " border-red-500 ring-1 ring-red-200 dark:ring-red-900/30" : "");
@@ -533,22 +549,46 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     // Full page layout
     if (fullPage && client) {
         return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
+            <div className="space-y-8">
+                <div className="relative overflow-hidden rounded-[1.75rem] border border-light-200 bg-white p-5 shadow-sm dark:border-dark-800 dark:bg-dark-900 sm:p-6">
+                    <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-light-500/10 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-14 -left-14 h-40 w-40 rounded-full bg-secdark-700/10 blur-3xl" />
+
+                    <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(-1)}
-                            className="btn-ghost btn-sm btn flex items-center gap-2"
+                            className="btn-secondary flex items-center gap-2"
                             aria-label="Back"
                         >
                             <LocalizedArrow className="h-4 w-4" />
                         </button>
-                        <h1 className="text-light-900 dark:text-dark-50 text-xl font-semibold">
-                            {client.business?.businessName || client.personal?.fullName || t("unnamed_business")}
-                        </h1>
+                        <div>
+                            <p className="text-light-500 dark:text-dark-400 text-[11px] font-black uppercase tracking-wider">Client Profile</p>
+                            <h1 className="text-light-900 dark:text-dark-50 text-xl font-black tracking-tight sm:text-2xl">
+                                {client.business?.businessName || client.personal?.fullName || t("unnamed_business")}
+                            </h1>
+                            <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                {client.business?.category || t("no_category")}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {sectionsCount} {t("segments_label") || "Segments"}
+                                </span>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {competitorsCount} {t("competitors_label") || "Competitors"}
+                                </span>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {swotItemsCount} {t("swot_items") || "SWOT Items"}
+                                </span>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {branchesCount} {t("branches") || "Branches"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-light-200/80 bg-white/70 p-1.5 shadow-sm dark:border-dark-700 dark:bg-dark-900/70">
                         {!editing ? (
                             <>
                                 <button
@@ -577,7 +617,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                 </button>
                                 <button
                                     onClick={cancelEditing}
-                                    className="btn-ghost flex items-center gap-2"
+                                    className="btn-secondary flex items-center gap-2"
                                 >
                                     {t("cancel") || "Cancel"}
                                 </button>
@@ -593,9 +633,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         </button>
                     </div>
                 </div>
+                </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-1">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    <div className="lg:col-span-4">
                         <ClientInfo
                             client={client}
                             compact={false}
@@ -606,44 +647,80 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         />
                     </div>
 
-                    <div className="space-y-4 lg:col-span-2">
+                    <div className="space-y-5 lg:col-span-8">
                         {/* SWOT */}
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-4">{t("swot") || "SWOT Analysis"}</h3>
+                        <div className={surfaceClass}>
+                            <div className="mb-5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="card-title">{t("swot") || "SWOT Analysis"}</h3>
+                                    <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                                        {tx("strategic_overview", "Strategic overview across strengths, weaknesses, opportunities, and threats.")}
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-black tracking-wide text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {swotItemsCount} {t("swot_items") || "Items"}
+                                </span>
+                            </div>
+
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 {["strengths", "weaknesses", "opportunities", "threats"].map((key) => {
                                     const titleMap = {
                                         strengths: {
                                             label: t("strengths") || "Strengths",
-                                            color: "text-green-600",
+                                            color: "text-emerald-700 dark:text-emerald-400",
+                                            panel: "border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-emerald-500/10",
+                                            badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+                                            item: "border-emerald-200/80 bg-white/80 dark:border-emerald-500/20 dark:bg-dark-900/70",
                                         },
                                         weaknesses: {
                                             label: t("weaknesses") || "Weaknesses",
-                                            color: "text-red-600",
+                                            color: "text-rose-700 dark:text-rose-400",
+                                            panel: "border-rose-200 bg-rose-50/70 dark:border-rose-500/20 dark:bg-rose-500/10",
+                                            badge: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+                                            item: "border-rose-200/80 bg-white/80 dark:border-rose-500/20 dark:bg-dark-900/70",
                                         },
                                         opportunities: {
                                             label: t("opportunities") || "Opportunities",
-                                            color: "text-blue-600",
+                                            color: "text-sky-700 dark:text-sky-400",
+                                            panel: "border-sky-200 bg-sky-50/70 dark:border-sky-500/20 dark:bg-sky-500/10",
+                                            badge: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
+                                            item: "border-sky-200/80 bg-white/80 dark:border-sky-500/20 dark:bg-dark-900/70",
                                         },
                                         threats: {
                                             label: t("threats") || "Threats",
-                                            color: "text-orange-600",
+                                            color: "text-amber-700 dark:text-amber-400",
+                                            panel: "border-amber-200 bg-amber-50/70 dark:border-amber-500/20 dark:bg-amber-500/10",
+                                            badge: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+                                            item: "border-amber-200/80 bg-white/80 dark:border-amber-500/20 dark:bg-dark-900/70",
                                         },
                                     };
                                     const k = key as keyof Client["swot"];
                                     const items: any[] = (editing ? (draft?.swot as any)?.[k] : (client?.swot as any)?.[k]) || [];
+                                    const marker = key === "strengths" ? "S" : key === "weaknesses" ? "W" : key === "opportunities" ? "O" : "T";
                                     return (
-                                        <div key={key}>
-                                            <h4 className={`mb-2 font-medium ${titleMap[key as keyof typeof titleMap].color}`}>
-                                                {key === "strengths" ? "💪 " : key === "weaknesses" ? "⚠️ " : key === "opportunities" ? "🎯 " : "⚡ "}
-                                                {titleMap[key as keyof typeof titleMap].label}
-                                            </h4>
+                                        <div
+                                            key={key}
+                                            className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:-translate-y-[1px] hover:shadow-md ${titleMap[key as keyof typeof titleMap].panel}`}
+                                        >
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <h4 className={`flex items-center gap-2 text-sm font-black uppercase tracking-wide ${titleMap[key as keyof typeof titleMap].color}`}>
+                                                    <span
+                                                        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${titleMap[key as keyof typeof titleMap].badge}`}
+                                                    >
+                                                        {marker}
+                                                    </span>
+                                                    {titleMap[key as keyof typeof titleMap].label}
+                                                </h4>
+                                                <span className="text-light-500 dark:text-dark-400 text-xs font-semibold">
+                                                    {items.length}
+                                                </span>
+                                            </div>
                                             <div className="space-y-2 text-sm">
                                                 {items.length > 0 ? (
                                                     items.map((item: any, idx: number) => (
                                                         <div
                                                             key={idx}
-                                                            className="flex items-center gap-2"
+                                                            className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${titleMap[key as keyof typeof titleMap].item}`}
                                                         >
                                                             {editing ? (
                                                                 <input
@@ -652,7 +729,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                     onChange={(e) => updateDraft(`swot.${key}.${idx}`, e.target.value)}
                                                                 />
                                                             ) : (
-                                                                <div className="text-light-900 dark:text-dark-50">{item}</div>
+                                                                <div className="text-light-900 dark:text-dark-50 w-full font-medium">{item}</div>
                                                             )}
                                                             {editing && (
                                                                 <button
@@ -670,17 +747,19 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                         });
                                                                     }}
                                                                 >
-                                                                    Remove
+                                                                    {t("remove") || "Remove"}
                                                                 </button>
                                                             )}
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className="text-dark-500">{t("none_listed") || "None listed"}</div>
+                                                    <div className="text-dark-500 dark:text-dark-400 rounded-xl border border-dashed border-light-300 bg-white/60 px-3 py-2 text-xs dark:border-dark-700 dark:bg-dark-900/50">
+                                                        {t("none_listed") || "None listed"}
+                                                    </div>
                                                 )}
                                                 {editing && (
                                                     <button
-                                                        className={buttonAddClass}
+                                                        className={`${buttonAddClass} w-full justify-center`}
                                                         onClick={() => {
                                                             ensureDraftArray("swot." + key);
                                                             setDraft((prev: Partial<Client> | null) => {
@@ -692,7 +771,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                             });
                                                         }}
                                                     >
-                                                        Add
+                                                        {t("add") || "Add"}
                                                     </button>
                                                 )}
                                             </div>
@@ -703,14 +782,24 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         </div>
 
                         {/* Competitors */}
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-4">{t("competitors") || "Competitors"}</h3>
+                        <div className={surfaceClass}>
+                            <div className="mb-5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="card-title">{t("competitors") || "Competitors"}</h3>
+                                    <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                                        {tx("competitor_landscape", "Track major competitors and their positioning.")}
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-black tracking-wide text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {competitorsCount} {t("competitors_label") || "Competitors"}
+                                </span>
+                            </div>
                             {(editing ? draft?.competitors || [] : client.competitors || []).length > 0 ? (
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     {(editing ? draft?.competitors || [] : client.competitors || []).map((competitor, idx) => (
                                         <div
                                             key={idx}
-                                            className="bg-light-50 dark:bg-dark-800/50 rounded-lg p-3 transition-colors duration-300"
+                                            className="rounded-2xl border border-light-200 bg-white/80 p-4 shadow-sm transition-all duration-300 hover:-translate-y-[1px] hover:shadow-md dark:border-dark-700 dark:bg-dark-800/60"
                                         >
                                             {editing ? (
                                                 <>
@@ -873,7 +962,12 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         }}
                                                         className="cursor-pointer"
                                                     >
-                                                        <h4 className="text-light-900 dark:text-dark-50 font-medium">{competitor.name}</h4>
+                                                        <div className="mb-2 flex items-center justify-between gap-2">
+                                                            <h4 className="text-light-900 dark:text-dark-50 font-semibold">{competitor.name}</h4>
+                                                            <span className="rounded-full border border-light-200 bg-light-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                                                #{idx + 1}
+                                                            </span>
+                                                        </div>
                                                         <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{competitor.description}</p>
                                                     </div>
 
@@ -881,9 +975,9 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                     {competitor.socialLinks && competitor.socialLinks.length > 0 && (
                                                         <div className="mt-2 flex flex-wrap gap-2">
                                                             {competitor.socialLinks.map((link: any, linkIdx: number) => {
-                                                                const platformLower = (link.platform || "").toLowerCase();
-                                                                let Icon = null;
-                                                                let colorClass = "text-light-600";
+                                                                const platformLower = (link.platform || "").toLowerCase().trim();
+                                                                let Icon: any = Globe;
+                                                                let colorClass = "text-light-500 dark:text-dark-300";
                                                                 if (platformLower === "facebook") {
                                                                     Icon = SiFacebook;
                                                                     colorClass = "text-blue-600";
@@ -896,6 +990,20 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                 } else if (platformLower === "twitter" || platformLower === "x") {
                                                                     Icon = SiX;
                                                                     colorClass = "text-dark-900 dark:text-dark-50";
+                                                                } else if (
+                                                                    platformLower.includes("behance") ||
+                                                                    platformLower.includes("behacne") ||
+                                                                    platformLower.includes("behcane")
+                                                                ) {
+                                                                    Icon = SiBehance;
+                                                                    colorClass = "text-blue-500";
+                                                                } else if (
+                                                                    platformLower.includes("website") ||
+                                                                    platformLower.includes("web") ||
+                                                                    platformLower.includes("site")
+                                                                ) {
+                                                                    Icon = Globe;
+                                                                    colorClass = "text-light-500 dark:text-dark-300";
                                                                 }
                                                                 return (
                                                                     <a
@@ -903,10 +1011,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                         href={normalizeUrl(link.url)}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className={`${colorClass} transition-opacity hover:opacity-70`}
+                                                                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-light-200 bg-white shadow-sm transition-opacity hover:opacity-70 dark:border-dark-700 dark:bg-dark-900 ${colorClass}`}
                                                                         title={`${link.platform}: ${link.url}`}
                                                                     >
-                                                                        {Icon ? <Icon size={18} /> : <span className="text-xs">{link.platform}</span>}
+                                                                        <Icon size={18} />
                                                                     </a>
                                                                 );
                                                             })}
@@ -927,7 +1035,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
                                                     {/* Expanded details: SWOT + timestamps */}
                                                     {expandedCompetitorId === (competitor._id || `idx-${idx}`) && (
-                                                        <div className="mt-3 border-t pt-3 text-sm">
+                                                        <div className="mt-3 rounded-xl border border-light-200 bg-white/80 p-3 text-sm dark:border-dark-700 dark:bg-dark-900/60">
                                                             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                                                 <div>
                                                                     <h5 className="text-light-900 dark:text-dark-50 font-medium">SWOT</h5>
@@ -1081,13 +1189,23 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         </div>
 
                         {/* Social Media */}
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-4">{t("social_media") || "Social Media"}</h3>
+                        <div className={surfaceClass}>
+                            <div className="mb-5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="card-title">{t("social_media") || "Social Media"}</h3>
+                                    <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                                        {tx("social_presence", "Business social presence and profile links.")}
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-black tracking-wide text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {socialLinksCount} {t("links") || "Links"}
+                                </span>
+                            </div>
                             <div className="space-y-2">
                                 {(editing ? draft?.socialLinks?.business || [] : client.socialLinks?.business || []).map((link, idx) => {
-                                    const platformLower = (link.platform || "").toLowerCase();
-                                    let Icon = null;
-                                    let colorClass = "text-light-600";
+                                    const platformLower = (link.platform || "").toLowerCase().trim();
+                                    let Icon: any = Globe;
+                                    let colorClass = "text-light-500 dark:text-dark-300";
                                     if (platformLower.includes("facebook")) {
                                         Icon = SiFacebook;
                                         colorClass = "text-blue-600";
@@ -1100,12 +1218,26 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                     } else if (platformLower.includes("x") || platformLower.includes("twitter")) {
                                         Icon = SiX;
                                         colorClass = "text-light-900 dark:text-white";
+                                    } else if (
+                                        platformLower.includes("behance") ||
+                                        platformLower.includes("behacne") ||
+                                        platformLower.includes("behcane")
+                                    ) {
+                                        Icon = SiBehance;
+                                        colorClass = "text-blue-500";
+                                    } else if (
+                                        platformLower.includes("website") ||
+                                        platformLower.includes("web") ||
+                                        platformLower.includes("site")
+                                    ) {
+                                        Icon = Globe;
+                                        colorClass = "text-light-500 dark:text-dark-300";
                                     }
 
                                     return (
                                         <div
                                             key={idx}
-                                            className="flex items-center gap-2"
+                                            className="flex items-center gap-2 rounded-xl border border-light-200 bg-white/80 p-2.5 shadow-sm dark:border-dark-700 dark:bg-dark-800/60"
                                         >
                                             {editing ? (
                                                 <>
@@ -1151,12 +1283,14 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                 </>
                                             ) : (
                                                 <>
-                                                    {Icon && <Icon className={`${colorClass} h-5 w-5`} />}
+                                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-light-200 bg-white dark:border-dark-700 dark:bg-dark-900">
+                                                        <Icon className={`${colorClass} h-5 w-5`} />
+                                                    </span>
                                                     <a
                                                         href={normalizeUrl(link.url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-blue-600 hover:underline dark:text-blue-400"
+                                                        className="text-blue-600 hover:underline dark:text-blue-400 font-medium"
                                                     >
                                                         {link.platform}
                                                     </a>
@@ -1188,16 +1322,26 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         </div>
 
                         {/* Market Segments */}
-                        <div className="card transition-colors duration-300">
-                            <h3 className="card-title mb-4 flex items-center gap-2">
-                                <Target size={18} />
-                                {t("target_segments") || "Market Segments"}
-                            </h3>
+                        <div className={surfaceClass}>
+                            <div className="mb-5 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="card-title flex items-center gap-2">
+                                        <Target size={18} />
+                                        {t("target_segments") || "Market Segments"}
+                                    </h3>
+                                    <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                                        {tx("segment_insights", "Audience profiles grouped by behavior and demographics.")}
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-black tracking-wide text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                                    {sectionsCount} {t("segments_label") || "Segments"}
+                                </span>
+                            </div>
                             <div className="space-y-3">
                                 {(editing ? draft?.segments || [] : client.segments || []).map((segment, idx) => (
                                     <div
                                         key={segment._id || idx}
-                                        className="border-light-300 dark:border-dark-700 dark:bg-dark-800/50 rounded-lg border bg-white p-4"
+                                        className="rounded-2xl border border-light-200 bg-white/80 p-4 shadow-sm transition-all duration-300 hover:shadow-md dark:border-dark-700 dark:bg-dark-800/60"
                                     >
                                         {editing ? (
                                             <div className="space-y-3">
@@ -1473,27 +1617,32 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                             </div>
                                         ) : (
                                             <div>
-                                                <h4 className="text-light-900 dark:text-dark-50 mb-2 font-semibold">{segment.name}</h4>
+                                                <div className="mb-2 flex items-center justify-between gap-2">
+                                                    <h4 className="text-light-900 dark:text-dark-50 font-semibold">{segment.name}</h4>
+                                                    <span className="rounded-full border border-light-200 bg-light-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-900 dark:text-dark-300">
+                                                        {t("segment") || "Segment"}
+                                                    </span>
+                                                </div>
                                                 {segment.description && (
                                                     <p className="text-light-600 dark:text-dark-400 mb-3 text-sm">{segment.description}</p>
                                                 )}
                                                 <div className="flex flex-wrap gap-2">
                                                     {segment.ageRange && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                             Age: {Array.isArray(segment.ageRange) ? segment.ageRange.join(", ") : segment.ageRange}
                                                         </span>
                                                     )}
                                                     {segment.gender &&
                                                         (Array.isArray(segment.gender)
                                                             ? !segment.gender.includes("all") && (
-                                                                  <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                                  <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                                       {segment.gender
                                                                           .map((g: string) => g.charAt(0).toUpperCase() + g.slice(1))
                                                                           .join(", ")}
                                                                   </span>
                                                               )
                                                             : segment.gender !== "all" && (
-                                                                  <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                                  <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                                       {typeof segment.gender === "string"
                                                                           ? (segment.gender as string).charAt(0).toUpperCase() +
                                                                             (segment.gender as string).slice(1)
@@ -1501,7 +1650,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                   </span>
                                                               ))}
                                                     {(segment as any).area && (segment as any).area.length > 0 && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                             Area:{" "}
                                                             {Array.isArray((segment as any).area)
                                                                 ? (segment as any).area.join(", ")
@@ -1509,7 +1658,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         </span>
                                                     )}
                                                     {(segment as any).governorate && (segment as any).governorate.length > 0 && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                             Gov:{" "}
                                                             {Array.isArray((segment as any).governorate)
                                                                 ? (segment as any).governorate.join(", ")
@@ -1517,7 +1666,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         </span>
                                                     )}
                                                     {(segment as any).productName && (
-                                                        <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                        <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                             {Array.isArray((segment as any).productName)
                                                                 ? (segment as any).productName.join(", ")
                                                                 : (segment as any).productName}
@@ -1527,7 +1676,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                         (Array.isArray((segment as any).population)
                                                             ? (segment as any).population.length > 0
                                                             : true) && (
-                                                            <span className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-300 rounded px-2 py-1 text-xs">
+                                                            <span className="rounded-full border border-light-200 bg-light-50 px-2.5 py-1 text-xs text-light-700 dark:border-dark-700 dark:bg-dark-700 dark:text-dark-300">
                                                                 Population:{" "}
                                                                 {Array.isArray((segment as any).population)
                                                                     ? (segment as any).population.join(", ")
@@ -1581,55 +1730,70 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
     if (compact) {
         return (
-            <div className="space-y-4">
-                <div>
-                    <h3 className="text-light-900 dark:text-dark-50 text-xl font-semibold">
-                        <span className="mr-2 text-sm font-semibold">{t("business_name_label")}</span>
-                        {data.business?.businessName || t("unnamed_business")}
-                    </h3>
-                    <p className="text-light-600 dark:text-dark-400 text-sm">
-                        <span className="mr-2 text-xs font-medium">{t("business_category_label")}</span>
-                        {data.business?.category || t("no_category")}
-                    </p>
+            <div className="rounded-2xl border border-light-200/80 bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:border-dark-800 dark:bg-dark-900/60">
+                <div className="flex items-start gap-3">
+                    <div className="min-w-0">
+                        <p className="text-light-500 dark:text-dark-400 text-[10px] font-black uppercase tracking-wider">
+                            {t("business_name_label")}
+                        </p>
+                        <h3 className="text-light-900 dark:text-dark-50 mt-1 truncate text-2xl font-black tracking-tight">
+                            {data.business?.businessName || t("unnamed_business")}
+                        </h3>
+                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                            <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider opacity-80">
+                                {t("business_category_label")}
+                            </span>
+                            {data.business?.category || t("no_category")}
+                        </p>
+                    </div>
                 </div>
 
-                <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3 text-sm">
-                    {data.personal?.fullName && (
-                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
-                            <Users size={14} />
-                            <span>{data.personal?.fullName}</span>
-                        </div>
-                    )}
-                    {data.contact?.businessEmail && (
-                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
-                            <Mail size={14} />
-                            <span className="truncate">{data.contact?.businessEmail}</span>
-                        </div>
-                    )}
-                    {data.contact?.businessPhone && (
-                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
-                            <Phone size={14} />
-                            <span>{data.contact?.businessPhone}</span>
-                        </div>
-                    )}
-                    {data.branches && data.branches.length > 0 && (
-                        <div className="text-light-600 dark:text-dark-400 flex items-center gap-2">
-                            <MapPin size={14} />
-                            <span>
-                                {data.branches?.length} {data.branches?.length === 1 ? t("branches_singular") : t("branches_plural")}
-                            </span>
-                        </div>
-                    )}
+                <div className="mt-4 border-t border-light-200/80 pt-3 text-sm dark:border-dark-700/80">
+                    <div className="grid grid-cols-1 gap-2">
+                        {data.personal?.fullName && (
+                            <div className="text-light-600 dark:text-dark-300 flex items-center gap-2 rounded-lg bg-light-50/80 px-2.5 py-1.5 dark:bg-dark-800/60">
+                                <Users size={14} className="text-light-500 dark:text-dark-400" />
+                                <span className="truncate">{data.personal?.fullName}</span>
+                            </div>
+                        )}
+                        {data.contact?.businessEmail && (
+                            <div className="text-light-600 dark:text-dark-300 flex items-center gap-2 rounded-lg bg-light-50/80 px-2.5 py-1.5 dark:bg-dark-800/60">
+                                <Mail size={14} className="text-light-500 dark:text-dark-400" />
+                                <span className="truncate">{data.contact?.businessEmail}</span>
+                            </div>
+                        )}
+                        {data.contact?.businessPhone && (
+                            <div className="text-light-600 dark:text-dark-300 flex items-center gap-2 rounded-lg bg-light-50/80 px-2.5 py-1.5 dark:bg-dark-800/60">
+                                <Phone size={14} className="text-light-500 dark:text-dark-400" />
+                                <span>{data.contact?.businessPhone}</span>
+                            </div>
+                        )}
+                        {data.branches && data.branches.length > 0 && (
+                            <div className="text-light-600 dark:text-dark-300 flex items-center gap-2 rounded-lg bg-light-50/80 px-2.5 py-1.5 dark:bg-dark-800/60">
+                                <MapPin size={14} className="text-light-500 dark:text-dark-400" />
+                                <span>
+                                    {data.branches?.length} {data.branches?.length === 1 ? t("branches_singular") : t("branches_plural")}
+                                </span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            <div className="card transition-colors duration-300">
-                <h3 className="card-title mb-4">{t("client_overview")}</h3>
-                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        <div className="space-y-5">
+            <div className={surfaceClass}>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 className="card-title">{t("client_overview")}</h3>
+                        <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                            {tx("business_snapshot", "Business profile summary and account metadata.")}
+                        </p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 [&>div]:rounded-xl [&>div]:border [&>div]:border-light-200 [&>div]:bg-white/80 [&>div]:p-3 [&>div]:shadow-sm dark:[&>div]:border-dark-700 dark:[&>div]:bg-dark-800/60">
                     <div>
                         <span className="text-dark-500 dark:text-dark-400">{t("business_name_label")}</span>
                         {editing ? (
@@ -1725,12 +1889,19 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                 </div>
             </div>
 
-            <div className="card transition-colors duration-300">
-                <h3 className="card-title mb-4">{t("contact_information")}</h3>
-                <div className="space-y-4">
+            <div className={surfaceClass}>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                        <h3 className="card-title">{t("contact_information")}</h3>
+                        <p className="text-light-500 dark:text-dark-400 mt-1 text-xs">
+                            {tx("contact_channels", "Primary communication channels and branch contacts.")}
+                        </p>
+                    </div>
+                </div>
+                <div className="space-y-5">
                     <div className="space-y-2">
                         <h4 className="text-dark-700 dark:text-dark-50 text-sm font-semibold">{t("contact_person")}</h4>
-                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 [&>div]:rounded-xl [&>div]:border [&>div]:border-light-200 [&>div]:bg-white/80 [&>div]:p-3 [&>div]:shadow-sm dark:[&>div]:border-dark-700 dark:[&>div]:bg-dark-800/60">
                             <div>
                                 <span className="text-dark-500 dark:text-dark-400">{t("name_label")}</span>
                                 {editing ? (
@@ -1802,7 +1973,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
 
                     <div className="border-dark-200 dark:border-dark-700 space-y-2 border-t pt-3">
                         <h4 className="text-dark-700 dark:text-dark-50 text-sm font-semibold">{t("business_contact")}</h4>
-                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 [&>div]:rounded-xl [&>div]:border [&>div]:border-light-200 [&>div]:bg-white/80 [&>div]:p-3 [&>div]:shadow-sm dark:[&>div]:border-dark-700 dark:[&>div]:bg-dark-800/60">
                             <div>
                                 <span className="text-dark-500 dark:text-dark-400">{t("email_label")}</span>
                                 {editing ? (
@@ -1985,9 +2156,14 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
             </div>
 
             {/* Objectives overview (per-client) */}
-            <div className="card transition-colors duration-300">
+            <div className={surfaceClass}>
                 <div className="flex items-start justify-between">
-                    <h3 className="card-title mb-4">{t("objectives_overview") || t("campaign_objective") || "Objectives"}</h3>
+                    <div>
+                        <h3 className="card-title mb-1">{t("objectives_overview") || t("campaign_objective") || "Objectives"}</h3>
+                        <p className="text-light-500 dark:text-dark-400 text-xs">
+                            {tx("goals_summary", "Business goals and campaign intent in both languages.")}
+                        </p>
+                    </div>
                     {draftDate ? (
                         <div className="text-light-600 dark:text-dark-400 ml-4 text-right text-sm">
                             {t("created_on") || "Created:"} {(draftDate as Date).toLocaleString()}
@@ -1999,7 +2175,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                         clientObjectives.map((obj) => (
                             <div
                                 key={obj.id}
-                                className="border-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3"
+                                className="rounded-xl border border-light-200 bg-white/80 p-3 shadow-sm transition-all hover:shadow-md dark:border-dark-700 dark:bg-dark-800/70"
                             >
                                 <div className="text-light-900 dark:text-dark-50 mb-2 text-sm">
                                     <strong className="text-light-600 dark:text-dark-400 mr-1 text-xs">EN:</strong>
@@ -2012,7 +2188,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                             </div>
                         ))
                     ) : (
-                        <div className="text-light-600 dark:text-dark-400 col-span-full text-sm">
+                        <div className="text-light-600 dark:text-dark-400 col-span-full rounded-xl border border-dashed border-light-300 bg-white/70 px-4 py-3 text-sm dark:border-dark-700 dark:bg-dark-900/60">
                             {t("no_objectives") || "No objectives added yet."}
                         </div>
                     )}

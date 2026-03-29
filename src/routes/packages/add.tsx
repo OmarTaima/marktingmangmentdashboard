@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Plus, Check, Loader2, Trash2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { showConfirm, showAlert } from "@/utils/swal";
-import { getItems, type Item } from "@/api/requests/itemsService";
+import { getItems, createItem, type Item } from "@/api/requests/itemsService";
 import type { Package } from "@/api/requests/packagesService";
 import { usePackages, useDeletePackage, useUpdatePackage, useCreatePackage } from "@/hooks/queries/usePackagesQuery";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,10 @@ import { useServices } from "@/hooks/queries";
 
 const AddPackagePage = () => {
     const { t } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
     const navigate = useNavigate();
 
     const [nameEn, setNameEn] = useState<string>("");
@@ -33,6 +37,11 @@ const AddPackagePage = () => {
     const [error, setError] = useState<string>("");
     const [nameError, setNameError] = useState<string>("");
     const [priceError, setPriceError] = useState<string>("");
+    const [newItemName, setNewItemName] = useState<string>("");
+    const [newItemNameAr, setNewItemNameAr] = useState<string>("");
+    const [newItemDescription, setNewItemDescription] = useState<string>("");
+    const [newItemDescriptionAr, setNewItemDescriptionAr] = useState<string>("");
+    const [isCreatingItem, setIsCreatingItem] = useState<boolean>(false);
 
     useEffect(() => {
         loadItems();
@@ -212,6 +221,61 @@ const AddPackagePage = () => {
         }
     };
 
+    const handleCreateItemInline = async () => {
+        const en = newItemName.trim();
+        const ar = newItemNameAr.trim();
+
+        if (!en || !ar) {
+            setError(t("item_name_required") || "Item name in both languages is required");
+            return;
+        }
+
+        // Keep language input consistent with rest of the page validation style
+        const enHasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(en);
+        const arHasLatin = /[A-Za-z]/.test(ar);
+        if (enHasArabic) {
+            setError(t("english_only") || "Please enter English text only in English field.");
+            return;
+        }
+        if (arHasLatin) {
+            setError(t("arabic_only") || "Please enter Arabic text only in Arabic field.");
+            return;
+        }
+
+        setIsCreatingItem(true);
+        setError("");
+        try {
+            const created = await createItem({
+                name: en,
+                ar,
+                description: newItemDescription.trim() || undefined,
+                descriptionAr: newItemDescriptionAr.trim() || undefined,
+            });
+
+            // Put the new item instantly in the local chooser list and pre-select it for the package
+            setAvailableItems((prev) => {
+                const exists = prev.some((i) => i._id === created._id);
+                if (exists) return prev;
+                return [created, ...prev];
+            });
+            setSelectedItemIds((prev) => (prev.includes(created._id) ? prev : [...prev, created._id]));
+            setDisplayTypes((d) => ({ ...d, [created._id]: d[created._id] || "number" }));
+            setItemQuantities((q) => ({ ...q, [created._id]: q[created._id] || 1 }));
+
+            setNewItemName("");
+            setNewItemNameAr("");
+            setNewItemDescription("");
+            setNewItemDescriptionAr("");
+
+            // Refresh from API to keep local state consistent with backend list ordering/meta
+            await loadItems();
+        } catch (err: any) {
+            setError(err.response?.data?.message || "Failed to create item");
+        } finally {
+            setIsCreatingItem(false);
+        }
+    };
+
     // toggleItemSelection removed (not used)
 
     const incrementQuantity = (itemId: string) => {
@@ -332,23 +396,46 @@ const AddPackagePage = () => {
     }
 
     return (
-        <div className="space-y-2 px-2 sm:px-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="title">{t("create_package") || "Create Package"}</h1>
-                    <p className="text-light-600 dark:text-dark-400">{t("create_package_subtitle") || "Create a new package with selected items"}</p>
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-12 h-56 w-56 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-secdark-700/20 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex flex-col gap-2">
+                    <span className="inline-flex w-fit items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                        Package Builder
+                    </span>
+                    <h1 className="title text-2xl sm:text-3xl">{tr("create_package", "Create Package")}</h1>
+                    <p className="text-light-600 dark:text-dark-300 text-sm sm:text-base">
+                        {tr("create_package_subtitle", "Create a new package with selected items")}
+                    </p>
                 </div>
-            </div>
-            <div className="card space-y-2">
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("total_packages", "Total Packages")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{packagesList.length}</p>
+                </div>
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("available_items", "Available Items")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{availableItems.length}</p>
+                </div>
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("selected_items", "Selected Items")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{selectedItemIds.length}</p>
+                </div>
+            </section>
+
+            <div className="space-y-2 rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="card-title">{t("existing_packages") || "Existing Packages"}</h2>
+                    <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("existing_packages", "Existing Packages")}</h2>
                     <button
                         type="button"
                         onClick={() => setExistingCollapsed((s) => !s)}
                         aria-expanded={!existingCollapsed}
-                        className="btn-ghost text-sm"
+                        className="btn-ghost rounded-xl text-sm"
                     >
-                        {existingCollapsed ? t("show") || "Show" : t("hide") || "Hide"}
+                        {existingCollapsed ? tr("show", "Show") : tr("hide", "Hide")}
                     </button>
                 </div>
 
@@ -359,7 +446,7 @@ const AddPackagePage = () => {
                                 <Loader2 className="text-light-500 dark:text-light-500 h-5 w-5 animate-spin" />
                             </div>
                         ) : (
-                            <div>{t("existing_packages_collapsed_text") || `${packagesList.length} packages`}</div>
+                            <div>{tr("existing_packages_collapsed_text", `${packagesList.length} packages`)}</div>
                         )}
                     </div>
                 ) : packagesLoading ? (
@@ -374,13 +461,13 @@ const AddPackagePage = () => {
                                 type="button"
                                 onClick={() => setSelectedServiceId(null)}
                                 aria-pressed={selectedServiceId === null}
-                                className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                                     selectedServiceId === null
-                                        ? "bg-light-700 dark:bg-dark-700 dark:text-dark-50 text-white"
-                                        : "bg-light-100 text-light-900 dark:bg-dark-800 dark:text-dark-200"
+                                        ? "border-light-700 bg-light-700 text-white dark:border-dark-600 dark:bg-dark-700 dark:text-dark-50"
+                                        : "border-light-300 bg-white text-light-900 hover:border-light-400 dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200"
                                 }`}
                             >
-                                {t("all") || "All"}
+                                {tr("all", "All")}
                             </button>
 
                             {servicesWithCounts.map(({ service, count }) => (
@@ -389,14 +476,14 @@ const AddPackagePage = () => {
                                     type="button"
                                     onClick={() => setSelectedServiceId(service._id)}
                                     aria-pressed={selectedServiceId === service._id}
-                                    className={`rounded-full px-3 py-1 text-sm transition-colors ${
+                                    className={`rounded-full border px-3 py-1 text-sm transition-colors ${
                                         selectedServiceId === service._id
-                                            ? "bg-light-700 dark:bg-dark-700 dark:text-dark-50 text-white"
-                                            : "bg-light-100 text-light-900 dark:bg-dark-800 dark:text-dark-200"
+                                            ? "border-light-700 bg-light-700 text-white dark:border-dark-600 dark:bg-dark-700 dark:text-dark-50"
+                                            : "border-light-300 bg-white text-light-900 hover:border-light-400 dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200"
                                     }`}
                                 >
                                     {service.en || service.name || service.title}
-                                    <span className="dark:bg-dark-700 ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 text-xs">{count}</span>
+                                    <span className="ml-2 inline-block rounded-full bg-black/10 px-2 py-0.5 text-xs dark:bg-white/10">{count}</span>
                                 </button>
                             ))}
                         </div>
@@ -407,7 +494,7 @@ const AddPackagePage = () => {
                                 return (
                                     <div
                                         key={pkgId}
-                                        className="border-light-200 dark:bg-dark-800 dark:border-dark-700 flex flex-col justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm transition-colors"
+                                        className="flex flex-col justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800"
                                     >
                                         <div className="flex min-w-0 items-start justify-between gap-4">
                                             <div className="min-w-0">
@@ -461,10 +548,10 @@ const AddPackagePage = () => {
                                                     e.stopPropagation();
                                                     startEditPackage(pkg);
                                                 }}
-                                                className="bg-light-50 hover:bg-light-100 dark:bg-dark-700 dark:text-dark-50 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                                className="btn-ghost inline-flex items-center gap-2 rounded-xl px-2 py-1 text-xs font-medium"
                                             >
                                                 <Check size={14} />
-                                                <span>{t("edit") || "Edit"}</span>
+                                                <span>{tr("edit", "Edit")}</span>
                                             </button>
 
                                             <button
@@ -472,15 +559,15 @@ const AddPackagePage = () => {
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     const ok = await showConfirm(
-                                                        t("confirm_delete") || "Are you sure you want to delete this package?",
-                                                        t("yes") || "Yes",
-                                                        t("no") || "No",
+                                                        tr("confirm_delete", "Are you sure you want to delete this package?"),
+                                                        tr("yes", "Yes"),
+                                                        tr("no", "No"),
                                                     );
                                                     if (!ok) return;
                                                     setDeletingId(pkg._id);
                                                     deleteMutation.mutate(pkg._id, {
                                                         onError: () => {
-                                                            setError(t("delete_failed") || "Failed to delete package");
+                                                            setError(tr("delete_failed", "Failed to delete package"));
                                                             setDeletingId(null);
                                                         },
                                                         onSuccess: () => {
@@ -488,7 +575,7 @@ const AddPackagePage = () => {
                                                         },
                                                     });
                                                 }}
-                                                className="text-danger-600 hover:bg-danger-50 dark:hover:bg-dark-700 inline-flex items-center gap-2 rounded-md border border-transparent px-2 py-1 text-xs font-medium"
+                                                className="text-danger-600 hover:bg-danger-50 dark:hover:bg-dark-700 inline-flex items-center gap-2 rounded-xl border border-transparent px-2 py-1 text-xs font-medium"
                                             >
                                                 {deletingId === pkg._id ? (
                                                     <Loader2
@@ -501,7 +588,7 @@ const AddPackagePage = () => {
                                                         className="text-danger-600"
                                                     />
                                                 )}
-                                                <span className="text-danger-600">{t("delete") || "Delete"}</span>
+                                                <span className="text-danger-600">{tr("delete", "Delete")}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -509,7 +596,7 @@ const AddPackagePage = () => {
                             })}
 
                             {filteredPackages.length === 0 && (
-                                <p className="text-light-600 dark:text-dark-400 text-sm">{t("no_packages") || "No packages found."}</p>
+                                <p className="text-light-600 dark:text-dark-400 text-sm">{tr("no_packages", "No packages found.")}</p>
                             )}
                         </div>
                     </>
@@ -522,43 +609,43 @@ const AddPackagePage = () => {
                 </div>
             )}
 
-            <div className="card space-y-4">
-                <h2 className="card-title">{t("package_details") || "Package Details"}</h2>
+            <div className="space-y-4 rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
+                <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("package_details", "Package Details")}</h2>
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                            {t("package_name_en") || "Package Name (English)"}
+                            {tr("package_name_en", "Package Name (English)")}
                         </label>
                         <input
                             value={nameEn}
                             onChange={(e) => setNameEn(e.target.value)}
-                            placeholder={t("package_name_en") || "Package name (English)"}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            placeholder={tr("package_name_en", "Package name (English)")}
+                            className="input w-full"
                         />
                     </div>
                     <div>
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                            {t("package_name_ar") || "Package Name (Arabic)"}
+                            {tr("package_name_ar", "Package Name (Arabic)")}
                         </label>
                         <input
                             value={nameAr}
                             onChange={(e) => setNameAr(e.target.value)}
-                            placeholder={t("package_name_ar") || "اسم الباقة (بالعربية)"}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            placeholder={tr("package_name_ar", "اسم الباقة (بالعربية)")}
+                            className="input w-full"
                         />
                     </div>
                 </div>
                 {nameError && <p className="text-danger-500 mt-1 text-xs">{nameError}</p>}
 
                 <div>
-                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("package_price") || "Price"}</label>
+                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{tr("package_price", "Price")}</label>
                     <input
                         type="number"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        placeholder={t("package_price") || "Price"}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                        placeholder={tr("package_price", "Price")}
+                        className="input w-full"
                     />
                     {priceError && <p className="text-danger-500 mt-1 text-xs">{priceError}</p>}
                 </div>
@@ -566,33 +653,86 @@ const AddPackagePage = () => {
                 <div className="grid gap-4 lg:grid-cols-2">
                     <div>
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                            {t("package_description") || "Description (Optional)"}
+                            {tr("package_description", "Description (Optional)")}
                         </label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder={t("package_description_placeholder") || "Enter package description..."}
+                            placeholder={tr("package_description_placeholder", "Enter package description...")}
                             rows={3}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="input w-full rounded-xl"
                         />
                     </div>
 
                     <div>
                         <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">
-                            {t("package_description_ar") || "Description (Arabic)"}
+                            {tr("package_description_ar", "Description (Arabic)")}
                         </label>
                         <textarea
                             value={descriptionAr}
                             onChange={(e) => setDescriptionAr(e.target.value)}
-                            placeholder={t("package_description_ar_placeholder") || "أدخل وصف الباقة (بالعربية)..."}
+                            placeholder={tr("package_description_ar_placeholder", "أدخل وصف الباقة (بالعربية)...")}
                             rows={3}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 placeholder-light-500 dark:placeholder-dark-400 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                            className="input w-full rounded-xl"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{t("select_items") || "Select Items"}</label>
+                    <label className="text-dark-700 dark:text-dark-400 mb-2 block text-sm">{tr("select_items", "Select Items")}</label>
+
+                    <div className="border-light-200 dark:border-dark-700 mb-3 rounded-2xl border bg-white/50 p-3 dark:bg-dark-900/30">
+                        <div className="text-light-900 dark:text-dark-50 mb-2 text-sm font-medium">
+                            {tr("add_item_here", "Add Item Here")}
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                            <input
+                                value={newItemName}
+                                onChange={(e) => setNewItemName(e.target.value)}
+                                placeholder={tr("item_name_en", "Item name (English)")}
+                                className="input w-full"
+                            />
+                            <input
+                                value={newItemNameAr}
+                                onChange={(e) => setNewItemNameAr(e.target.value)}
+                                placeholder={tr("item_name_ar", "اسم العنصر (بالعربية)")}
+                                className="input w-full"
+                            />
+                            <input
+                                value={newItemDescription}
+                                onChange={(e) => setNewItemDescription(e.target.value)}
+                                placeholder={tr("item_description_en", "Description (English)")}
+                                className="input w-full"
+                            />
+                            <input
+                                value={newItemDescriptionAr}
+                                onChange={(e) => setNewItemDescriptionAr(e.target.value)}
+                                placeholder={tr("item_description_ar", "الوصف (بالعربية)")}
+                                className="input w-full"
+                            />
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={handleCreateItemInline}
+                                disabled={isCreatingItem}
+                                className="btn-ghost flex items-center gap-2 rounded-xl"
+                            >
+                                {isCreatingItem ? (
+                                    <>
+                                        <Loader2 size={14} className="text-light-500 animate-spin" />
+                                        {tr("creating", "Creating...")}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus size={14} />
+                                        {tr("add_item", "Add Item")}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {availableItems.map((item) => {
                             const isSelected = selectedItemIds.includes(item._id);
@@ -603,10 +743,10 @@ const AddPackagePage = () => {
                                     onClick={() => {
                                         setActiveChooserFor((cur) => (cur === item._id ? null : item._id));
                                     }}
-                                    className={`relative flex cursor-pointer flex-col items-start justify-between gap-2 overflow-hidden rounded-lg border px-4 py-3 text-sm transition-all duration-200 ${
+                                    className={`relative flex cursor-pointer flex-col items-start justify-between gap-2 overflow-hidden rounded-2xl border px-4 py-3 text-sm transition-all duration-200 ${
                                         isSelected
-                                            ? "border-light-500 dark:bg-dark-900 dark:text-dark-50 text-light-900 bg-white/5"
-                                            : "border-light-600 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
+                                            ? "border-light-500 bg-light-50/80 text-light-900 dark:bg-dark-900 dark:text-dark-50"
+                                            : "border-light-200 text-light-900 hover:bg-light-50 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 bg-white"
                                     } ${activeChooserFor === item._id ? "ring-light-200/50 dark:ring-secdark-600 shadow-sm ring-1 ring-offset-1" : ""}`}
                                 >
                                     <div className="flex w-full min-w-0 items-center gap-3">
@@ -643,7 +783,7 @@ const AddPackagePage = () => {
                                                                           e.stopPropagation();
                                                                           setQuantity(item._id, Number(e.target.value));
                                                                       }}
-                                                                      className="dark:bg-dark-800 dark:border-dark-700 text-light-900 dark:text-dark-50 w-12 rounded-md border bg-white px-1 py-0.5 text-center text-sm"
+                                                                      className="input w-12 rounded-md px-1 py-0.5 text-center text-sm"
                                                                   />
                                                                   <button
                                                                       type="button"
@@ -668,7 +808,7 @@ const AddPackagePage = () => {
                                                                       e.stopPropagation();
                                                                       setStringValues((s) => ({ ...s, [item._id]: e.target.value }));
                                                                   }}
-                                                                  className="dark:bg-dark-800 text-light-900 dark:text-dark-50 w-40 rounded-md border bg-white px-2 py-1 text-sm"
+                                                                  className="input w-40 rounded-md px-2 py-1 text-sm"
                                                               />
                                                           );
                                                       }
@@ -690,7 +830,7 @@ const AddPackagePage = () => {
                                                                   ></span>
                                                               </button>
                                                               <span className="text-light-900 dark:text-dark-50 text-sm">
-                                                                  {availabilities[item._id] ? t("true") || "True" : t("false") || "False"}
+                                                                  {availabilities[item._id] ? tr("true", "True") : tr("false", "False")}
                                                               </span>
                                                           </div>
                                                       );
@@ -704,8 +844,8 @@ const AddPackagePage = () => {
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {[
                                                 { key: "number", label: "#", title: t("as_number") || "Number" },
-                                                { key: "string", label: "Aa", title: t("as_text") || "Text" },
-                                                { key: "availability", label: "✓", title: t("as_availability") || "Availability" },
+                                                { key: "string", label: "Aa", title: tr("as_text", "Text") },
+                                                { key: "availability", label: "✓", title: tr("as_availability", "Availability") },
                                             ].map((opt) => {
                                                 const key = opt.key as "number" | "string" | "availability";
                                                 const selected = displayTypes[item._id] === key;
@@ -742,7 +882,7 @@ const AddPackagePage = () => {
                                                 }}
                                                 className="ml-1 flex h-7 items-center justify-center rounded bg-red-500/10 px-2 text-xs font-medium text-red-600 hover:bg-red-500/20 dark:text-red-400"
                                             >
-                                                {t("cancel") || "Cancel"}
+                                                {tr("cancel", "Cancel")}
                                             </button>
                                         </div>
                                     )}
@@ -758,8 +898,8 @@ const AddPackagePage = () => {
                                                     e.stopPropagation();
                                                     setItemNotes((n) => ({ ...n, [item._id]: e.target.value }));
                                                 }}
-                                                placeholder={t("item_note_placeholder") || "Note..."}
-                                                className="dark:bg-dark-800 text-light-900 dark:text-dark-50 w-full rounded-md border bg-white px-2 py-1 text-xs"
+                                                placeholder={tr("item_note_placeholder", "Note...")}
+                                                className="input w-full rounded-md px-2 py-1 text-xs"
                                             />
                                         </div>
                                     )}
@@ -769,7 +909,7 @@ const AddPackagePage = () => {
                     </div>
                     {availableItems.length === 0 && (
                         <p className="text-light-600 dark:text-dark-400 text-sm">
-                            {t("no_items_available") || "No items available. Please create items first."}
+                            {tr("no_items_available", "No items available. Please create items first.")}
                         </p>
                     )}
                 </div>
@@ -795,15 +935,15 @@ const AddPackagePage = () => {
                             }
                             navigate("/packages");
                         }}
-                        className="btn-ghost"
+                        className="btn-ghost rounded-xl"
                     >
-                        {t("cancel") || "Cancel"}
+                        {tr("cancel", "Cancel")}
                     </button>
                     <button
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="btn-primary flex items-center gap-2"
+                        className="btn-primary flex items-center gap-2 rounded-xl"
                     >
                         {isSubmitting ? (
                             <>
@@ -811,12 +951,12 @@ const AddPackagePage = () => {
                                     size={16}
                                     className="text-light-500 animate-spin"
                                 />
-                                {editPackageId ? t("updating") || "Updating..." : t("creating") || "Creating..."}
+                                {editPackageId ? tr("updating", "Updating...") : tr("creating", "Creating...")}
                             </>
                         ) : (
                             <>
                                 {editPackageId ? <Check size={16} /> : <Plus size={16} />}
-                                {editPackageId ? t("update_package") || "Update Package" : t("create_package") || "Create Package"}
+                                {editPackageId ? tr("update_package", "Update Package") : tr("create_package", "Create Package")}
                             </>
                         )}
                     </button>

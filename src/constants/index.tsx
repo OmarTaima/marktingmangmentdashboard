@@ -26,12 +26,8 @@ export const navbarLinks = [
                 label: "Dashboard",
                 icon: Home,
                 path: "/dashboard",
-            },
-            {
-                label: "Reports",
-                icon: FileText,
-                path: "/reports",
-            },
+            }
+           
         ],
     },
     {

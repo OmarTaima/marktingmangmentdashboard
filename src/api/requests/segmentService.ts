@@ -201,7 +201,10 @@ export const createSegment = async (clientId: string, segmentData: any): Promise
 export const createSegments = async (clientId: string, segmentsData: any[]): Promise<Segment[]> => {
     try {
         // Transform all segments to backend payload format
-        const payloads = segmentsData.map((segmentData) => transformSegmentToBackendPayload(segmentData));
+        const payloads = segmentsData.map((segmentData) => ({
+            ...transformSegmentToBackendPayload(segmentData),
+            clientId,
+        }));
 
         // Send bulk request to create all segments at once
         const response = await axiosInstance.post(`/clients/${clientId}/segments/bulk`, payloads);

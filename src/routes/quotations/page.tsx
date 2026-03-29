@@ -13,11 +13,15 @@ type View = "list" | "create" | "preview" | "custom";
 
 const QuotationsPage = () => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
 
     const [currentView, setCurrentView] = useState<View>("list");
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [editingQuotation, setEditingQuotation] = useState<Quotation | null>(null);
-    const [customCreateName, setCustomCreateName] = useState<string | null>(null);
+    const [customCreateName] = useState<string | null>(null);
     const [autoPreviewQuotationId, setAutoPreviewQuotationId] = useState<string | null>(null);
     const [autoDownloadQuotationId, setAutoDownloadQuotationId] = useState<string | null>(null);
 
@@ -493,23 +497,45 @@ const QuotationsPage = () => {
 
     // Render List View (Client Selection)
     return (
-        <div className="space-y-6 px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="title">{t("quotations") || "Quotations"}</h1>
-                    <p className="text-light-600 dark:text-dark-400">{t("create_and_manage_quotations") || "Create and manage quotations"}</p>
-                </div>
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-14 h-56 w-56 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-14 h-56 w-56 rounded-full bg-secdark-700/20 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <span className="inline-flex w-fit items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                            Quotation Workspace
+                        </span>
+                        <h1 className="title mt-3 text-2xl sm:text-3xl">{tr("quotations", "Quotations")}</h1>
+                        <p className="text-light-600 dark:text-dark-300 mt-1 text-sm sm:text-base">
+                            {tr("create_and_manage_quotations", "Create and manage quotations")}
+                        </p>
+                    </div>
 
-                <div className="flex items-center gap-2">
                     <button
                         onClick={handleCreateCustomQuotation}
-                        className="btn-primary"
-                        title={t("create_global_quotation") || "Create Custom Quotation"}
+                        className="btn-primary rounded-xl"
+                        title={tr("create_global_quotation", "Create Custom Quotation")}
                     >
-                        {t("custom_quotation") || "Custom Quotation"}
+                        {tr("custom_quotation", "Custom Quotation")}
                     </button>
                 </div>
-            </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("clients", "Clients")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{clients.length}</p>
+                </div>
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("all_quotations", "All Quotations")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{allQuotations.length}</p>
+                </div>
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("custom_quotations", "Custom Quotations")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{customQuotations.length}</p>
+                </div>
+            </section>
 
             {/* Client Selection */}
             {clientsLoading ? (
@@ -529,25 +555,25 @@ const QuotationsPage = () => {
                                 return (
                                     <div
                                         key={`client-${item.id}`}
-                                        className="card flex flex-col"
+                                        className="flex flex-col rounded-3xl border border-light-200/80 bg-white/90 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-dark-700/80 dark:bg-dark-900/70"
                                     >
-                                        <h3 className="card-title text-lg">{item.name}</h3>
-                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || ""}</p>
-                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
-                                            {item.quotationCount} {t("quotations") || "quotations"}
+                                        <h3 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{item.name}</h3>
+                                        <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || "-"}</p>
+                                        <p className="text-light-600 dark:text-dark-300 mt-1 text-sm">
+                                            {item.quotationCount} {tr("quotations", "quotations")}
                                         </p>
                                         <div className="mt-4 flex flex-col gap-2">
                                             <button
                                                 onClick={() => handleCreateQuotation(client)}
-                                                className="btn-primary w-full"
+                                                className="btn-primary w-full rounded-xl"
                                             >
-                                                {t("create_quotation") || "Create Quotation"}
+                                                {tr("create_quotation", "Create Quotation")}
                                             </button>
                                             <button
                                                 onClick={() => handleShowQuotations(client)}
-                                                className="btn-ghost w-full"
+                                                className="btn-ghost w-full rounded-xl"
                                             >
-                                                {t("show_quotations") || "Show Quotations"}
+                                                {tr("show_quotations", "Show Quotations")}
                                             </button>
                                         </div>
                                     </div>
@@ -560,9 +586,9 @@ const QuotationsPage = () => {
                     </div>
 
                     {combinedItems.length === 0 && (
-                        <div className="card">
+                        <div className="rounded-3xl border border-light-200/80 bg-white/90 p-6 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70">
                             <div className="py-8 text-center">
-                                <p className="text-light-600 dark:text-dark-400">{t("no_clients_found") || "No clients found"}</p>
+                                <p className="text-light-600 dark:text-dark-300">{tr("no_clients_found", "No clients found")}</p>
                             </div>
                         </div>
                     )}
@@ -570,14 +596,14 @@ const QuotationsPage = () => {
                     {/* Bottom table: show individual custom quotations only */}
                     {customQuotations.length > 0 && (
                         <div className="space-y-3">
-                            <h3 className="text-light-500 dark:text-dark-50 text-lg font-semibold">
-                                {t("custom_quotations") || "Custom Quotations"}
+                            <h3 className="text-light-700 dark:text-dark-50 text-lg font-semibold">
+                                {tr("custom_quotations", "Custom Quotations")}
                             </h3>
                             <div className="grid grid-cols-1 gap-3">
                                 {customQuotations.map((q) => (
                                     <div
                                         key={q._id}
-                                        className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                        className="rounded-2xl border border-light-200/80 bg-white/90 p-4 shadow-sm dark:border-dark-700/80 dark:bg-dark-900/70"
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -586,7 +612,7 @@ const QuotationsPage = () => {
                                                         {q.clientName ||
                                                             q.customName ||
                                                             q.customClientName ||
-                                                            t("unnamed_custom_quotation") ||
+                                                            tr("unnamed_custom_quotation", "Unnamed") ||
                                                             "Unnamed"}
                                                     </h4>
                                                     <span className="text-light-600 dark:text-dark-400 text-sm">{q.quotationNumber || "-"}</span>
@@ -603,15 +629,15 @@ const QuotationsPage = () => {
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => generatePdfForQuotation(q, "preview")}
-                                                    className="btn-ghost"
-                                                    title={t("preview_pdf") || "Preview PDF"}
+                                                    className="btn-ghost rounded-xl"
+                                                    title={tr("preview_pdf", "Preview PDF")}
                                                 >
                                                     <Eye size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => generatePdfForQuotation(q, "download")}
-                                                    className="btn-ghost"
-                                                    title={t("download_pdf") || "Download PDF"}
+                                                    className="btn-ghost rounded-xl"
+                                                    title={tr("download_pdf", "Download PDF")}
                                                 >
                                                     <Download size={16} />
                                                 </button>
@@ -623,15 +649,15 @@ const QuotationsPage = () => {
                                                         } as Client);
                                                         setCurrentView("create");
                                                     }}
-                                                    className="btn-ghost"
-                                                    title={t("edit") || "Edit"}
+                                                    className="btn-ghost rounded-xl"
+                                                    title={tr("edit", "Edit")}
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteQuotation(q._id)}
-                                                    className="btn-ghost text-danger-500"
-                                                    title={t("delete") || "Delete"}
+                                                    className="btn-ghost text-danger-500 rounded-xl"
+                                                    title={tr("delete", "Delete")}
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>

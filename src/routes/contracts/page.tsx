@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
-import { Loader2, FileCheck, Plus, Download, Trash2 } from "lucide-react";
+import { Loader2, FileCheck, Plus, Download, Trash2, Sparkles, UsersRound, Layers3, FileText } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { useClients, useContracts, useDeleteContract } from "@/hooks/queries";
 import { showAlert, showConfirm, showToast } from "@/utils/swal";
@@ -25,6 +25,10 @@ type View = "list" | "create" | "preview" | "custom";
 
 const ContractsPage = () => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return value && value !== key ? value : fallback;
+    };
 
     const [currentView, setCurrentView] = useState<View>("list");
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -39,6 +43,7 @@ const ContractsPage = () => {
         : allContractsResponse?.data && Array.isArray(allContractsResponse.data)
           ? allContractsResponse.data
           : [];
+        const totalContracts = allContracts.length;
 
     const handleCreateContract = (client: Client) => {
         setSelectedClient(client);
@@ -90,6 +95,7 @@ const ContractsPage = () => {
         const cid = c.clientId?._id || c.clientId?.id || c.clientId;
         return !cid || cid === "custom";
     });
+    const clientsWithContracts = Object.keys(contractsCountByClientId).length;
 
     const deleteContractMutation = useDeleteContract();
 
@@ -208,20 +214,62 @@ const ContractsPage = () => {
 
     // Main list view
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="page-title">{t("contracts") || "Contracts"}</h1>
-                    <p className="text-light-600 dark:text-dark-400 mt-1">{t("manage_client_contracts") || "Manage contracts for your clients"}</p>
+        <div className="space-y-8 pb-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-light-200 bg-white p-6 shadow-sm dark:border-dark-800 dark:bg-dark-900 sm:p-8">
+                <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-light-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-secdark-700/10 blur-3xl" />
+
+                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-2xl space-y-3">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                            <Sparkles size={13} />
+                            Contract Center
+                        </div>
+                        <h1 className="title text-2xl sm:text-3xl">{tr("contracts", "Contracts")}</h1>
+                        <p className="text-light-600 dark:text-dark-400 text-sm sm:text-base">
+                            {tr("manage_client_contracts", "Manage contracts for your clients")}
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={handleCreateCustomContract}
+                        className="btn-primary flex items-center gap-2"
+                    >
+                        <Plus className="h-5 w-5" />
+                        {tr("custom_contract", "Custom Contract")}
+                    </button>
                 </div>
-                <button
-                    onClick={handleCreateCustomContract}
-                    className="btn-primary"
-                >
-                    <Plus className="h-5 w-5" />
-                    {t("custom_contract") || "Custom Contract"}
-                </button>
+
+                <div className="relative z-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                        <div className="flex items-center justify-between">
+                            <p className="text-light-500 dark:text-dark-400 text-xs font-bold uppercase tracking-wider">Clients</p>
+                            <UsersRound size={16} className="text-light-500" />
+                        </div>
+                        <p className="text-light-900 dark:text-dark-50 mt-3 text-2xl font-black tracking-tight">{clients.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                        <div className="flex items-center justify-between">
+                            <p className="text-light-500 dark:text-dark-400 text-xs font-bold uppercase tracking-wider">Total Contracts</p>
+                            <FileText size={16} className="text-secdark-700 dark:text-secdark-400" />
+                        </div>
+                        <p className="text-light-900 dark:text-dark-50 mt-3 text-2xl font-black tracking-tight">{totalContracts}</p>
+                    </div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                        <div className="flex items-center justify-between">
+                            <p className="text-light-500 dark:text-dark-400 text-xs font-bold uppercase tracking-wider">Active Clients</p>
+                            <UsersRound size={16} className="text-emerald-500" />
+                        </div>
+                        <p className="text-light-900 dark:text-dark-50 mt-3 text-2xl font-black tracking-tight">{clientsWithContracts}</p>
+                    </div>
+                    <div className="rounded-2xl border border-light-200 bg-white/70 p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                        <div className="flex items-center justify-between">
+                            <p className="text-light-500 dark:text-dark-400 text-xs font-bold uppercase tracking-wider">Custom Contracts</p>
+                            <Layers3 size={16} className="text-orange-500" />
+                        </div>
+                        <p className="text-light-900 dark:text-dark-50 mt-3 text-2xl font-black tracking-tight">{customContracts.length}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Client Cards Grid */}
@@ -232,38 +280,52 @@ const ContractsPage = () => {
             ) : clients.length === 0 ? (
                 <div className="card">
                     <div className="py-8 text-center">
-                        <p className="text-light-600 dark:text-dark-400">{t("no_clients_found") || "No clients found"}</p>
+                        <p className="text-light-600 dark:text-dark-400">{tr("no_clients_found", "No clients found")}</p>
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
                     {clients.map((client) => {
                         const clientId = (client as any).id || (client as any)._id || "";
-                        const clientName = client.business?.businessName || client.personal?.fullName || t("unnamed_client") || "Unnamed";
+                        const clientName = client.business?.businessName || client.personal?.fullName || tr("unnamed_client", "Unnamed");
                         const contractCount = contractsCountByClientId[String(clientId)] || 0;
 
                         return (
                             <div
                                 key={clientId}
-                                className="card flex flex-col"
+                                className="group relative flex flex-col overflow-hidden rounded-[1.75rem] border border-light-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-dark-800 dark:bg-dark-900"
                             >
-                                <h3 className="card-title text-lg">{clientName}</h3>
-                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || ""}</p>
-                                <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
-                                    {contractCount} {t("contracts") || "contracts"}
-                                </p>
-                                <div className="mt-4 flex flex-col gap-2">
+                                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-light-500/10 blur-2xl transition-opacity duration-300 group-hover:opacity-100 opacity-70" />
+                                <div className="relative z-10">
+                                    <h3 className="text-light-900 dark:text-dark-50 text-xl font-black tracking-tight">{clientName}</h3>
+                                    <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">{client.business?.category || "-"}</p>
+                                </div>
+
+                                <div className="border-light-100 dark:border-dark-800 relative z-10 mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                                    <div className="rounded-xl border border-light-200 bg-white/70 px-3 py-2 text-center dark:border-dark-700 dark:bg-dark-800/70">
+                                        <p className="text-light-500 dark:text-dark-400 text-[10px] font-black uppercase tracking-wider">Contracts</p>
+                                        <p className="text-light-900 dark:text-dark-50 mt-1 text-lg font-black">{contractCount}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-light-200 bg-white/70 px-3 py-2 text-center dark:border-dark-700 dark:bg-dark-800/70">
+                                        <p className="text-light-500 dark:text-dark-400 text-[10px] font-black uppercase tracking-wider">Status</p>
+                                        <p className="text-light-900 dark:text-dark-50 mt-1 text-sm font-semibold">
+                                            {contractCount > 0 ? "Has Contracts" : "New"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="border-light-100 dark:border-dark-800 relative z-10 mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row">
                                     <button
                                         onClick={() => handleCreateContract(client)}
-                                        className="btn-primary w-full"
+                                        className="btn-primary flex-1"
                                     >
-                                        {t("create_contract") || "Create Contract"}
+                                        {tr("create_contract", "Create Contract")}
                                     </button>
                                     <button
                                         onClick={() => handleShowContracts(client)}
-                                        className="btn-ghost w-full"
+                                        className="btn-secondary flex-1"
                                     >
-                                        {t("show_contracts") || "Show Contracts"}
+                                        {tr("show_contracts", "Show Contracts")}
                                     </button>
                                 </div>
                             </div>
@@ -275,7 +337,7 @@ const ContractsPage = () => {
             {/* Custom Contracts Table */}
             {customContracts.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-light-500 dark:text-dark-50 text-lg font-semibold">{t("custom_contracts") || "Custom Contracts"}</h3>
+                    <h3 className="text-light-500 dark:text-dark-50 text-lg font-semibold">{tr("custom_contracts", "Custom Contracts")}</h3>
                     <div className="grid grid-cols-1 gap-3">
                         {customContracts.map((contract: any) => {
                             const statusColors: Record<string, string> = {
@@ -299,7 +361,7 @@ const ContractsPage = () => {
                             return (
                                 <div
                                     key={contract._id}
-                                    className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                    className="rounded-2xl border border-light-200 bg-white/80 p-4 shadow-sm transition-all duration-300 hover:shadow-md dark:border-dark-700 dark:bg-dark-800/60"
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
@@ -321,11 +383,11 @@ const ContractsPage = () => {
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 rounded-xl border border-light-200 bg-white/70 p-1 dark:border-dark-700 dark:bg-dark-900/70">
                                             <button
                                                 onClick={() => handleDownloadContract(contract._id, clientName)}
-                                                className="btn-ghost"
-                                                title={t("download_contract") || "Download"}
+                                                className="btn-ghost size-9 !p-0"
+                                                title={tr("download_contract", "Download")}
                                             >
                                                 <Download size={16} />
                                             </button>
@@ -336,15 +398,15 @@ const ContractsPage = () => {
                                                     setSelectedClient(null);
                                                     setCurrentView("custom");
                                                 }}
-                                                className="btn-ghost"
-                                                title={t("edit") || "Edit"}
+                                                className="btn-ghost size-9 !p-0"
+                                                title={tr("edit", "Edit")}
                                             >
                                                 <FileCheck size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteContract(contract._id)}
-                                                className="btn-ghost text-danger-500"
-                                                title={t("delete") || "Delete"}
+                                                className="btn-ghost size-9 !p-0 text-danger-500"
+                                                title={tr("delete", "Delete")}
                                             >
                                                 <Trash2 size={16} />
                                             </button>

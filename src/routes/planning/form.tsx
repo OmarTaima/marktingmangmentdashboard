@@ -109,7 +109,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                 const objs: Bilingual[] = (Array.isArray(rawObjs) ? rawObjs : []).map((o: any, idx: number) => {
                     if (!o) return { id: `obj_${Date.now()}_${idx}`, en: "", ar: "" };
                     if (typeof o === "string") {
-                        return { id: `obj_${Date.now()}_${idx}`, en: o, ar: o };
+                        return { id: `obj_${Date.now()}_${idx}`, en: o, ar: "" };
                     }
                     return {
                         id: `obj_${Date.now()}_${idx}`,
@@ -250,7 +250,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     }, []);
 
     // Services (for filtering packages by service like quotations UI)
-    const { data: servicesResponse, isLoading: servicesLoading } = useServices({ limit: 100 });
+    const { data: servicesResponse } = useServices({ limit: 100 });
     const services = servicesResponse?.data || [];
     const { data: itemsResponse } = useItems({ limit: 1000 });
     const items = itemsResponse?.data || [];
@@ -381,10 +381,10 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         const arDesc = (objectiveDescAr || "").trim();
         const newObjective = {
             id: `obj_${Date.now()}`,
-            en: en || ar,
-            ar: ar || en,
-            enDesc: enDesc || arDesc || undefined,
-            arDesc: arDesc || enDesc || undefined,
+            en: en || "",
+            ar: ar || "",
+            enDesc: enDesc || undefined,
+            arDesc: arDesc || undefined,
         };
         setObjectives([...objectives, newObjective]);
         setObjectiveInputEn("");
@@ -413,10 +413,10 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         const updated = objectives.slice();
         updated[idx] = {
             ...updated[idx],
-            en: en || ar,
-            ar: ar || en,
-            enDesc: enDesc || arDesc || undefined,
-            arDesc: arDesc || enDesc || undefined,
+            en: en || "",
+            ar: ar || "",
+            enDesc: enDesc || undefined,
+            arDesc: arDesc || undefined,
         };
         setObjectives(updated);
         setEditingObjectiveIndex(-1);
@@ -456,7 +456,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         if (!name && !nameAr) return;
         if (isNaN(price) || price <= 0) return;
 
-        const newCustom = { id: `custom_${Date.now()}`, en: name || nameAr, ar: nameAr || name, price };
+        const newCustom = { id: `custom_${Date.now()}`, en: name || "", ar: nameAr || "", price };
         setCustomServices((s) => [...s, newCustom]);
         setCustomServiceName("");
         setCustomNameAr("");
@@ -511,11 +511,8 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
     const [openPanel, setOpenPanel] = useState<"segments" | "competitors" | "branches" | "swot" | null>(null);
 
     // Expanded details state for items (so we can show a details panel per item)
-    const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
-    const toggleDetail = (key: string) => {
-        setExpandedDetails((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
+   
 
     const handleItemKeyDown = (e: React.KeyboardEvent, cb: () => void) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -550,20 +547,9 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
             return items.every((it) => selected.includes(it));
         });
     }, [allSwotItems, selectedSwot]);
-    const handleBudgetChange = (value: string) => {
-        setPlanData((p) => ({ ...p, budget: value }));
-        // Intentionally do NOT clear selected packages when the user edits the budget field.
-        // Packages remain selected independently from the manual budget input.
-    };
+ 
 
-    const handleSelectPackagesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const values = Array.from(e.target.selectedOptions)
-            .map((o) => o.value)
-            .filter(Boolean);
-        setSelectedPackageIds(values);
-        // mark that this selection came from user interaction
-        setPackageSetFromServer(false);
-    };
+ 
 
     // Save Plan Handler -> call API
     const handleSavePlan = async () => {
@@ -841,7 +827,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     {openPanel === "segments" && (
                         <div className="space-y-4">
                             {(clientData?.segments || []).length === 0 && <div className="text-dark-500">No segments available</div>}
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 {(clientData?.segments || []).map((s: any) => {
                                     const sid = typeof s === "string" ? s : s._id || s.id;
                                     const label = typeof s === "string" ? s : s.name || s.title || "Unnamed segment";
@@ -850,39 +836,45 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                         <div
                                             key={sid}
                                             onClick={() => isEditing && toggleSegment(sid)}
-                                            className={`group to-light-50 dark:from-dark-800 dark:to-dark-900 relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                                            className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-3xl border bg-gradient-to-br from-white to-cyan-50/40 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:from-dark-900/85 dark:to-dark-900/55 ${
                                                 checked
-                                                    ? "border-primary-500 ring-primary-200 dark:ring-primary-900/50 ring-4"
-                                                    : "border-light-300 dark:border-dark-600"
+                                                    ? "border-cyan-500 ring-2 ring-cyan-200 dark:border-cyan-400 dark:ring-cyan-500/35"
+                                                    : "border-light-200/80 dark:border-dark-700/80"
                                             }`}
                                         >
                                             {/* Decorative gradient overlay */}
-                                            <div className="from-primary-400/20 to-primary-600/20 absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br blur-3xl"></div>
+                                            <div className="from-cyan-400/20 to-teal-500/25 absolute top-0 right-0 h-28 w-28 translate-x-7 -translate-y-7 rounded-full bg-gradient-to-br blur-3xl" />
 
                                             {/* Selection indicator */}
-                                            {checked && (
-                                                <div className="bg-primary-500 absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110">
-                                                    <Check
-                                                        className="h-6 w-6 text-white"
-                                                        strokeWidth={3}
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="relative z-10 mb-3 flex items-center justify-between">
+                                                <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-cyan-700 dark:border-cyan-700/60 dark:bg-cyan-900/25 dark:text-cyan-200">
+                                                    Segment
+                                                </span>
+                                                {checked ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                                                        <Check size={12} /> Selected
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-cyan-600/80 dark:text-cyan-300/90 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                                                        Tap to select
+                                                    </span>
+                                                )}
+                                            </div>
 
                                             {/* Segment Name */}
-                                            <div className="relative z-10 mb-4 text-center">
+                                            <div className="relative z-10 mb-4">
                                                 <h3 className="text-light-900 dark:text-dark-50 text-xl font-bold tracking-tight">{label}</h3>
-                                                {s.description && <p className="text-light-600 dark:text-dark-400 mt-2 text-sm">{s.description}</p>}
+                                                {s.description && <p className="text-light-600 dark:text-dark-400 mt-1 line-clamp-2 text-sm">{s.description}</p>}
                                             </div>
 
                                             {/* Segment Details */}
-                                            <div className="border-light-200 dark:border-dark-700 dark:bg-dark-900/30 relative z-10 space-y-3 rounded-xl border-2 bg-white/50 p-4">
+                                            <div className="border-cyan-100/80 dark:border-cyan-900/45 dark:bg-dark-900/35 relative z-10 space-y-3 rounded-2xl border bg-cyan-50/55 p-4">
                                                 {Array.isArray(s.ageRange) && s.ageRange.length > 0 && (
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Age Range
                                                         </span>
-                                                        <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                        <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800 dark:bg-cyan-900/35 dark:text-cyan-300">
                                                             {s.ageRange.join(", ")}
                                                         </span>
                                                     </div>
@@ -892,7 +884,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Products
                                                         </span>
-                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.productName.join(", ")}</span>
+                                                        <span className="text-light-900 dark:text-dark-50 line-clamp-2 text-sm">{s.productName.join(", ")}</span>
                                                     </div>
                                                 )}
                                                 {s.population !== undefined && s.population !== null && (
@@ -900,7 +892,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Population
                                                         </span>
-                                                        <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                        <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300">
                                                             {Array.isArray(s.population) ? s.population.join(", ") : s.population}
                                                         </span>
                                                     </div>
@@ -910,7 +902,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Gender
                                                         </span>
-                                                        <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                                        <span className="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800 dark:bg-rose-900/35 dark:text-rose-300">
                                                             {s.gender.join(", ")}
                                                         </span>
                                                     </div>
@@ -920,7 +912,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Area
                                                         </span>
-                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.area.join(", ")}</span>
+                                                        <span className="text-light-900 dark:text-dark-50 line-clamp-2 text-sm">{s.area.join(", ")}</span>
                                                     </div>
                                                 )}
                                                 {Array.isArray(s.governorate) && s.governorate.length > 0 && (
@@ -928,15 +920,15 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Governorate
                                                         </span>
-                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.governorate.join(", ")}</span>
+                                                        <span className="text-light-900 dark:text-dark-50 line-clamp-2 text-sm">{s.governorate.join(", ")}</span>
                                                     </div>
                                                 )}
                                                 {s.note && (
-                                                    <div className="border-light-200 dark:border-dark-700 flex flex-col gap-1 border-t pt-2">
+                                                    <div className="border-cyan-100 dark:border-cyan-900/45 flex flex-col gap-1 border-t pt-2">
                                                         <span className="text-light-600 dark:text-dark-400 text-xs font-medium tracking-wider uppercase">
                                                             Note
                                                         </span>
-                                                        <span className="text-light-900 dark:text-dark-50 text-sm">{s.note}</span>
+                                                        <span className="text-light-900 dark:text-dark-50 line-clamp-2 text-sm">{s.note}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1421,15 +1413,15 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                             <button
                                                 key={service._id}
                                                 onClick={() => setExpandedServiceId(service._id)}
-                                                className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
+                                                className={`rounded-full border px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                                                     isActive
-                                                        ? "bg-light-500 dark:bg-secdark-700 text-white"
-                                                        : "text-light-900 dark:bg-dark-800 dark:text-dark-50 border bg-white"
+                                                        ? "border-light-700 bg-light-700 text-white dark:border-primary-400 dark:bg-secdark-700"
+                                                        : "border-light-300 bg-white text-light-900 hover:border-light-400 dark:border-dark-600 dark:bg-dark-800 dark:text-dark-50"
                                                 }`}
                                             >
                                                 <div className="flex items-center gap-2">
                                                     <span>{lang === "ar" ? service.ar : service.en}</span>
-                                                    <span className="bg-light-600 rounded-full px-2 py-0.5 text-xs text-white">
+                                                    <span className="rounded-full bg-light-900/10 px-2 py-0.5 text-xs text-current dark:bg-dark-50/15">
                                                         {service.packages?.length ?? 0}
                                                     </span>
                                                     {selectedCount > 0 && <span className="ml-1 text-xs">{selectedCount} selected</span>}
@@ -1494,25 +1486,41 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                         isEditing && togglePackage(pkg._id || (pkg as any).id);
                                                     }
                                                 }}
-                                                className={`rounded-lg p-3 transition-colors ${
+                                                className={`relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-200 dark:focus-visible:ring-primary-900/50 ${
                                                     checked
-                                                        ? "border-light-500 bg-light-100 text-light-900 dark:border-dark-500 dark:bg-dark-700"
+                                                        ? "border-transparent bg-light-50 dark:border-transparent dark:bg-dark-700"
                                                         : "border-light-200 bg-light-50 text-light-900 dark:border-dark-700 dark:bg-dark-800"
                                                 }`}
                                             >
+                                                <div className="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br from-primary-400/15 to-primary-600/20 blur-2xl" />
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex-1">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="text-light-900 dark:text-dark-50 font-medium">
-                                                                {pkg.nameEn || pkg.nameAr}
+                                                        <div className="mb-1 flex items-center justify-between">
+                                                            <div className="inline-flex rounded-full border border-light-300/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                                                                {pkgItems.length} items
                                                             </div>
-                                                            <div className="text-smtext-light-900 dark:text-dark-50 font-semibold">{pkg.price}</div>
+                                                            {checked && (
+                                                                <div className="inline-flex items-center gap-1 rounded-full bg-primary-500 px-2.5 py-1 text-[11px] font-semibold text-white">
+                                                                    <Check size={12} /> Selected
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        {pkg.description && (
-                                                            <div className="text-light-600 dark:text-dark-400 mt-1 text-xs">
-                                                                {String(pkg.description).slice(0, 120)}
+
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <div className="text-light-900 dark:text-dark-50 text-base font-semibold">
+                                                                    {pkg.nameEn || pkg.nameAr}
+                                                                </div>
+                                                                {pkg.description && (
+                                                                    <div className="text-light-600 dark:text-dark-400 mt-1 line-clamp-2 text-xs">
+                                                                        {String(pkg.description).slice(0, 120)}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
+                                                            <div className="from-primary-500 to-primary-600 inline-flex shrink-0 items-center rounded-full bg-gradient-to-r px-3 py-1 text-sm font-bold text-white shadow-sm">
+                                                                {pkg.price}
+                                                            </div>
+                                                        </div>
 
                                                         {pkgItems.length > 0 && (
                                                             <div className="mt-3">
@@ -1527,7 +1535,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                                                 e.stopPropagation();
                                                                                 togglePackageDetails(pkg._id);
                                                                             }}
-                                                                            className="text-light-500 text-xs hover:underline"
+                                                                            className="text-light-500 rounded-md px-2 py-0.5 text-xs hover:bg-light-200/70 hover:underline dark:hover:bg-dark-700/70"
                                                                         >
                                                                             {expanded ? "Show less" : `Show all (${pkgItems.length})`}
                                                                         </button>
@@ -1543,7 +1551,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                                                                         return (
                                                                             <span
                                                                                 key={idx}
-                                                                                className="text-light-700 dark:text-dark-200 bg-light-100 dark:bg-dark-600 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+                                                                                className="text-light-700 dark:text-dark-200 bg-light-100 dark:bg-dark-600 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs shadow-sm"
                                                                             >
                                                                                 <span className="max-w-[220px] truncate">{renderLabel(it)}</span>
                                                                                 {typeof quantity !== "undefined" &&

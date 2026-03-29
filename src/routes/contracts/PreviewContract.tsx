@@ -7,22 +7,20 @@ import {
     ChevronLeft,
     ChevronRight,
     Plus,
-    FileSignature,
     CheckCircle,
-    XCircle,
-    RefreshCw,
+    Sparkles,
     Download,
 } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm, showToast } from "@/utils/swal";
-import { useContracts, useDeleteContract, useSignContract, useCompleteContract, useCancelContract, useRenewContract } from "@/hooks/queries";
+import { useContracts, useDeleteContract,  useCompleteContract, useCancelContract, useRenewContract } from "@/hooks/queries";
 import { generateContractPDF } from "@/utils/contractPdfGenerator";
 import { getContractById } from "@/api/requests/contractsService";
 import type { ContractQueryParams } from "@/api/requests/contractsService";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs, { Dayjs } from "dayjs";
+import  { Dayjs } from "dayjs";
 
 interface PreviewContractProps {
     clientId?: string;
@@ -34,6 +32,10 @@ interface PreviewContractProps {
 
 const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: PreviewContractProps) => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return value && value !== key ? value : fallback;
+    };
 
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize] = useState<number>(20);
@@ -59,7 +61,6 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
     }, [clientId, refetchContracts]);
 
     const deleteContractMutation = useDeleteContract();
-    const signContractMutation = useSignContract();
     const completeContractMutation = useCompleteContract();
     const cancelContractMutation = useCancelContract();
     const renewContractMutation = useRenewContract();
@@ -119,21 +120,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
         }
     };
 
-    const handleSignContract = async (id: string) => {
-        const confirmed = await showConfirm(
-            t("confirm_sign_contract") || "Are you sure you want to sign and activate this contract?",
-            t("yes") || "Yes",
-            t("no") || "No",
-        );
-        if (!confirmed) return;
-
-        try {
-            await signContractMutation.mutateAsync({ id });
-            showToast(t("contract_signed") || "Contract signed and activated successfully", "success");
-        } catch (error: any) {
-            showAlert(error?.response?.data?.message || t("failed_to_sign_contract") || "Failed to sign contract", "error");
-        }
-    };
+   
 
     const handleCompleteContract = async (id: string) => {
         const confirmed = await showConfirm(t("confirm_complete_contract") || "Mark this contract as completed?", t("yes") || "Yes", t("no") || "No");
@@ -188,18 +175,9 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
         }
     };
 
-    const openRenewModal = (id: string) => {
-        setRenewContractId(id);
-        setNewStartDate(dayjs());
-        setNewEndDate(null);
-        setShowRenewModal(true);
-    };
+ 
 
-    const openCancelModal = (id: string) => {
-        setCancelContractId(id);
-        setCancelReason("");
-        setShowCancelModal(true);
-    };
+    
 
     const getStatusBadge = (status: string) => {
         const statusColors: Record<string, string> = {
@@ -233,34 +211,49 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="btn-ghost"
-                    >
-                        <LocalizedArrow className="h-5 w-5" />
-                    </button>
-                    <div>
-                        <h1 className="page-title">{t("contracts") || "Contracts"}</h1>
-                        <p className="text-light-600 dark:text-dark-400 mt-1">
-                            {clientName} - {totalContracts} {t("contracts") || "contracts"}
-                        </p>
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-light-200 bg-white p-5 shadow-sm dark:border-dark-800 dark:bg-dark-900 sm:p-6">
+                <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-light-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-14 -left-14 h-40 w-40 rounded-full bg-secdark-700/10 blur-3xl" />
+
+                <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={onBack}
+                            className="btn-secondary"
+                        >
+                            <LocalizedArrow className="h-5 w-5" />
+                        </button>
+                        <div>
+                            <p className="text-light-500 dark:text-dark-400 text-[11px] font-black uppercase tracking-wider">
+                                {tr("contracts", "Contracts")}
+                            </p>
+                            <h1 className="text-light-900 dark:text-dark-50 text-2xl font-black tracking-tight">{tr("contracts", "Contracts")}</h1>
+                            <p className="text-light-600 dark:text-dark-400 mt-1 text-sm">
+                                {clientName} - {totalContracts} {tr("contracts", "contracts")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-light-200 bg-light-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-light-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+                            <Sparkles size={13} />
+                            Preview
+                        </div>
+                        <button
+                            onClick={onCreateNew}
+                            className="btn-primary"
+                        >
+                            <Plus className="h-5 w-5" />
+                            {tr("create_new", "Create New")}
+                        </button>
                     </div>
                 </div>
-                <button
-                    onClick={onCreateNew}
-                    className="btn-primary"
-                >
-                    <Plus className="h-5 w-5" />
-                    {t("create_new") || "Create New"}
-                </button>
             </div>
 
             {/* Filters */}
-            <div className="card">
+            <div className="card rounded-[1.5rem]">
                 <div className="flex gap-4">
                     <select
                         value={statusFilter}
@@ -268,7 +261,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                             setStatusFilter(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="input"
+                        className="input min-w-[220px]"
                     >
                         <option value="">{t("all_statuses") || "All Statuses"}</option>
                         <option value="draft">{t("draft") || "Draft"}</option>
@@ -281,7 +274,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
             </div>
 
             {/* Contracts Table */}
-            <div className="card">
+            <div className="card rounded-[1.5rem]">
                 {contractsLoading ? (
                     <div className="flex items-center justify-center p-12">
                         <Loader2 className="text-light-500 h-8 w-8 animate-spin" />
@@ -303,7 +296,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                             {contracts.map((contract: any) => (
                                 <div
                                     key={contract._id}
-                                    className="border-light-600 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50 rounded-lg border p-4"
+                                    className="rounded-2xl border border-light-200 bg-white/80 p-4 shadow-sm transition-all duration-300 hover:-translate-y-[1px] hover:shadow-md dark:border-dark-700 dark:bg-dark-800/60"
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
@@ -326,7 +319,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
                                             {/* Display Contract Terms */}
                                             {contract.terms && contract.terms.length > 0 && (
-                                                <div className="bg-light-100 dark:bg-dark-800 mt-3 rounded p-3">
+                                                <div className="border-light-200 dark:border-dark-700 bg-light-50/70 dark:bg-dark-900/50 mt-3 rounded-xl border p-3">
                                                     <h5 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
                                                         {t("contract_terms") || "Contract Terms"}
                                                     </h5>
@@ -346,7 +339,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                                             return (
                                                                 <span
                                                                     key={idx}
-                                                                    className="bg-light-100 dark:bg-dark-700 text-light-700 dark:text-dark-200 inline-flex items-center rounded-full px-3 py-1 text-xs"
+                                                                    className="border-light-200 dark:border-dark-700 bg-white/80 dark:bg-dark-800 text-light-700 dark:text-dark-200 inline-flex items-center rounded-full border px-3 py-1 text-xs"
                                                                 >
                                                                     {keyText || "..."}
                                                                 </span>
@@ -356,12 +349,12 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="ml-3 flex items-center gap-2 rounded-xl border border-light-200 bg-white/70 p-1 dark:border-dark-700 dark:bg-dark-900/70">
                                             {(contract.status === "active" || contract.status === "renewed") && (
                                                 <>
                                                     <button
                                                         onClick={() => handleCompleteContract(contract._id)}
-                                                        className="btn-ghost text-primary-500"
+                                                        className="btn-ghost size-9 !p-0 text-primary-500"
                                                         title={t("complete_contract") || "Complete"}
                                                     >
                                                         <CheckCircle className="h-4 w-4" />
@@ -371,21 +364,21 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
                                             <button
                                                 onClick={() => handleDownloadContract(contract._id)}
-                                                className="btn-ghost"
+                                                className="btn-ghost size-9 !p-0"
                                                 title={t("download_contract") || "Download"}
                                             >
                                                 <Download size={16} />
                                             </button>
                                             <button
                                                 onClick={() => onEdit(contract)}
-                                                className="btn-ghost"
+                                                className="btn-ghost size-9 !p-0"
                                                 title={t("edit") || "Edit"}
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteContract(contract._id)}
-                                                className="btn-ghost text-danger-500"
+                                                className="btn-ghost size-9 !p-0 text-danger-500"
                                                 title={t("delete") || "Delete"}
                                             >
                                                 <Trash2 size={16} />
@@ -398,22 +391,22 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-between bg-gray-50 px-6 py-4 dark:bg-gray-700">
-                                <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <div className="border-light-200 dark:border-dark-700 mt-4 flex items-center justify-between rounded-xl border bg-white/70 px-4 py-3 dark:bg-dark-900/60">
+                                <div className="text-light-600 dark:text-dark-400 text-sm">
                                     {t("page") || "Page"} {currentPage} {t("of") || "of"} {totalPages}
                                 </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className="rounded-lg border border-gray-300 p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-600"
+                                        className="btn-secondary size-9 !p-0 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <ChevronLeft className="h-5 w-5" />
                                     </button>
                                     <button
                                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="rounded-lg border border-gray-300 p-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-600"
+                                        className="btn-secondary size-9 !p-0 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <ChevronRight className="h-5 w-5" />
                                     </button>
@@ -426,7 +419,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
             {/* Renew Modal */}
             {showRenewModal && (
-                <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+                <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
                     <div className="card w-full max-w-md">
                         <h3 className="card-title mb-4">{t("renew_contract") || "Renew Contract"}</h3>
                         <div className="space-y-4">
@@ -478,7 +471,7 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
 
             {/* Cancel Modal */}
             {showCancelModal && (
-                <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+                <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
                     <div className="card w-full max-w-md">
                         <h3 className="card-title mb-4">{t("cancel_contract") || "Cancel Contract"}</h3>
                         <div>

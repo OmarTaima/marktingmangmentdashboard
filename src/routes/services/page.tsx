@@ -7,6 +7,10 @@ import type { Service } from "@/api/requests/servicesService";
 
 const ServicesPage = () => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
     const [inputEn, setInputEn] = useState<string>("");
     const [inputAr, setInputAr] = useState<string>("");
     const [inputDescription, setInputDescription] = useState<string>("");
@@ -180,16 +184,35 @@ const ServicesPage = () => {
     };
 
     return (
-        <div className="space-y-6 px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="title">{t("Services") || "Service Categories"}</h1>
-                    <p className="text-light-600 dark:text-dark-400">
-                        {t("manage_service_categories_sub") ||
-                            "Manage service categories that contain items. These act as categories for your items."}
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-14 h-56 w-56 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-14 h-56 w-56 rounded-full bg-secdark-700/20 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex flex-col gap-2">
+                    <span className="inline-flex w-fit items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                        Service Catalog
+                    </span>
+                    <h1 className="title text-2xl sm:text-3xl">{tr("Services", "Service Categories")}</h1>
+                    <p className="text-light-600 dark:text-dark-300 text-sm sm:text-base">
+                        {tr(
+                            "manage_service_categories_sub",
+                            "Manage service categories that contain items. These act as categories for your items.",
+                        )}
                     </p>
                 </div>
-            </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("total_services", "Total Services")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{services.length}</p>
+                </div>
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("total_packages", "Linked Packages")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{packages.length}</p>
+                </div>
+                
+            </section>
 
             {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
@@ -197,9 +220,11 @@ const ServicesPage = () => {
                 </div>
             )}
 
-            <div className="card">
+            <div className="rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="card-title">{t("manage_services") || "Manage Service Categories"}</h2>
+                    <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">
+                        {tr("manage_services", "Manage Service Categories")}
+                    </h2>
                     <div className="relative">
                         <Search className="text-light-600 dark:text-dark-400 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <input
@@ -209,8 +234,8 @@ const ServicesPage = () => {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            placeholder={t("search_services") || "Search services..."}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-64 rounded-lg border bg-white py-2 pr-3 pl-10 text-sm transition-colors focus:outline-none"
+                            placeholder={tr("search_services", "Search services...")}
+                            className="input w-64 rounded-xl pr-3 pl-10"
                         />
                     </div>
                 </div>
@@ -226,7 +251,7 @@ const ServicesPage = () => {
                                 services.map((service) => (
                                     <div
                                         key={service._id}
-                                        className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                        className="flex items-center justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-3 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50"
                                     >
                                         <div className="flex w-full items-center gap-3">
                                             {editingId === service._id ? (
@@ -235,30 +260,30 @@ const ServicesPage = () => {
                                                         value={editingValueEn}
                                                         onChange={(e) => setEditingValueEn(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("english_label") || "English"}
+                                                        className="input w-1/4"
+                                                        placeholder={tr("english_label", "English")}
                                                     />
                                                     <input
                                                         value={editingValueAr}
                                                         onChange={(e) => setEditingValueAr(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("arabic_label") || "Arabic"}
+                                                        className="input w-1/4"
+                                                        placeholder={tr("arabic_label", "Arabic")}
                                                     />
                                                     <input
                                                         value={editingDescription}
                                                         onChange={(e) => setEditingDescription(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("service_description") || "Description"}
+                                                        className="input w-1/4"
+                                                        placeholder={tr("service_description", "Description")}
                                                     />
                                                     <input
                                                         value={editingPrice}
                                                         onChange={(e) => setEditingPrice(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
                                                         type="number"
-                                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                        placeholder={t("price") || "Price"}
+                                                        className="input w-1/5"
+                                                        placeholder={tr("price", "Price")}
                                                     />
                                                     <div className="relative w-1/5">
                                                         <button
@@ -270,7 +295,7 @@ const ServicesPage = () => {
                                                                     e.stopPropagation();
                                                                 }
                                                             }}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-left text-sm transition-colors focus:outline-none"
+                                                            className="input w-full text-left"
                                                         >
                                                             {editingPackages.length > 0
                                                                 ? `${editingPackages.length} ${t("selected") || "selected"}`
@@ -353,13 +378,13 @@ const ServicesPage = () => {
                                                     <button
                                                         onClick={() => saveEdit(service._id)}
                                                         disabled={isSaving}
-                                                        className="btn-ghost flex items-center gap-2"
+                                                        className="btn-ghost flex items-center gap-2 rounded-xl"
                                                     >
                                                         <Check size={14} />
                                                     </button>
                                                     <button
                                                         onClick={cancelEdit}
-                                                        className="btn-ghost flex items-center gap-2"
+                                                        className="btn-ghost flex items-center gap-2 rounded-xl"
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -368,13 +393,13 @@ const ServicesPage = () => {
                                                 <>
                                                     <button
                                                         onClick={() => startEdit(service)}
-                                                        className="btn-ghost flex items-center gap-2"
+                                                        className="btn-ghost flex items-center gap-2 rounded-xl"
                                                     >
                                                         <Edit2 size={14} />
                                                     </button>
                                                     <button
                                                         onClick={() => remove(service)}
-                                                        className="btn-ghost text-danger-500 flex items-center gap-2"
+                                                        className="btn-ghost text-danger-500 flex items-center gap-2 rounded-xl"
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
@@ -394,7 +419,7 @@ const ServicesPage = () => {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="btn-ghost px-3 py-1 disabled:opacity-50"
+                                    className="btn-ghost rounded-xl px-3 py-1 disabled:opacity-50"
                                 >
                                     {t("previous") || "Previous"}
                                 </button>
@@ -404,7 +429,7 @@ const ServicesPage = () => {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="btn-ghost px-3 py-1 disabled:opacity-50"
+                                    className="btn-ghost rounded-xl px-3 py-1 disabled:opacity-50"
                                 >
                                     {t("next") || "Next"}
                                 </button>
@@ -414,7 +439,7 @@ const ServicesPage = () => {
                 )}
 
                 <div
-                    className="mt-4 flex gap-2"
+                    className="mt-4 grid gap-2 lg:grid-cols-[1fr_1fr_1fr_0.8fr_0.9fr_auto]"
                     onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                         if (e.key === "Enter") {
                             // if user just selected a package, submit the create form
@@ -431,36 +456,36 @@ const ServicesPage = () => {
                         value={inputEn}
                         onChange={(e) => setInputEn(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("add_service_placeholder") || "Service (English)"}
+                        placeholder={tr("add_service_placeholder", "Service (English)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input w-full disabled:opacity-50"
                     />
                     <input
                         value={inputAr}
                         onChange={(e) => setInputAr(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("add_service_placeholder_arabic") || "الخدمة (بالعربية)"}
+                        placeholder={tr("add_service_placeholder_arabic", "الخدمة (بالعربية)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input w-full disabled:opacity-50"
                     />
                     <input
                         value={inputDescription}
                         onChange={(e) => setInputDescription(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("service_description") || "Description"}
+                        placeholder={tr("service_description", "Description")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/4 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input w-full disabled:opacity-50"
                     />
                     <input
                         value={inputPrice}
                         onChange={(e) => setInputPrice(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
                         type="number"
-                        placeholder={t("price") || "Price (optional)"}
+                        placeholder={tr("price", "Price (optional)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-1/5 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input w-full disabled:opacity-50"
                     />
-                    <div className="relative w-1/5">
+                    <div className="relative w-full">
                         <button
                             type="button"
                             onClick={() => setShowPackageDropdown(!showPackageDropdown)}
@@ -471,7 +496,7 @@ const ServicesPage = () => {
                                 }
                             }}
                             disabled={isSaving}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-left text-sm transition-colors focus:outline-none disabled:opacity-50"
+                            className="input w-full text-left disabled:opacity-50"
                         >
                             {inputPackages.length > 0
                                 ? `${inputPackages.length} ${t("selected") || "selected"}`
@@ -520,7 +545,7 @@ const ServicesPage = () => {
                     <button
                         onClick={handleAdd}
                         disabled={isSaving}
-                        className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                        className="btn-primary h-[42px] min-w-[110px] justify-center rounded-xl disabled:opacity-50"
                     >
                         {isSaving ? (
                             <Loader2

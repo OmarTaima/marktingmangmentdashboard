@@ -90,7 +90,10 @@ export const createBranch = async (clientId: string, branchData: any): Promise<B
 export const createBranches = async (clientId: string, branchesData: any[]): Promise<Branch[]> => {
     try {
         // Transform all branches to backend payload format
-        const payloads = branchesData.map((branchData) => transformBranchToBackendPayload(branchData));
+        const payloads = branchesData.map((branchData) => ({
+            ...transformBranchToBackendPayload(branchData),
+            clientId,
+        }));
 
         // Send bulk request to create all branches at once
         const res = await axiosInstance.post(`/clients/${clientId}/branches/bulk`, payloads);

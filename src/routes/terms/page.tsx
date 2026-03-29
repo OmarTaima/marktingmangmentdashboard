@@ -7,6 +7,10 @@ import type { ContractTerm } from "@/api/requests/termsService";
 
 const termsPage = () => {
     const { t, lang } = useLang();
+    const tr = (key: string, fallback: string) => {
+        const value = t(key);
+        return !value || value === key ? fallback : value;
+    };
     const [inputKey, setInputKey] = useState<string>("");
     const [inputValue, setInputValue] = useState<string>("");
     const [inputKeyAr, setInputKeyAr] = useState<string>("");
@@ -147,15 +151,28 @@ const termsPage = () => {
     const filteredTerms = terms;
 
     return (
-        <div className="space-y-6 px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="title">{t("Contract Terms") || "Contract Terms"}</h1>
-                    <p className="text-light-600 dark:text-dark-400">
-                        {t("manage_terms_sub") || "Manage contract terms and conditions for your agreements."}
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+            <section className="relative overflow-hidden rounded-3xl border border-light-200/70 bg-white/90 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-8">
+                <div className="absolute -top-20 -right-14 h-56 w-56 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
+                <div className="absolute -bottom-24 -left-14 h-56 w-56 rounded-full bg-secdark-700/20 blur-3xl dark:bg-secdark-700/20" />
+                <div className="relative flex flex-col gap-2">
+                    <span className="inline-flex w-fit items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
+                        Contract Terms
+                    </span>
+                    <h1 className="title text-2xl sm:text-3xl">{tr("Contract Terms", "Contract Terms")}</h1>
+                    <p className="text-light-600 dark:text-dark-300 text-sm sm:text-base">
+                        {tr("manage_terms_sub", "Manage contract terms and conditions for your agreements.")}
                     </p>
                 </div>
-            </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-light-200/70 bg-white/90 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/60">
+                    <p className="text-light-600 dark:text-dark-300 text-xs uppercase tracking-[0.08em]">{tr("total_terms", "Total Terms")}</p>
+                    <p className="text-light-900 dark:text-dark-50 mt-2 text-2xl font-semibold">{filteredTerms.length}</p>
+                </div>
+               
+            </section>
 
             {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
@@ -163,9 +180,9 @@ const termsPage = () => {
                 </div>
             )}
 
-            <div className="card">
+            <div className="rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="card-title">{t("manage_terms") || "Manage Terms"}</h2>
+                    <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("manage_terms", "Manage Terms")}</h2>
                     <div className="relative">
                         <Search className="text-light-600 dark:text-dark-400 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <input
@@ -175,8 +192,8 @@ const termsPage = () => {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            placeholder={t("search_terms") || "Search terms..."}
-                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-64 rounded-lg border bg-white py-2 pr-3 pl-10 text-sm transition-colors focus:outline-none"
+                            placeholder={tr("search_terms", "Search terms...")}
+                            className="input w-64 rounded-xl pr-3 pl-10"
                         />
                     </div>
                 </div>
@@ -193,7 +210,7 @@ const termsPage = () => {
                                     return (
                                         <div
                                             key={term._id}
-                                            className="border-light-600 text-light-900 dark:bg-dark-800 dark:border-dark-700 dark:text-dark-50 flex items-center justify-between gap-3 rounded-lg border bg-white px-3 py-2"
+                                            className="group flex items-center justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50"
                                         >
                                             <div className="flex w-full items-center gap-3">
                                                 {editingId === term._id ? (
@@ -202,29 +219,29 @@ const termsPage = () => {
                                                             value={editingKey}
                                                             onChange={(e) => setEditingKey(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                            placeholder={t("term_key") || "Term Key"}
+                                                            className="input flex-1"
+                                                            placeholder={tr("term_key", "Term Key")}
                                                         />
                                                         <input
                                                             value={editingKeyAr}
                                                             onChange={(e) => setEditingKeyAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
-                                                            placeholder={t("term_key_ar") || "المفتاح (بالعربية)"}
+                                                            className="input flex-1"
+                                                            placeholder={tr("term_key_ar", "المفتاح (بالعربية)")}
                                                         />
                                                         <input
                                                             value={editingValue}
                                                             onChange={(e) => setEditingValue(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                            placeholder={t("term_value") || "Value"}
+                                                            className="input flex-1"
+                                                            placeholder={tr("term_value", "Value")}
                                                         />
                                                         <input
                                                             value={editingValueAr}
                                                             onChange={(e) => setEditingValueAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
-                                                            placeholder={t("term_value_ar") || "القيمة (بالعربية)"}
+                                                            className="input flex-1"
+                                                            placeholder={tr("term_value_ar", "القيمة (بالعربية)")}
                                                         />
                                                     </div>
                                                 ) : (
@@ -242,7 +259,7 @@ const termsPage = () => {
                                                                                 {displayKey}
                                                                             </span>
                                                                             {displayValue && (
-                                                                                <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
+                                                                                <span className="text-light-600 dark:text-dark-300 mt-1 text-xs">
                                                                                     {displayValue}
                                                                                 </span>
                                                                             )}
@@ -260,13 +277,13 @@ const termsPage = () => {
                                                         <button
                                                             onClick={() => saveEdit(term._id)}
                                                             disabled={isSaving}
-                                                            className="btn-ghost flex items-center gap-2"
+                                                            className="btn-ghost flex items-center gap-2 rounded-xl"
                                                         >
                                                             <Check size={14} />
                                                         </button>
                                                         <button
                                                             onClick={cancelEdit}
-                                                            className="btn-ghost flex items-center gap-2"
+                                                            className="btn-ghost flex items-center gap-2 rounded-xl"
                                                         >
                                                             <X size={14} />
                                                         </button>
@@ -276,13 +293,13 @@ const termsPage = () => {
                                                         <>
                                                             <button
                                                                 onClick={() => startEdit(term)}
-                                                                className="btn-ghost flex items-center gap-2"
+                                                                className="btn-ghost flex items-center gap-2 rounded-xl"
                                                             >
                                                                 <Edit2 size={14} />
                                                             </button>
                                                             <button
                                                                 onClick={() => remove(term)}
-                                                                className="btn-ghost text-danger-500 flex items-center gap-2"
+                                                                className="btn-ghost text-danger-500 flex items-center gap-2 rounded-xl"
                                                             >
                                                                 <Trash2 size={14} />
                                                             </button>
@@ -294,7 +311,7 @@ const termsPage = () => {
                                     );
                                 })
                             ) : (
-                                <p className="text-light-600">{t("no_terms_defined") || "No terms defined yet."}</p>
+                                <p className="text-light-600 dark:text-dark-300">{tr("no_terms_defined", "No terms defined yet.")}</p>
                             )}
                         </div>
 
@@ -304,62 +321,62 @@ const termsPage = () => {
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
-                                    className="btn-ghost px-3 py-1 disabled:opacity-50"
+                                    className="btn-ghost rounded-xl px-3 py-1 disabled:opacity-50"
                                 >
-                                    {t("previous") || "Previous"}
+                                    {tr("previous", "Previous")}
                                 </button>
                                 <span className="text-light-600 dark:text-dark-400 text-sm">
-                                    {t("page")} {currentPage} {t("of")} {totalPages}
+                                    {tr("page", "Page")} {currentPage} {tr("of", "of")} {totalPages}
                                 </span>
                                 <button
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="btn-ghost px-3 py-1 disabled:opacity-50"
+                                    className="btn-ghost rounded-xl px-3 py-1 disabled:opacity-50"
                                 >
-                                    {t("next") || "Next"}
+                                    {tr("next", "Next")}
                                 </button>
                             </div>
                         )}
                     </>
                 )}
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 grid gap-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
                     <input
                         value={inputKey}
                         onChange={(e) => setInputKey(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("term_key") || "Term Key (e.g., Payment)"}
+                        placeholder={tr("term_key", "Term Key (e.g., Payment)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input flex-1 disabled:opacity-50"
                     />
                     <input
                         value={inputKeyAr}
                         onChange={(e) => setInputKeyAr(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("term_key_ar") || "المفتاح (مثال: الدفع)"}
+                        placeholder={tr("term_key_ar", "المفتاح (مثال: الدفع)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input flex-1 disabled:opacity-50"
                     />
                     <input
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("term_value") || "Value (e.g., 50% advance)"}
+                        placeholder={tr("term_value", "Value (e.g., 50% advance)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input flex-1 disabled:opacity-50"
                     />
                     <input
                         value={inputValueAr}
                         onChange={(e) => setInputValueAr(e.target.value)}
                         onKeyDown={handleCreateKeyDown}
-                        placeholder={t("term_value_ar") || "القيمة (مثال: 50% مقدم)"}
+                        placeholder={tr("term_value_ar", "القيمة (مثال: 50% مقدم)")}
                         disabled={isSaving}
-                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none disabled:opacity-50"
+                        className="input flex-1 disabled:opacity-50"
                     />
                     <button
                         onClick={handleAdd}
                         disabled={isSaving}
-                        className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                        className="btn-primary h-[42px] min-w-[110px] justify-center rounded-xl disabled:opacity-50"
                     >
                         {isSaving ? (
                             <Loader2

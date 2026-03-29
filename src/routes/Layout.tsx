@@ -45,17 +45,17 @@ const Layout = () => {
     const hideNav = pathname === "/" || pathname.startsWith("/auth");
 
     // Adjust layout margin depending on language and collapse state
-    const mdOffsetClass = collapsed ? (isArabic ? "md:mr-20" : "md:ml-20") : isArabic ? "md:mr-[240px]" : "md:ml-[240px]";
+    const mdOffsetClass = collapsed ? (isArabic ? "md:mr-20" : "md:ml-20") : isArabic ? "md:mr-[260px]" : "md:ml-[260px]";
 
     const baseOffsetClass = isArabic ? "mr-0" : "ml-0";
 
     return (
-        <div className="dark:bg-dark-950 bg-light-50 min-h-screen transition-colors">
+        <div className="dark:bg-dark-950 bg-light-50 min-h-screen transition-colors font-sans italic-none">
             {/* Background overlay for mobile */}
             <div
                 className={cn(
-                    "pointer-events-none fixed inset-0 -z-10 bg-black opacity-0 transition-opacity duration-300",
-                    !collapsed && "max-md:pointer-events-auto max-md:z-50 max-md:opacity-30",
+                    "pointer-events-none fixed inset-0 -z-10 bg-black/20 backdrop-blur-sm opacity-0 transition-opacity duration-300",
+                    !collapsed && "max-md:pointer-events-auto max-md:z-[90] max-md:opacity-100",
                 )}
             />
 
@@ -66,18 +66,20 @@ const Layout = () => {
                         ref={sidebarRef}
                         {...({ collapsed, setCollapsed } as any)}
                     />
-                    <div className={cn("flex flex-col transition-[margin] duration-300", mdOffsetClass, baseOffsetClass)}>
+                    <div className={cn("flex flex-col min-h-screen transition-[margin] duration-400 ease-[cubic-bezier(0.4,0,0.2,1)]", mdOffsetClass, baseOffsetClass)}>
                         <Header
                             collapsed={collapsed}
                             setCollapsed={setCollapsed}
                         />
-                        <main className="h-[calc(100vh-60px)] overflow-x-hidden overflow-y-auto p-6">
-                            <Outlet />
+                        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                            <div className="mx-auto max-w-7xl">
+                                <Outlet />
+                            </div>
                         </main>
                     </div>
                 </>
             ) : (
-                <div className="flex min-h-screen items-center justify-center">
+                <div className="flex min-h-screen items-center justify-center bg-white dark:bg-dark-950">
                     <Outlet />
                 </div>
             )}
