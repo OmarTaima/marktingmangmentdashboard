@@ -760,76 +760,76 @@ const PreviewQuotation = ({
         setAutoDownloadDone(false);
     }, [autoDownloadQuotationId]);
 
-    const handleConvertToContract = async () => {
-        if (!convertQuotationId || !convertQuotation) return;
-        if (!contractStartDate || !contractEndDate) {
-            showAlert(t("please_fill_dates") || "Please fill in start and end dates", "warning");
-            return;
-        }
+    // const handleConvertToContract = async () => {
+    //     if (!convertQuotationId || !convertQuotation) return;
+    //     if (!contractStartDate || !contractEndDate) {
+    //         showAlert(t("please_fill_dates") || "Please fill in start and end dates", "warning");
+    //         return;
+    //     }
 
-        // Generate contract body from quotation
-        let contractBody = `Contract based on Quotation ${convertQuotation.quotationNumber || ""}\n\n`;
-        contractBody += `Client: ${convertQuotation.clientName || clientName}\n`;
-        contractBody += `Total Amount: ${convertQuotation.total || 0} EGP\n\n`;
+    //     // Generate contract body from quotation
+    //     let contractBody = `Contract based on Quotation ${convertQuotation.quotationNumber || ""}\n\n`;
+    //     contractBody += `Client: ${convertQuotation.clientName || clientName}\n`;
+    //     contractBody += `Total Amount: ${convertQuotation.total || 0} EGP\n\n`;
 
-        if (convertQuotation.packages && convertQuotation.packages.length > 0) {
-            contractBody += "Services:\n";
-            convertQuotation.packages.forEach((pkg: any, index: number) => {
-                const pkgName = typeof pkg === "string" ? pkg : pkg.nameEn || pkg.name || `Package ${index + 1}`;
-                contractBody += `- ${pkgName}\n`;
-            });
-        }
+    //     if (convertQuotation.packages && convertQuotation.packages.length > 0) {
+    //         contractBody += "Services:\n";
+    //         convertQuotation.packages.forEach((pkg: any, index: number) => {
+    //             const pkgName = typeof pkg === "string" ? pkg : pkg.nameEn || pkg.name || `Package ${index + 1}`;
+    //             contractBody += `- ${pkgName}\n`;
+    //         });
+    //     }
 
-        if (convertQuotation.customServices && convertQuotation.customServices.length > 0) {
-            contractBody += "\nCustom Services:\n";
-            convertQuotation.customServices.forEach((cs: any) => {
-                contractBody += `- ${cs.en || cs.ar}: ${cs.price} EGP\n`;
-            });
-        }
+    //     if (convertQuotation.customServices && convertQuotation.customServices.length > 0) {
+    //         contractBody += "\nCustom Services:\n";
+    //         convertQuotation.customServices.forEach((cs: any) => {
+    //             contractBody += `- ${cs.en || cs.ar}: ${cs.price} EGP\n`;
+    //         });
+    //     }
 
-        if (convertQuotation.note) {
-            contractBody += `\nNotes: ${convertQuotation.note}\n`;
-        }
+    //     if (convertQuotation.note) {
+    //         contractBody += `\nNotes: ${convertQuotation.note}\n`;
+    //     }
 
-        if (contractTerms) {
-            contractBody += `\nTerms:\n${contractTerms}\n`;
-        }
+    //     if (contractTerms) {
+    //         contractBody += `\nTerms:\n${contractTerms}\n`;
+    //     }
 
-        try {
-            await convertQuotationMutation.mutateAsync({
-                id: convertQuotationId,
-                payload: {
-                    startDate: contractStartDate,
-                    endDate: contractEndDate,
-                    contractTerms: contractTerms || undefined,
-                    body: contractBody,
-                },
-            });
+    //     try {
+    //         await convertQuotationMutation.mutateAsync({
+    //             id: convertQuotationId,
+    //             payload: {
+    //                 startDate: contractStartDate,
+    //                 endDate: contractEndDate,
+    //                 contractTerms: contractTerms || undefined,
+    //                 body: contractBody,
+    //             },
+    //         });
 
-            setShowConvertModal(false);
-            setConvertQuotationId(null);
-            setConvertQuotation(null);
-            setContractStartDate("");
-            setContractEndDate("");
-            setContractTerms("");
+    //         setShowConvertModal(false);
+    //         setConvertQuotationId(null);
+    //         setConvertQuotation(null);
+    //         setContractStartDate("");
+    //         setContractEndDate("");
+    //         setContractTerms("");
 
-            showToast(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
+    //         showToast(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
 
-            // Navigate to contracts page
-            navigate("/contracts");
-        } catch (error: any) {
-            showAlert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract", "error");
-        }
-    };
+    //         // Navigate to contracts page
+    //         navigate("/contracts");
+    //     } catch (error: any) {
+    //         showAlert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract", "error");
+    //     }
+    // };
 
-    const openConvertModal = (quotation: Quotation) => {
-        setConvertQuotationId(quotation._id);
-        setConvertQuotation(quotation);
-        setContractStartDate("");
-        setContractEndDate("");
-        setContractTerms("");
-        setShowConvertModal(true);
-    };
+    // const openConvertModal = (quotation: Quotation) => {
+    //     setConvertQuotationId(quotation._id);
+    //     setConvertQuotation(quotation);
+    //     setContractStartDate("");
+    //     setContractEndDate("");
+    //     setContractTerms("");
+    //     setShowConvertModal(true);
+    // };
 
     const totalPages = Math.ceil(totalQuotations / pageSize);
 
@@ -994,7 +994,7 @@ const PreviewQuotation = ({
                                                 <Download size={16} />
                                             )}
                                         </button>
-                                        {quotation.status !== "approved" && (
+                                        {/* {quotation.status !== "approved" && (
                                             <button
                                                 onClick={() => openConvertModal(quotation)}
                                                 className="btn-ghost text-green-600 rounded-xl"
@@ -1002,7 +1002,7 @@ const PreviewQuotation = ({
                                             >
                                                 <FileCheck size={16} />
                                             </button>
-                                        )}
+                                        )} */}
                                         <button
                                             onClick={() => handleDeleteQuotation(quotation._id)}
                                             className="btn-ghost text-danger-500 rounded-xl"
@@ -1056,7 +1056,7 @@ const PreviewQuotation = ({
             )}
 
             {/* Convert to Contract Modal */}
-            {showConvertModal && (
+            {/* {showConvertModal && (
                 <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
                     <div className="dark:bg-dark-800 mx-4 w-full max-w-md rounded-2xl border border-light-200/80 bg-white p-6 shadow-xl dark:border-dark-700/80">
                         <h3 className="text-light-900 dark:text-dark-50 mb-4 text-lg font-bold">
@@ -1126,7 +1126,7 @@ const PreviewQuotation = ({
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Loading State */}
             {quotationsLoading && (

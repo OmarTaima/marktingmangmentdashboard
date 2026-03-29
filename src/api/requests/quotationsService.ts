@@ -112,7 +112,7 @@ export interface ConvertToContractPayload {
     body?: string; // Full contract text
 }
 
-const normalizeQuotationListResponse = (raw: any, params?: QuotationQueryParams): QuotationListResponse => {
+const normalizeQuotationListResponse = (raw: any): QuotationListResponse => {
     const list = Array.isArray(raw)
         ? raw
         : Array.isArray(raw?.data)
@@ -123,8 +123,8 @@ const normalizeQuotationListResponse = (raw: any, params?: QuotationQueryParams)
               ? raw.data.quotations
               : [];
 
-    const page = Number(raw?.meta?.page ?? raw?.page ?? params?.page ?? 1);
-    const limit = Number(raw?.meta?.limit ?? raw?.limit ?? params?.limit ?? (list.length || 20));
+    const page = Number(raw?.meta?.page ?? raw?.page ?? 1);
+    const limit = Number(raw?.meta?.limit ?? raw?.limit ?? (list.length || 20));
     const total = Number(raw?.meta?.total ?? raw?.totalCount ?? raw?.total ?? list.length);
     const totalPages = Number(raw?.meta?.totalPages ?? raw?.pageCount ?? Math.max(1, Math.ceil(total / Math.max(limit, 1))));
 
@@ -153,20 +153,10 @@ export const getQuotations = async (params?: QuotationQueryParams, signal?: Abor
     return withCache(
         "/quotations",
         async () => {
-            // Prefer to ask the backend to populate `packages` (current model) which
-            // avoids servers that still try to populate the removed `services` path.
-            try {
-                const response = await api.get("/quotations", { params: { ...params, populate: "packages" }, signal });
-                return normalizeQuotationListResponse(response.data, params);
-            } catch (err: any) {
-                const msg = err?.response?.data?.message || err?.message || "";
-                if (typeof msg === "string" && msg.toLowerCase().includes("populate")) {
-                    // Retry without populate param as a fallback so the UI can still render data
-                    const fallback = await api.get("/quotations", { params, signal });
-                    return normalizeQuotationListResponse(fallback.data, params);
-                }
-                throw err;
-            }
+            void params;
+            // Backend currently rejects query params on this endpoint, so request plain list.
+            const response = await api.get("/quotations", { signal });
+            return normalizeQuotationListResponse(response.data);
         },
         params,
     );

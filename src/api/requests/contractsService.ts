@@ -33,6 +33,12 @@ export interface Contract {
               quotationNumber?: string;
           }
         | string;
+    quotation?:
+        | {
+              _id: string;
+              quotationNumber?: string;
+          }
+        | string;
     terms?: ContractTermItem[];
     contractTerms?: string[]; // Legacy field for backward compatibility
     body?: string; // Full contract paragraph/text
@@ -97,8 +103,35 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
         "/contracts",
         async () => {
             try {
-                const response = await api.get("/contracts", { params });
-                return response.data;
+                const response = await api.get("/contracts");
+                const raw = response.data;
+
+                const data: Contract[] = Array.isArray(raw)
+                    ? raw
+                    : Array.isArray(raw?.contracts)
+                      ? raw.contracts
+                      : Array.isArray(raw?.data)
+                        ? raw.data
+                        : Array.isArray(raw?.data?.contracts)
+                          ? raw.data.contracts
+                          : [];
+
+                const total = Number(raw?.meta?.total ?? raw?.totalCount ?? raw?.total ?? data.length);
+                const page = Number(raw?.meta?.page ?? raw?.page ?? params?.page ?? 1);
+                const limit = Number(raw?.meta?.limit ?? raw?.limit ?? params?.limit ?? (data.length || 20));
+                const totalPages = Number(raw?.meta?.totalPages ?? raw?.pageCount ?? Math.max(1, Math.ceil(total / Math.max(limit, 1))));
+
+                return {
+                    data,
+                    meta: {
+                        total,
+                        page,
+                        limit,
+                        totalPages,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1,
+                    },
+                };
             } catch (error) {
                 throw error;
             }
@@ -127,7 +160,7 @@ export const getContractById = async (id: string): Promise<Contract> => {
  */
 export const createContract = async (contractData: {
     clientId: string;
-    quotationId?: string;
+    quotation?: string;
     contractTerms?: string[];
     body?: string;
     startDate: string;
@@ -149,7 +182,7 @@ export const updateContract = async (
     id: string,
     contractData: {
         clientId?: string;
-        quotationId?: string;
+        quotation?: string;
         contractTerms?: string[];
         body?: string;
         startDate?: string;

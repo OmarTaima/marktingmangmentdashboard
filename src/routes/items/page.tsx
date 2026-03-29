@@ -211,44 +211,44 @@ const ItemsPage = () => {
                                     return (
                                         <div
                                             key={item._id}
-                                            className="group flex items-center justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50"
+                                            className="group flex flex-col gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50 sm:flex-row sm:items-center sm:justify-between"
                                         >
-                                            <div className="flex w-full items-center gap-3">
+                                            <div className="w-full min-w-0">
                                                 {editingId === item._id ? (
-                                                    <div className="flex w-full gap-2">
+                                                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                                                         <input
                                                             value={editingName}
                                                             onChange={(e) => setEditingName(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("item_name", "Item Name")}
                                                         />
                                                         <input
                                                             value={editingNameAr}
                                                             onChange={(e) => setEditingNameAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("item_name_ar", "اسم العنصر (بالعربية)")}
                                                         />
                                                         <input
                                                             value={editingDescription}
                                                             onChange={(e) => setEditingDescription(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("item_description", "Description")}
                                                         />
                                                         <input
                                                             value={editingDescriptionAr}
                                                             onChange={(e) => setEditingDescriptionAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("item_description_ar", "وصف (بالعربية)")}
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <div className="flex w-full">
-                                                        <div className="flex w-full items-center justify-between">
-                                                            <div className="flex flex-col">
+                                                    <div className="w-full min-w-0">
+                                                        <div className="w-full min-w-0">
+                                                            <div className="flex min-w-0 flex-col">
                                                                 {(() => {
                                                                     const displayName = lang === "ar" ? item.ar || item.name : item.name || item.ar;
                                                                     const displayDesc =
@@ -257,11 +257,11 @@ const ItemsPage = () => {
                                                                             : item.description || item.descriptionAr;
                                                                     return (
                                                                         <>
-                                                                            <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                                            <span className="text-light-900 dark:text-dark-50 break-words text-sm font-semibold">
                                                                                 {displayName}
                                                                             </span>
                                                                             {displayDesc && (
-                                                                                <span className="text-light-600 dark:text-dark-300 mt-1 text-xs">
+                                                                                <span className="text-light-600 dark:text-dark-300 mt-1 break-words text-xs">
                                                                                     {displayDesc}
                                                                                 </span>
                                                                             )}
@@ -273,7 +273,7 @@ const ItemsPage = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                                                 {editingId === item._id ? (
                                                     <>
                                                         <button

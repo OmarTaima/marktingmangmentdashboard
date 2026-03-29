@@ -43,8 +43,34 @@ export interface GetContractTermsParams {
 
 export const contractTermsService = {
     getAll: async (params?: GetContractTermsParams): Promise<ContractTermsResponse> => {
-        const response = await axiosInstance.get("/contract-terms", { params });
-        return response.data;
+        void params;
+        const response = await axiosInstance.get("/contract-terms");
+        const raw = response.data;
+
+        const data: ContractTerm[] = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.terms)
+              ? raw.terms
+              : Array.isArray(raw?.data)
+                ? raw.data
+                : Array.isArray(raw?.data?.terms)
+                  ? raw.data.terms
+                  : [];
+
+        const parsedPage = typeof raw?.page === "string" ? Number(String(raw.page).split(" ")[0]) : Number(raw?.page);
+        const total = Number(raw?.meta?.total ?? raw?.totalCount ?? data.length);
+        const limit = Number(raw?.meta?.limit ?? raw?.limit ?? (data.length || 1));
+        const totalPages = Number(raw?.meta?.totalPages ?? raw?.pageCount ?? Math.max(1, Math.ceil(total / Math.max(limit, 1))));
+
+        return {
+            data,
+            meta: {
+                total,
+                page: Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1,
+                limit,
+                totalPages,
+            },
+        };
     },
 
     create: async (data: CreateContractTermDTO): Promise<ContractTerm> => {

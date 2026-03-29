@@ -121,7 +121,11 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
     const [contractNote, setContractNote] = useState<string>(editContract?.note || "");
     const [status, setStatus] = useState<"draft" | "active" | "completed" | "cancelled" | "renewed">(editContract?.status || "draft");
     const [selectedQuotationId, setSelectedQuotationId] = useState<string>(
-        quotationId || (typeof editContract?.quotationId === "string" ? editContract.quotationId : editContract?.quotationId?._id || ""),
+        quotationId ||
+            (typeof (editContract as any)?.quotation === "string"
+                ? (editContract as any).quotation
+                : (editContract as any)?.quotation?._id ||
+                  (typeof editContract?.quotationId === "string" ? editContract.quotationId : editContract?.quotationId?._id || "")),
     );
     const [selectedContractId, setSelectedContractId] = useState<string>("");
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -474,7 +478,7 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
 
         const contractData = {
             clientId,
-            quotationId: selectedQuotationId || undefined,
+            quotation: selectedQuotationId || undefined,
             terms:
                 contractTermsList.length > 0
                     ? contractTermsList.map((term, index) => {
@@ -890,38 +894,38 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                                 <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
                                     {t("or_add_custom_term") || "Or Add Custom Term"}
                                 </h4>
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                                     <input
                                         value={inputKey}
                                         onChange={(e) => setInputKey(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_key") || "Term Key (e.g., Payment)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputKeyAr}
                                         onChange={(e) => setInputKeyAr(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_key_ar") || "المفتاح (مثال: الدفع)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_value") || "Value (e.g., 50% advance)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputValueAr}
                                         onChange={(e) => setInputValueAr(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_value_ar") || "القيمة (مثال: 50% مقدم)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <button
                                         onClick={addCustomTerm}
-                                        className="btn-primary flex items-center gap-2"
+                                        className="btn-primary flex w-full items-center justify-center gap-2 xl:w-auto"
                                     >
                                         <Plus size={14} />
                                         {t("add")}

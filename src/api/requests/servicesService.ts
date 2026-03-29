@@ -52,8 +52,27 @@ export interface ServiceQueryParams {
  * Get all services with pagination and filters
  */
 export const getServices = async (params?: ServiceQueryParams): Promise<ServiceListResponse> => {
-    const response = await api.get("/services", { params });
-    return response.data;
+    void params;
+    // Backend currently rejects query params on this endpoint, so request plain list.
+    const response = await api.get("/services");
+    const raw = response.data;
+
+    const data: Service[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.services)
+          ? raw.services
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : [];
+
+    const meta = raw?.meta || {
+        total: Number(raw?.totalCount) || data.length,
+        page: Number(raw?.page) || 1,
+        limit: Number(raw?.limit) || data.length || 1,
+        totalPages: Number(raw?.pageCount) || 1,
+    };
+
+    return { data, meta };
 };
 
 /**

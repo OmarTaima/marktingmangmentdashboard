@@ -561,7 +561,7 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
         try {
             const campaignObjectives = (objectives || []).map((obj) => ({
                 name: obj.en || "",
-                ar: obj.ar || "",
+                ...(obj.ar && obj.ar.trim() ? { ar: obj.ar.trim() } : {}),
                 description: obj.enDesc || undefined,
                 descriptionAr: obj.arDesc || undefined,
             }));
@@ -580,15 +580,13 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
                     : [];
 
             const payload = {
-                clientId: selectedClientId,
                 description: planData.objective || planData.strategy || "Campaign Plan",
                 objectives: campaignObjectives,
                 branches: selectedBranches,
                 competitors: selectedCompetitors,
                 segments: selectedSegments,
-                // send `swot` to match backend validation (some servers expect `swot` instead of `swotAnalysis`)
-                // loading logic already supports both `swot` and `swotAnalysis` so this is safe.
-                swot: selectedSwot,
+                // API expects swotAnalysis in campaign payloads.
+                swotAnalysis: selectedSwot,
                 // pricing fields live at the top level to match backend schema
                 packages: selectedPackageIds && selectedPackageIds.length > 0 ? selectedPackageIds : undefined,
                 customServices: customServices && customServices.length > 0 ? customServices : undefined,
@@ -602,10 +600,19 @@ const PlanningForm: React.FC<Props> = ({ selectedClientId, editCampaignId, onSav
 
             let savedCampaign: any = null;
             if (editCampaignId) {
-                savedCampaign = await updateCampaignMutation.mutateAsync({ campaignId: editCampaignId, payload: payload as any });
+                savedCampaign = await updateCampaignMutation.mutateAsync({
+                    campaignId: editCampaignId,
+                    payload: {
+                        clientId: selectedClientId,
+                        ...(payload as any),
+                    },
+                });
                 showAlert("Plan updated successfully!", "success");
             } else {
-                savedCampaign = await createCampaignMutation.mutateAsync(payload as any);
+                savedCampaign = await createCampaignMutation.mutateAsync({
+                    clientId: selectedClientId,
+                    ...(payload as any),
+                });
                 showAlert("Plan saved successfully!", "success");
             }
             setIsEditing(false);

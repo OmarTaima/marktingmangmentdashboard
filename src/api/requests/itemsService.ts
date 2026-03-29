@@ -43,8 +43,26 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
         "/items",
         async () => {
             try {
-                const response = await api.get("/items", { params });
-                return response.data;
+                // Backend currently rejects query params for this endpoint, so fetch plain list.
+                const response = await api.get("/items");
+                const raw = response.data;
+
+                const data: Item[] = Array.isArray(raw)
+                    ? raw
+                    : Array.isArray(raw?.items)
+                      ? raw.items
+                      : Array.isArray(raw?.data)
+                        ? raw.data
+                        : [];
+
+                const meta = raw?.meta || {
+                    total: Number(raw?.totalCount) || data.length,
+                    page: Number(raw?.page) || 1,
+                    limit: Number(raw?.limit) || data.length || 1,
+                    totalPages: Number(raw?.pageCount) || 1,
+                };
+
+                return { data, meta };
             } catch (error) {
                 throw error;
             }

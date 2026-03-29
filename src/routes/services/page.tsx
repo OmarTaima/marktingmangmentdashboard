@@ -46,6 +46,27 @@ const ServicesPage = () => {
 
     const isSaving = createServiceMutation.isPending || updateServiceMutation.isPending;
 
+    const getSelectedPackagesLabel = (selectedIds: string[]) => {
+        if (!selectedIds || selectedIds.length === 0) {
+            return t("select_packages") || "Select packages";
+        }
+
+        const names = packages
+            .filter((pkg: any) => selectedIds.includes(String(pkg._id)))
+            .map((pkg: any) => (lang === "ar" ? pkg.nameAr : pkg.nameEn))
+            .filter(Boolean);
+
+        if (names.length === 0) {
+            return `${selectedIds.length} ${t("selected") || "selected"}`;
+        }
+
+        if (names.length <= 2) {
+            return names.join(", ");
+        }
+
+        return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+    };
+
     const handleAdd = async () => {
         const en = (inputEn || "").trim();
         const ar = (inputAr || "").trim();
@@ -221,11 +242,11 @@ const ServicesPage = () => {
             )}
 
             <div className="rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">
                         {tr("manage_services", "Manage Service Categories")}
                     </h2>
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <Search className="text-light-600 dark:text-dark-400 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <input
                             type="text"
@@ -235,7 +256,7 @@ const ServicesPage = () => {
                                 setCurrentPage(1);
                             }}
                             placeholder={tr("search_services", "Search services...")}
-                            className="input w-64 rounded-xl pr-3 pl-10"
+                            className="input w-full rounded-xl pr-3 pl-10 sm:w-64"
                         />
                     </div>
                 </div>
@@ -251,30 +272,30 @@ const ServicesPage = () => {
                                 services.map((service) => (
                                     <div
                                         key={service._id}
-                                        className="flex items-center justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-3 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50"
+                                        className="flex flex-col gap-3 rounded-2xl border border-light-200/80 bg-white px-3 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50 sm:flex-row sm:items-start sm:justify-between"
                                     >
-                                        <div className="flex w-full items-center gap-3">
+                                        <div className="w-full min-w-0">
                                             {editingId === service._id ? (
-                                                <div className="flex w-full gap-2">
+                                                <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.8fr_1fr]">
                                                     <input
                                                         value={editingValueEn}
                                                         onChange={(e) => setEditingValueEn(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="input w-1/4"
+                                                        className="input w-full"
                                                         placeholder={tr("english_label", "English")}
                                                     />
                                                     <input
                                                         value={editingValueAr}
                                                         onChange={(e) => setEditingValueAr(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="input w-1/4"
+                                                        className="input w-full"
                                                         placeholder={tr("arabic_label", "Arabic")}
                                                     />
                                                     <input
                                                         value={editingDescription}
                                                         onChange={(e) => setEditingDescription(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
-                                                        className="input w-1/4"
+                                                        className="input w-full"
                                                         placeholder={tr("service_description", "Description")}
                                                     />
                                                     <input
@@ -282,10 +303,10 @@ const ServicesPage = () => {
                                                         onChange={(e) => setEditingPrice(e.target.value)}
                                                         onKeyDown={handleEditKeyDown}
                                                         type="number"
-                                                        className="input w-1/5"
+                                                        className="input w-full"
                                                         placeholder={tr("price", "Price")}
                                                     />
-                                                    <div className="relative w-1/5">
+                                                    <div className="relative w-full min-w-0">
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowEditPackageDropdown(!showEditPackageDropdown)}
@@ -295,11 +316,14 @@ const ServicesPage = () => {
                                                                     e.stopPropagation();
                                                                 }
                                                             }}
-                                                            className="input w-full text-left"
+                                                                className="input flex w-full items-center gap-2 overflow-hidden text-left"
                                                         >
-                                                            {editingPackages.length > 0
-                                                                ? `${editingPackages.length} ${t("selected") || "selected"}`
-                                                                : t("select_packages") || "Select packages"}
+                                                                <span className="truncate">{getSelectedPackagesLabel(editingPackages)}</span>
+                                                                {editingPackages.length > 0 && (
+                                                                    <span className="bg-light-100 text-light-700 dark:bg-dark-700 dark:text-dark-200 ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold">
+                                                                        {editingPackages.length}
+                                                                    </span>
+                                                                )}
                                                         </button>
                                                         {showEditPackageDropdown && (
                                                             <div className="border-light-300 dark:border-dark-700 dark:bg-dark-800 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white p-2 shadow-lg">
@@ -345,9 +369,9 @@ const ServicesPage = () => {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex w-full">
-                                                    <div className="flex w-full items-center justify-between">
-                                                        <div className="flex flex-col">
+                                                <div className="w-full min-w-0">
+                                                        <div className="w-full min-w-0">
+                                                            <div className="flex min-w-0 flex-col">
                                                             <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
                                                                 {lang === "ar" ? service.ar : service.en}
                                                             </span>
@@ -372,7 +396,7 @@ const ServicesPage = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                                             {editingId === service._id ? (
                                                 <>
                                                     <button
@@ -496,11 +520,14 @@ const ServicesPage = () => {
                                 }
                             }}
                             disabled={isSaving}
-                            className="input w-full text-left disabled:opacity-50"
+                            className="input flex w-full items-center gap-2 overflow-hidden text-left disabled:opacity-50"
                         >
-                            {inputPackages.length > 0
-                                ? `${inputPackages.length} ${t("selected") || "selected"}`
-                                : t("select_packages") || "Select packages"}
+                            <span className="truncate">{getSelectedPackagesLabel(inputPackages)}</span>
+                            {inputPackages.length > 0 && (
+                                <span className="bg-light-100 text-light-700 dark:bg-dark-700 dark:text-dark-200 ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold">
+                                    {inputPackages.length}
+                                </span>
+                            )}
                         </button>
                         {showPackageDropdown && !isSaving && (
                             <div className="border-light-300 dark:border-dark-700 dark:bg-dark-800 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border bg-white p-2 shadow-lg">

@@ -181,9 +181,9 @@ const termsPage = () => {
             )}
 
             <div className="rounded-3xl border border-light-200/70 bg-white/90 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-900/65 sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-light-900 dark:text-dark-50 text-lg font-semibold">{tr("manage_terms", "Manage Terms")}</h2>
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <Search className="text-light-600 dark:text-dark-400 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                         <input
                             type="text"
@@ -193,7 +193,7 @@ const termsPage = () => {
                                 setCurrentPage(1);
                             }}
                             placeholder={tr("search_terms", "Search terms...")}
-                            className="input w-64 rounded-xl pr-3 pl-10"
+                            className="input w-full rounded-xl pr-3 pl-10 sm:w-64"
                         />
                     </div>
                 </div>
@@ -210,44 +210,44 @@ const termsPage = () => {
                                     return (
                                         <div
                                             key={term._id}
-                                            className="group flex items-center justify-between gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50"
+                                            className="group flex flex-col gap-3 rounded-2xl border border-light-200/80 bg-white px-4 py-3 text-light-900 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-dark-700/80 dark:bg-dark-800 dark:text-dark-50 sm:flex-row sm:items-start sm:justify-between"
                                         >
-                                            <div className="flex w-full items-center gap-3">
+                                            <div className="w-full min-w-0">
                                                 {editingId === term._id ? (
-                                                    <div className="flex w-full gap-2">
+                                                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                                                         <input
                                                             value={editingKey}
                                                             onChange={(e) => setEditingKey(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("term_key", "Term Key")}
                                                         />
                                                         <input
                                                             value={editingKeyAr}
                                                             onChange={(e) => setEditingKeyAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("term_key_ar", "المفتاح (بالعربية)")}
                                                         />
                                                         <input
                                                             value={editingValue}
                                                             onChange={(e) => setEditingValue(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("term_value", "Value")}
                                                         />
                                                         <input
                                                             value={editingValueAr}
                                                             onChange={(e) => setEditingValueAr(e.target.value)}
                                                             onKeyDown={handleEditKeyDown}
-                                                            className="input flex-1"
+                                                            className="input w-full"
                                                             placeholder={tr("term_value_ar", "القيمة (بالعربية)")}
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <div className="flex w-full">
-                                                        <div className="flex w-full items-center justify-between">
-                                                            <div className="flex flex-col">
+                                                    <div className="w-full min-w-0">
+                                                        <div className="w-full min-w-0">
+                                                            <div className="flex min-w-0 flex-col">
                                                                 {(() => {
                                                                     const displayKey =
                                                                         lang === "ar" ? term.keyAr || term.key : term.key || term.keyAr;
@@ -255,11 +255,11 @@ const termsPage = () => {
                                                                         lang === "ar" ? term.valueAr || term.value : term.value || term.valueAr;
                                                                     return (
                                                                         <>
-                                                                            <span className="text-light-900 dark:text-dark-50 text-sm font-semibold">
+                                                                            <span className="text-light-900 dark:text-dark-50 break-words text-sm font-semibold">
                                                                                 {displayKey}
                                                                             </span>
                                                                             {displayValue && (
-                                                                                <span className="text-light-600 dark:text-dark-300 mt-1 text-xs">
+                                                                                <span className="text-light-600 dark:text-dark-300 mt-1 break-words text-xs">
                                                                                     {displayValue}
                                                                                 </span>
                                                                             )}
@@ -271,7 +271,7 @@ const termsPage = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                                                 {editingId === term._id ? (
                                                     <>
                                                         <button

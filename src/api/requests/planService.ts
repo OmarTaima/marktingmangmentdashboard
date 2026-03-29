@@ -79,6 +79,14 @@ export interface UpdateCampaignPayload {
     deleted?: boolean;
 }
 
+const normalizeCampaignListResponse = (raw: any): Campaign[] => {
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.campaigns)) return raw.campaigns;
+    if (Array.isArray(raw?.data)) return raw.data;
+    if (Array.isArray(raw?.data?.campaigns)) return raw.data.campaigns;
+    return [];
+};
+
 /**
  * Create a new campaign
  * POST /campaigns
@@ -94,7 +102,7 @@ export const createCampaign = async (payload: CreateCampaignPayload): Promise<Ca
  */
 export const getAllCampaigns = async (): Promise<Campaign[]> => {
     const response = await axiosInstance.get(CAMPAIGNS_ENDPOINT);
-    return response.data;
+    return normalizeCampaignListResponse(response.data);
 };
 
 /**
@@ -105,7 +113,7 @@ export const getCampaignsByClientId = async (clientId: string): Promise<Campaign
     const response = await axiosInstance.get(CAMPAIGNS_ENDPOINT, {
         params: { clientId },
     });
-    return response.data;
+    return normalizeCampaignListResponse(response.data);
 };
 
 /**

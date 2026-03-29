@@ -55,8 +55,35 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
         "/packages",
         async () => {
             try {
-                const response = await api.get("/packages", { params });
-                return response.data;
+                void params;
+                // Backend currently rejects query params on this endpoint, so fetch plain list.
+                const response = await api.get("/packages");
+                const raw = response.data;
+
+                const data: Package[] = Array.isArray(raw)
+                    ? raw
+                    : Array.isArray(raw?.packages)
+                      ? raw.packages
+                      : Array.isArray(raw?.data)
+                        ? raw.data
+                        : [];
+
+                const total = Number(raw?.meta?.total ?? raw?.totalCount ?? data.length);
+                const page = Number(raw?.meta?.page ?? raw?.page ?? 1);
+                const limit = Number(raw?.meta?.limit ?? raw?.limit ?? (data.length || 1));
+                const totalPages = Number(raw?.meta?.totalPages ?? raw?.pageCount ?? Math.max(1, Math.ceil(total / Math.max(limit, 1))));
+
+                return {
+                    data,
+                    meta: {
+                        total,
+                        page,
+                        limit,
+                        totalPages,
+                        hasNextPage: page < totalPages,
+                        hasPrevPage: page > 1,
+                    },
+                };
             } catch (error) {
                 throw error;
             }

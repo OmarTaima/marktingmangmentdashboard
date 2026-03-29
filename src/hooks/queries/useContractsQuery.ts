@@ -70,7 +70,7 @@ export const useCreateContract = () => {
 
             previous.forEach(([key]) => {
                 queryClient.setQueryData(key, (old?: ContractListResponse) => {
-                    if (!old) return old;
+                    if (!old || !Array.isArray((old as any).data)) return old;
                     return {
                         ...old,
                         data: [optimisticContract, ...old.data],
@@ -92,7 +92,7 @@ export const useCreateContract = () => {
             const queries = queryClient.getQueriesData({ queryKey: contractsKeys.lists() });
             queries.forEach(([key]) => {
                 queryClient.setQueryData(key, (old?: ContractListResponse) => {
-                    if (!old) return old;
+                    if (!old || !Array.isArray((old as any).data)) return old;
                     const idx = old.data.findIndex((c) => c._id?.toString().startsWith("temp-"));
                     if (idx === -1) return old;
                     const newData = [...old.data];
@@ -122,7 +122,7 @@ export const useUpdateContract = () => {
 
             previousLists.forEach(([key]) => {
                 queryClient.setQueryData(key, (old?: ContractListResponse) => {
-                    if (!old) return old;
+                    if (!old || !Array.isArray((old as any).data)) return old;
                     return {
                         ...old,
                         data: old.data.map((c) => (c._id === id ? { ...c, ...data } : c)),
@@ -167,7 +167,7 @@ export const useDeleteContract = () => {
 
             previous.forEach(([key]) => {
                 queryClient.setQueryData(key, (old?: ContractListResponse) => {
-                    if (!old) return old;
+                    if (!old || !Array.isArray((old as any).data)) return old;
                     return {
                         ...old,
                         data: old.data.filter((c) => c._id !== id),
@@ -210,7 +210,7 @@ export const useSignContract = () => {
 
             previousLists.forEach(([key]) => {
                 queryClient.setQueryData(key, (old?: ContractListResponse) => {
-                    if (!old) return old;
+                    if (!old || !Array.isArray((old as any).data)) return old;
                     return {
                         ...old,
                         data: old.data.map((c) => (c._id === id ? { ...c, ...updates } : c)),

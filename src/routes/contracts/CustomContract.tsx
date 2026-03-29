@@ -50,7 +50,11 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
     // Form state
     const [clientName, setClientName] = useState<string>(editContract?.clientName || editContract?.customClientName || "");
     const [clientNameAr, setClientNameAr] = useState<string>(editContract?.clientNameAr || editContract?.customClientNameAr || "");
-    const [selectedQuotationId, setSelectedQuotationId] = useState<string>("");
+    const [selectedQuotationId, setSelectedQuotationId] = useState<string>(
+        typeof editContract?.quotation === "string"
+            ? editContract.quotation
+            : editContract?.quotation?._id || (typeof editContract?.quotationId === "string" ? editContract.quotationId : ""),
+    );
     const [selectedContractId, setSelectedContractId] = useState<string>("");
     const [inputKey, setInputKey] = useState<string>("");
     const [inputKeyAr, setInputKeyAr] = useState<string>("");
@@ -101,6 +105,11 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
             setEndDate(editContract.endDate ? dayjs(editContract.endDate) : null);
             setContractNote(editContract.note || "");
             setStatus(editContract.status || "draft");
+            setSelectedQuotationId(
+                typeof editContract.quotation === "string"
+                    ? editContract.quotation
+                    : editContract.quotation?._id || (typeof editContract.quotationId === "string" ? editContract.quotationId : ""),
+            );
 
             // Map terms
             const mappedTerms = (editContract.terms || []).map((termItem: any) => {
@@ -421,7 +430,7 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
         const contractData = {
             clientName: clientName.trim(),
             clientNameAr: clientNameAr.trim() || clientName.trim(), // fallback to English if Arabic not provided
-            quotationId: selectedQuotationId || undefined,
+            quotation: selectedQuotationId || undefined,
             terms:
                 contractTermsList.length > 0
                     ? contractTermsList.map((term, index) => {
@@ -840,38 +849,38 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                                 <h4 className="text-light-700 dark:text-dark-300 mb-2 text-sm font-medium">
                                     {t("or_add_custom_term") || "Or Add Custom Term"}
                                 </h4>
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                                     <input
                                         value={inputKey}
                                         onChange={(e) => setInputKey(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_key") || "Term Key (e.g., Payment)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputKeyAr}
                                         onChange={(e) => setInputKeyAr(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_key_ar") || "المفتاح (مثال: الدفع)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_value") || "Value (e.g., 50% advance)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <input
                                         value={inputValueAr}
                                         onChange={(e) => setInputValueAr(e.target.value)}
                                         onKeyDown={handleCustomTermKeyDown}
                                         placeholder={t("term_value_ar") || "القيمة (مثال: 50% مقدم)"}
-                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 flex-1 rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
+                                        className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-2 py-2 text-sm transition-colors focus:outline-none"
                                     />
                                     <button
                                         onClick={addCustomTerm}
-                                        className="btn-primary flex items-center gap-2"
+                                        className="btn-primary flex w-full items-center justify-center gap-2 xl:w-auto"
                                     >
                                         <Plus size={14} />
                                         {t("add")}
