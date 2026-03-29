@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { useLang } from "@/hooks/useLang";
-import { Check, Loader2, Search, X } from "lucide-react";
+import { Check, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
 import { usePackages, useServices, useItems } from "@/hooks/queries";
 import type { Package } from "@/api/requests/packagesService";
 import type { Service } from "@/api/requests/servicesService";
+import { useNavigate } from "react-router-dom";
 
 const PackagesPage = () => {
     const { t, lang } = useLang();
+    const navigate = useNavigate();
     const tr = (key: string, fallback: string) => {
         const value = t(key);
         return !value || value === key ? fallback : value;
@@ -18,7 +20,7 @@ const PackagesPage = () => {
     const [error, _setError] = useState<string>("");
 
     // React Query hook
-    const { data: packagesResponse, isLoading } = usePackages({
+    const { data: packagesResponse, isLoading, refetch } = usePackages({
         page: currentPage,
         limit: 20,
         search: searchQuery || undefined,
@@ -128,7 +130,13 @@ const PackagesPage = () => {
         };
     };
 
-    // handler intentionally removed (not used)
+    const handleAddPackage = () => {
+        navigate("/packages/add");
+    };
+
+    const handleRefresh = () => {
+        refetch();
+    };
 
     return (
         <div className="space-y-6 px-4 sm:px-6 lg:px-8">
@@ -136,7 +144,8 @@ const PackagesPage = () => {
                 <div className="absolute -top-20 -right-14 h-56 w-56 rounded-full bg-light-400/20 blur-3xl dark:bg-light-500/10" />
                 <div className="absolute -bottom-24 -left-14 h-56 w-56 rounded-full bg-secdark-700/20 blur-3xl dark:bg-secdark-700/20" />
                 <div className="relative flex flex-col gap-4">
-                    <div>
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
                         <span className="inline-flex w-fit items-center rounded-full border border-light-300/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-light-700 dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
                             Package Library
                         </span>
@@ -144,6 +153,26 @@ const PackagesPage = () => {
                         <p className="text-light-600 dark:text-dark-300 mt-1 text-sm sm:text-base">
                             {tr("service_packages_subtitle", "Explore and compare service packages with full feature visibility.")}
                         </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={handleRefresh}
+                                className="btn-ghost flex items-center gap-2"
+                                title={tr("refresh", "Refresh")}
+                            >
+                                <RefreshCw size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleAddPackage}
+                                className="btn-primary flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                {tr("add_package", "Add Package")}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="relative max-w-xs">
@@ -335,7 +364,17 @@ const PackagesPage = () => {
                     </div>
 
                     {packages.length === 0 && !isLoading && (
-                        <div className="text-light-600 dark:text-dark-400 py-12 text-center">{tr("no_packages_found", "No packages found")}</div>
+                        <div className="py-12 text-center">
+                            <p className="text-light-600 dark:text-dark-400">{tr("no_packages_found", "No packages found")}</p>
+                            <button
+                                type="button"
+                                onClick={handleAddPackage}
+                                className="btn-primary mt-4 inline-flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                {tr("add_first_package", "Add Your First Package")}
+                            </button>
+                        </div>
                     )}
 
                     {/* Pagination */}

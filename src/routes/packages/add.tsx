@@ -840,73 +840,115 @@ const AddPackagePage = () => {
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className="mb-1.5 block text-sm text-dark-700 dark:text-dark-400">{tr("package_description", "Description")}</label>
+                            <div className="rounded-2xl border border-light-200/80 bg-light-50/50 p-3 dark:border-dark-700/80 dark:bg-dark-900/25">
+                                <label className="mb-1.5 block text-sm font-medium text-dark-700 dark:text-dark-300">{tr("package_description", "Description")}</label>
                                 <textarea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder={tr("package_description_placeholder", "Describe the package")}
-                                    rows={4}
-                                    className="input w-full rounded-xl"
+                                    rows={5}
+                                    className="w-full resize-y rounded-xl border border-light-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-light-900 transition-all placeholder:text-light-400 focus:border-light-500 focus:ring-2 focus:ring-light-500/20 focus:outline-none dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:placeholder:text-dark-500 dark:focus:border-secdark-700 dark:focus:ring-secdark-700/20"
                                 />
                             </div>
 
-                            <div>
-                                <label className="mb-1.5 block text-sm text-dark-700 dark:text-dark-400">
+                            <div className="rounded-2xl border border-light-200/80 bg-light-50/50 p-3 dark:border-dark-700/80 dark:bg-dark-900/25">
+                                <label className="mb-1.5 block text-sm font-medium text-dark-700 dark:text-dark-300">
                                     {tr("package_description_ar", "Description (Arabic)")}
                                 </label>
                                 <textarea
                                     value={descriptionAr}
                                     onChange={(e) => setDescriptionAr(e.target.value)}
                                     placeholder={tr("package_description_ar_placeholder", "اكتب وصف الباقة")}
-                                    rows={4}
-                                    className="input w-full rounded-xl"
+                                    rows={5}
+                                    dir="rtl"
+                                    className="w-full resize-y rounded-xl border border-light-200 bg-white px-3 py-2.5 text-right text-sm leading-relaxed text-light-900 transition-all placeholder:text-light-400 focus:border-light-500 focus:ring-2 focus:ring-light-500/20 focus:outline-none dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 dark:placeholder:text-dark-500 dark:focus:border-secdark-700 dark:focus:ring-secdark-700/20"
                                 />
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-light-200/80 bg-light-50/60 p-4 dark:border-dark-700/80 dark:bg-dark-900/30">
-                            <h3 className="mb-3 text-sm font-semibold text-light-900 dark:text-dark-50">{tr("quick_add_item", "Quick Add Item")}</h3>
+                        <div className="relative overflow-hidden rounded-2xl border border-light-200/80 bg-gradient-to-br from-light-50 via-white to-light-100/60 p-4 shadow-sm dark:border-dark-700/80 dark:from-dark-900/60 dark:via-dark-900/30 dark:to-dark-800/60 sm:p-5">
+                            <div className="pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full bg-light-200/70 blur-2xl dark:bg-dark-700/40" />
 
-                            <div className="grid gap-2 md:grid-cols-2">
-                                <input
-                                    value={newItemName}
-                                    onChange={(e) => setNewItemName(e.target.value)}
-                                    placeholder={tr("item_name_en", "Item Name (English)")}
-                                    className="input w-full"
-                                />
-                                <input
-                                    value={newItemNameAr}
-                                    onChange={(e) => setNewItemNameAr(e.target.value)}
-                                    placeholder={tr("item_name_ar", "اسم العنصر (بالعربية)")}
-                                    className="input w-full"
-                                />
-                                <input
-                                    value={newItemDescription}
-                                    onChange={(e) => setNewItemDescription(e.target.value)}
-                                    placeholder={tr("item_description_en", "Description (English)")}
-                                    className="input w-full"
-                                />
-                                <input
-                                    value={newItemDescriptionAr}
-                                    onChange={(e) => setNewItemDescriptionAr(e.target.value)}
-                                    placeholder={tr("item_description_ar", "الوصف (بالعربية)")}
-                                    className="input w-full"
-                                />
-                            </div>
+                            <div className="relative">
+                                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-light-900 text-white shadow-sm dark:bg-dark-100 dark:text-dark-900">
+                                            <Plus size={16} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-light-900 dark:text-dark-50">{tr("quick_add_item", "Quick Add Item")}</h3>
+                                            <p className="mt-1 text-xs text-light-600 dark:text-dark-400">
+                                                {tr("quick_add_hint", "Create a new item and auto-select it in this package.")}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            {quickAddError && <p className="mt-2 text-xs text-danger-500">{quickAddError}</p>}
+                                    <span className="rounded-full border border-light-300/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-light-700 uppercase dark:border-dark-600 dark:bg-dark-800/80 dark:text-dark-200">
+                                        {tr("instant_add", "Instant add")}
+                                    </span>
+                                </div>
 
-                            <div className="mt-3 flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCreateItemInline}
-                                    disabled={isCreatingItem}
-                                    className="btn-ghost inline-flex items-center gap-2 rounded-xl"
-                                >
-                                    {isCreatingItem ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                                    {isCreatingItem ? tr("creating", "Creating...") : tr("add_item", "Add Item")}
-                                </button>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-medium text-light-700 dark:text-dark-300">{tr("item_name_en", "Item Name (English)")}</label>
+                                        <input
+                                            value={newItemName}
+                                            onChange={(e) => setNewItemName(e.target.value)}
+                                            placeholder={tr("item_name_en", "Item Name (English)")}
+                                            className="input w-full bg-white/90 dark:bg-dark-800/90"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-medium text-light-700 dark:text-dark-300">{tr("item_name_ar", "اسم العنصر (بالعربية)")}</label>
+                                        <input
+                                            value={newItemNameAr}
+                                            onChange={(e) => setNewItemNameAr(e.target.value)}
+                                            placeholder={tr("item_name_ar", "اسم العنصر (بالعربية)")}
+                                            className="input w-full bg-white/90 dark:bg-dark-800/90"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-medium text-light-700 dark:text-dark-300">{tr("item_description_en", "Description (English)")}</label>
+                                        <input
+                                            value={newItemDescription}
+                                            onChange={(e) => setNewItemDescription(e.target.value)}
+                                            placeholder={tr("item_description_en", "Description (English)")}
+                                            className="input w-full bg-white/90 dark:bg-dark-800/90"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1.5 block text-xs font-medium text-light-700 dark:text-dark-300">{tr("item_description_ar", "الوصف (بالعربية)")}</label>
+                                        <input
+                                            value={newItemDescriptionAr}
+                                            onChange={(e) => setNewItemDescriptionAr(e.target.value)}
+                                            placeholder={tr("item_description_ar", "الوصف (بالعربية)")}
+                                            className="input w-full bg-white/90 dark:bg-dark-800/90"
+                                        />
+                                    </div>
+                                </div>
+
+                                {quickAddError && (
+                                    <div className="mt-3 rounded-xl border border-danger-200 bg-danger-50/80 px-3 py-2 text-xs font-medium text-danger-600 dark:border-danger-800/60 dark:bg-danger-900/20 dark:text-danger-300">
+                                        {quickAddError}
+                                    </div>
+                                )}
+
+                                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                                    <p className="text-xs text-light-600 dark:text-dark-400">{tr("quick_add_footer", "Name in English is required.")}</p>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleCreateItemInline}
+                                        disabled={isCreatingItem}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-light-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-light-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-dark-100 dark:text-dark-900 dark:hover:bg-dark-50"
+                                    >
+                                        {isCreatingItem ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                                        {isCreatingItem ? tr("creating", "Creating...") : tr("add_item", "Add Item")}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -949,7 +991,7 @@ const AddPackagePage = () => {
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     onChange={(e) => setItemSelected(item._id, e.target.checked)}
-                                                    className="mt-1 h-4 w-4 rounded border-light-300"
+                                                    className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-md border border-light-300 bg-white accent-light-500 shadow-sm transition hover:border-light-400 focus:ring-2 focus:ring-light-500/30 focus:outline-none dark:border-dark-600 dark:bg-dark-800 dark:accent-secdark-700 dark:hover:border-dark-500 dark:focus:ring-secdark-700/30"
                                                 />
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block text-sm font-medium text-light-900 dark:text-dark-50">{item.name}</span>

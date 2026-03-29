@@ -40,6 +40,14 @@ const RegisterPage: React.FC = () => {
                 axiosInstance.defaults.headers.common.Authorization = `Bearer ${data.accessToken}`;
             }
 
+            if (data?.user) {
+                try {
+                    localStorage.setItem("auth-user", JSON.stringify(data.user));
+                } catch {
+                    // ignore storage failures
+                }
+            }
+
             navigate("/dashboard");
         } catch (err: any) {
             console.error("Register error", err);

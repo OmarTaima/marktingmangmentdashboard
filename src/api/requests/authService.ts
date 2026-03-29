@@ -70,6 +70,7 @@ export const clearAuthCookies = () => {
     try {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("auth-user");
     } catch (err) {
         // ignore
     }

@@ -1,5 +1,5 @@
-import  { useState } from "react";
-import { ChevronsLeft, ChevronsRight, Sun, Moon, X } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Sun, Moon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { useLang } from "@/hooks/useLang";
 import { cn } from "@/utils/cn";
@@ -11,10 +11,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ collapsed, setCollapsed }) => {
     const { theme, setTheme } = useTheme();
-    const { lang, setLang, t } = useLang();
-
-    // 🔍 Controls mobile search visibility
-    const [showSearch, setShowSearch] = useState<boolean>(false);
+    const { lang, setLang } = useLang();
+    const navigate = useNavigate();
 
     return (
         <header className="dark:bg-dark-950/80 sticky top-0 z-30 flex h-[64px] items-center justify-between bg-white/80 px-4 backdrop-blur-xl transition-all sm:px-6 md:px-8 border-b border-light-100 dark:border-dark-800">
@@ -68,7 +66,11 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, setCollapsed }) => {
                 </button>
 
                 {/* Avatar */}
-                <button className="ml-2 flex items-center gap-x-2 rounded-full p-1 transition-all hover:bg-light-100 dark:hover:bg-dark-800">
+                <button
+                    className="ml-2 flex items-center gap-x-2 rounded-full p-1 transition-all hover:bg-light-100 dark:hover:bg-dark-800"
+                    onClick={() => navigate("/profile")}
+                    aria-label="Go to profile"
+                >
                     <img
                         src="https://i.pravatar.cc/300"
                         alt="User Avatar"
