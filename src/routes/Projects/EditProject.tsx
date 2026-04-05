@@ -372,13 +372,7 @@ const EditProject: React.FC = () => {
         return (
             <div className="min-h-screen bg-light-50 dark:bg-dark-950 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="relative w-24 h-24 mx-auto mb-6">
-                        <div className="absolute inset-0 border-4 border-light-200 dark:border-dark-700 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-t-light-500 dark:border-t-secdark-500 rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-gradient-to-r from-light-500 to-light-600 dark:from-secdark-500 dark:to-secdark-600 rounded-sm rotate-45"></div>
-                        </div>
-                    </div>
+                    
                     <p className="text-light-600 dark:text-dark-400 font-light tracking-wide">Loading project data...</p>
                 </div>
             </div>

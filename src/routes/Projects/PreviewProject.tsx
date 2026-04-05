@@ -84,16 +84,10 @@ const ProjectDetails: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-light-50 dark:bg-dark-900 flex items-center justify-center">
+            <div className="min-h-screen bg-light-50 dark:bg-dark-950 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="relative w-24 h-24 mx-auto mb-6">
-                        <div className="absolute inset-0 border-4 border-light-200 dark:border-dark-700 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-t-light-500 dark:border-t-secdark-500 rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-gradient-to-r from-light-500 to-light-600 dark:from-secdark-500 dark:to-secdark-600 rounded-sm rotate-45"></div>
-                        </div>
-                    </div>
-                    <p className="text-light-600 dark:text-dark-400 font-light tracking-wide">Loading masterpiece...</p>
+                   
+                    <p className="text-light-600 dark:text-dark-400 font-light tracking-wide">Loading Projects</p>
                 </div>
             </div>
         );
@@ -117,6 +111,7 @@ const ProjectDetails: React.FC = () => {
     }
 
     const p: any = project;
+    const projectId = id || p?.id || p?._id;
 
     const DetailRow = ({ label, value, icon: Icon, copyable = false, copyId = "" }: any) => {
         const formatValue = (v: any) => {
@@ -375,6 +370,9 @@ const ProjectDetails: React.FC = () => {
 
                             <div className="flex items-center gap-3">
                                 <Link to="/projects" className="btn-ghost">Back</Link>
+                                {projectId && (
+                                    <Link to={`/projects/${projectId}/edit`} className="btn-primary">Edit</Link>
+                                )}
                             </div>
                         </div>
 
