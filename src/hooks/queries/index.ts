@@ -6,6 +6,9 @@
 // Clients
 export * from "./useClientsQuery";
 
+// Projects
+export * from "./useProjectsQuery";
+
 // Services
 export * from "./useServicesQuery";
 

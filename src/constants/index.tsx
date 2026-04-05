@@ -54,6 +54,11 @@ export const navbarLinks = [
                 path: "/packages",
             },
             {
+                label: "Projects",
+                icon: Target,
+                path: "/projects",
+            },
+            {
                 label: "Contracts",
                 icon: FileSignature,
                 path: "/contracts",

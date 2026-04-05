@@ -31,6 +31,7 @@
         "date-fns": "^2.30.0",
         "dayjs": "^1.11.19",
         "formik": "^2.4.5",
+        "framer-motion": "^12.38.0",
         "gh-pages": "^6.3.0",
         "jspdf": "^3.0.3",
         "jspdf-autotable": "^5.0.2",
