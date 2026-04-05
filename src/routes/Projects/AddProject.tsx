@@ -4,7 +4,7 @@ import { useLang } from "@/hooks/useLang";
 import { useCreateProject, useClients } from "@/hooks/queries";
 import type { Client } from "@/api/interfaces/clientinterface";
 import { 
-    Plus, X, ArrowLeft, Loader2, CheckCircle, AlertCircle,
+    Plus, X, ArrowLeft, CheckCircle, AlertCircle,
     Trash2, Edit, MapPin, Users, Layers,
     Image as ImageIcon, Video, Code, Upload, MoveUp, MoveDown,
     Camera, User, FileText, Info
@@ -465,7 +465,8 @@ const AddProject: React.FC = () => {
             onSuccess: (newProject: any) => {
                 setSaveStatus("success");
                 setTimeout(() => {
-                    navigate(`/projects/${newProject._id}`);
+                    const projectId = newProject?.id || newProject?._id;
+                    navigate(projectId ? `/projects/${projectId}` : "/projects");
                 }, 1500);
             },
             onError: () => {
@@ -481,6 +482,8 @@ const AddProject: React.FC = () => {
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
     };
+
+    const isSaving = mutation.isPending || saveStatus === "saving";
 
     return (
         <div className="min-h-screen bg-light-50 dark:bg-dark-950">
@@ -1042,10 +1045,16 @@ const AddProject: React.FC = () => {
                         </Link>
                         <button
                             type="submit"
-                            disabled={mutation.isPending || saveStatus === "saving"}
-                            className="btn-primary inline-flex items-center gap-2 min-w-[120px] justify-center"
+                            disabled={isSaving}
+                            className={`inline-flex items-center gap-2 min-w-[120px] justify-center rounded-lg px-4 py-2 transition-colors ${
+                                isSaving
+                                    ? "bg-light-100 dark:bg-dark-800 text-light-700 dark:text-dark-200 border border-light-200 dark:border-dark-700 cursor-not-allowed"
+                                    : "btn-primary"
+                            }`}
                         >
-                            {saveStatus === "saving" && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {saveStatus === "saving" && (
+                                <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                            )}
                             {saveStatus === "success" && <CheckCircle className="w-4 h-4" />}
                             {saveStatus === "error" && <AlertCircle className="w-4 h-4" />}
                             {saveStatus === "idle" && <Plus className="w-4 h-4" />}

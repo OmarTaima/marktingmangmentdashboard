@@ -54,7 +54,7 @@ export const getProjects = async (params?: Record<string, any>): Promise<Project
 export const createProject = async (data: ProjectCreate): Promise<Project> => {
   try {
     const response = await axiosInstance.post(PROJECTS_ENDPOINT, data);
-    const raw = response.data?.data || response.data;
+    const raw = response.data?.project || response.data?.data?.project || response.data?.data || response.data;
     return transformProject(raw);
   } catch (error) {
     throw error;

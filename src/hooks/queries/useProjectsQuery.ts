@@ -22,6 +22,7 @@ export const useProjects = (params?: Record<string, any>) => {
         queryKey: projectsKeys.list(params),
         queryFn: () => getProjects(params),
         staleTime: 5 * 60 * 1000,
+        refetchOnMount: true,
         refetchOnWindowFocus: false,
     });
 };
@@ -40,7 +41,20 @@ export const useCreateProject = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: Partial<Project>) => createProject(data as any),
-        onSuccess: () => {
+        onSuccess: (createdProject) => {
+            const createdId = (createdProject as any)?.id || (createdProject as any)?._id;
+
+            if (createdId) {
+                queryClient.setQueriesData<Project[]>({ queryKey: projectsKeys.lists() }, (current) => {
+                    if (!Array.isArray(current)) return [createdProject as Project];
+                    return [
+                        createdProject as Project,
+                        ...current.filter((p: any) => ((p?.id || p?._id) !== createdId)),
+                    ];
+                });
+                queryClient.setQueryData(projectsKeys.detail(createdId), createdProject as Project);
+            }
+
             queryClient.invalidateQueries({ queryKey: projectsKeys.lists() });
         },
     });
@@ -72,7 +86,12 @@ export const useDeleteProject = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => deleteProject(id),
-        onSuccess: () => {
+        onSuccess: (_res, deletedId) => {
+            qc.setQueriesData<Project[]>({ queryKey: projectsKeys.lists() }, (current) => {
+                if (!Array.isArray(current)) return current;
+                return current.filter((p: any) => (p?.id || p?._id) !== deletedId);
+            });
+            qc.removeQueries({ queryKey: projectsKeys.detail(deletedId) });
             qc.invalidateQueries({ queryKey: projectsKeys.lists() });
         },
     });
