@@ -5,11 +5,11 @@ import { useLang } from "@/hooks/useLang";
 // framer-motion removed (no animations on this page)
 import { 
   ChevronDown, ChevronUp, Play, Maximize2, X, 
-  Calendar, MapPin, Users, Tag, Layers, 
+   MapPin, Users, Tag, Layers, 
     Code, FileText,  Copy, Check, Grid, List,
- User, Clock, FolderTree,  File, Camera, Image,
+ User,  FolderTree,  File, Camera, Image,
   Award, Link as LinkIcon, Info, Settings, 
-  Database, Trash2, Globe, Edit
+  Database, Trash2, Globe
 } from "lucide-react";
 
 const ProjectDetails: React.FC = () => {
@@ -56,17 +56,7 @@ const ProjectDetails: React.FC = () => {
         return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
     };
 
-    const formatDate = (date: string) => {
-        if (!date) return "N/A";
-        return new Date(date).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    };
+   
 
     // Helpers to avoid exposing raw IDs in the UI
     const isLikelyIdKey = (key: string) => {
