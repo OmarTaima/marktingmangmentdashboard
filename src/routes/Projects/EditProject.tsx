@@ -319,6 +319,8 @@ const EditProject: React.FC = () => {
         if (Array.isArray(clone.materials)) {
             clone.materials = clone.materials.map((m: any) => {
                 const copy: any = { ...m };
+                delete copy._id;
+                delete copy.id;
                 if (copy.before) {
                     const { url, label, type } = copy.before;
                     copy.before = { url, label, type };
@@ -327,6 +329,14 @@ const EditProject: React.FC = () => {
                     const { url, label, type } = copy.after;
                     copy.after = { url, label, type };
                 }
+                return copy;
+            });
+        }
+        if (Array.isArray(clone.cast)) {
+            clone.cast = clone.cast.map((c: any) => {
+                const copy: any = { ...c };
+                delete copy._id;
+                delete copy.id;
                 return copy;
             });
         }

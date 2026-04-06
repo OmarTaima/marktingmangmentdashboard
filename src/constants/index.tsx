@@ -27,17 +27,12 @@ export const navbarLinks = [
                 icon: Home,
                 path: "/dashboard",
             }
-           
+
         ],
     },
     {
         title: "Client Management",
         links: [
-            {
-                label: "New Client",
-                icon: UserPlus,
-                path: "/onboarding",
-            },
             {
                 label: "Strategies",
                 icon: NotepadText,

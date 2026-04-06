@@ -1075,82 +1075,10 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <h5 className="text-light-900 dark:text-dark-50 font-medium">Details</h5>
                                                                     <div className="text-light-600 dark:text-dark-300 mt-2 space-y-2 text-xs">
                                                                         <div>
-                                                                            <strong className="text-dark-500 dark:text-dark-400">
-                                                                                Social links:
-                                                                            </strong>
-                                                                            <div className="mt-1 space-y-1">
-                                                                                {(() => {
-                                                                                    const combined = [
-                                                                                        ...(competitor.socialLinks || []),
-                                                                                        ...(competitor.website
-                                                                                            ? [{ platform: "website", url: competitor.website }]
-                                                                                            : []),
-                                                                                        ...((competitor as any).facebook
-                                                                                            ? [
-                                                                                                  {
-                                                                                                      platform: "facebook",
-                                                                                                      url: (competitor as any).facebook,
-                                                                                                  },
-                                                                                              ]
-                                                                                            : []),
-                                                                                        ...((competitor as any).instagram
-                                                                                            ? [
-                                                                                                  {
-                                                                                                      platform: "instagram",
-                                                                                                      url: (competitor as any).instagram,
-                                                                                                  },
-                                                                                              ]
-                                                                                            : []),
-                                                                                        ...((competitor as any).twitter
-                                                                                            ? [
-                                                                                                  {
-                                                                                                      platform: "twitter",
-                                                                                                      url: (competitor as any).twitter,
-                                                                                                  },
-                                                                                              ]
-                                                                                            : []),
-                                                                                        ...((competitor as any).tiktok
-                                                                                            ? [
-                                                                                                  {
-                                                                                                      platform: "tiktok",
-                                                                                                      url: (competitor as any).tiktok,
-                                                                                                  },
-                                                                                              ]
-                                                                                            : []),
-                                                                                    ];
-                                                                                    if (!combined || combined.length === 0) {
-                                                                                        return (
-                                                                                            <div className="text-light-600 dark:text-dark-300">
-                                                                                                N/A
-                                                                                            </div>
-                                                                                        );
-                                                                                    }
-                                                                                    return combined.map((l: any, i: number) => (
-                                                                                        <div
-                                                                                            key={i}
-                                                                                            className="text-sm"
-                                                                                        >
-                                                                                            {l.url ? (
-                                                                                                <a
-                                                                                                    href={normalizeUrl(l.url)}
-                                                                                                    target="_blank"
-                                                                                                    rel="noopener noreferrer"
-                                                                                                    className="text-primary-600 dark:text-primary-400 hover:underline"
-                                                                                                >
-                                                                                                    {`${(l.platform || "website").toString().charAt(0).toUpperCase() + (l.platform || "website").toString().slice(1)}: ${l.url}`}
-                                                                                                </a>
-                                                                                            ) : (
-                                                                                                <span className="text-light-600 dark:text-dark-300">
-                                                                                                    {l.platform}
-                                                                                                </span>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    ));
-                                                                                })()}
-                                                                            </div>
+                                                                           
+                                                                           
                                                                         </div>
                                                                     </div>
                                                                 </div>
