@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Users, Mail, Phone, MapPin, Edit2, Target, Plus, Trash2, Globe } from "lucide-react";
 import { SiBehance, SiFacebook, SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { useQueryClient } from "@tanstack/react-query";
@@ -52,6 +52,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const queryClient = useQueryClient();
 
     // Full page state management - call hook unconditionally but enable only when fullPage
@@ -220,6 +221,19 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
     const startEditing = () => {
         setDraft(client ? (JSON.parse(JSON.stringify(client)) as Partial<Client>) : null);
         setEditing(true);
+    };
+
+    const openObjectivesPlanner = () => {
+        if (!clientId) return;
+        navigate("/strategies/manage", {
+            state: {
+                clientId: String(clientId),
+                referrer: {
+                    pathname: location.pathname || "/clients",
+                    state: (location && (location as any).state) || null,
+                },
+            },
+        });
     };
 
     const cancelEditing = () => {
@@ -2092,6 +2106,16 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
                             {tx("goals_summary", "Business goals and campaign intent in both languages.")}
                         </p>
                     </div>
+                    {editing ? (
+                        <button
+                            type="button"
+                            onClick={openObjectivesPlanner}
+                            className="btn-primary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            {t("add_objective") || "Add objective"}
+                        </button>
+                    ) : null}
                     {draftDate ? (
                         <div className="text-light-600 dark:text-dark-400 ml-4 text-right text-sm">
                             {t("created_on") || "Created:"} {(draftDate as Date).toLocaleString()}

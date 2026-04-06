@@ -432,13 +432,12 @@ const ProjectDetails: React.FC = () => {
                             <DetailRow label="Project Name" value={p.name} icon={FolderTree} copyable copyId="name" />
                             <DetailRow label="Description" value={p.description} icon={FileText} />
                             <DetailRow label="Location" value={p.location} icon={MapPin} copyable copyId="location" />
-                            <DetailRow label="Parent Project" value={typeof p.parentProject === 'object' ? (p.parentProject?.name || 'Hidden') : 'Hidden'} icon={LinkIcon} />
                         </div>
                         <div className="space-y-3">
                             <DetailRow label="Published" value={p.published ? "Yes ✓" : "No ✗"} icon={Globe} />
-                            <DetailRow label="Deleted" value={p.deleted ? "Yes (Archived)" : "No"} icon={Trash2} />
-                            <DetailRow label="Internal Version" value={p.__v !== undefined ? `v${p.__v}` : "N/A"} icon={Settings} />
                             <DetailRow label="Created By" value={typeof p.createdBy === 'object' ? (p.createdBy.fullName || p.createdBy.name || 'Hidden') : 'Hidden'} icon={User} />
+                            <DetailRow label="Parent Project" value={typeof p.parentProject === 'object' ? (p.parentProject?.name || 'Hidden') : 'Hidden'} icon={LinkIcon} />
+
                         </div>
                     </div>
                 </Section>
