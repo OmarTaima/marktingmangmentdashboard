@@ -28,6 +28,7 @@ interface UploadDataUrlOptions extends UploadFileOptions {
 
 const DEFAULT_UPLOAD_FOLDER = "Markting/projects";
 const DEFAULT_CLOUD_NAME = "dv91eyjei";
+const DEFAULT_UPLOAD_PRESET = "ml_default";
 
 export const isDataUrl = (value?: string): value is string => typeof value === "string" && value.startsWith("data:");
 
@@ -51,7 +52,7 @@ const getUploadPreset = (): string => {
     if (typeof preset === "string" && preset.trim()) {
         return preset.trim();
     }
-    throw new Error("Missing VITE_CLOUDINARY_UPLOAD_PRESET for Cloudinary upload.");
+    return DEFAULT_UPLOAD_PRESET;
 };
 
 const extensionFromMimeType = (mimeType: string): string => {
