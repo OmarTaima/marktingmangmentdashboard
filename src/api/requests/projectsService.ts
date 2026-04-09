@@ -3,6 +3,61 @@ import type { Project, ProjectCreate, ProjectUpdate } from "../interfaces/projec
 
 const PROJECTS_ENDPOINT = "/projects";
 
+export interface ProjectTaxonomyOption {
+  _id?: string;
+  id?: string;
+  name: string;
+}
+
+const extractArrayFromResponse = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.categories)) return payload.categories;
+  if (Array.isArray(payload?.types)) return payload.types;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.data?.categories)) return payload.data.categories;
+  if (Array.isArray(payload?.data?.types)) return payload.data.types;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  return [];
+};
+
+const normalizeTaxonomyOption = (item: any): ProjectTaxonomyOption | null => {
+  if (typeof item === "string") {
+    const name = item.trim();
+    if (!name) return null;
+    return { name };
+  }
+
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const id = String(item._id || item.id || "").trim();
+  const name = String(item.name || item.title || item.label || item.value || id || "").trim();
+  if (!name) return null;
+
+  return {
+    _id: id || undefined,
+    id: id || undefined,
+    name,
+  };
+};
+
+const uniqueTaxonomyOptions = (items: ProjectTaxonomyOption[]): ProjectTaxonomyOption[] => {
+  const seen = new Set<string>();
+  const unique: ProjectTaxonomyOption[] = [];
+
+  items.forEach((item) => {
+    const key = (item._id || item.id || item.name).toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    unique.push(item);
+  });
+
+  return unique;
+};
+
 const transformProject = (raw: any): Project => {
   if (!raw) return raw;
   // Preserve normalized fields while keeping the full raw payload available
@@ -95,6 +150,36 @@ export const deleteProject = async (id: string) => {
   try {
     const response = await axiosInstance.delete(`${PROJECTS_ENDPOINT}/${id}`);
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getProjectCategories = async (): Promise<ProjectTaxonomyOption[]> => {
+  try {
+    const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/categories`, {
+      params: { pageCount: "all" },
+    });
+    const raw = extractArrayFromResponse(response.data);
+    const normalized = raw
+      .map(normalizeTaxonomyOption)
+      .filter((item): item is ProjectTaxonomyOption => !!item);
+    return uniqueTaxonomyOptions(normalized);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getProjectTypes = async (): Promise<ProjectTaxonomyOption[]> => {
+  try {
+    const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/types`, {
+      params: { pageCount: "all" },
+    });
+    const raw = extractArrayFromResponse(response.data);
+    const normalized = raw
+      .map(normalizeTaxonomyOption)
+      .filter((item): item is ProjectTaxonomyOption => !!item);
+    return uniqueTaxonomyOptions(normalized);
   } catch (error) {
     throw error;
   }

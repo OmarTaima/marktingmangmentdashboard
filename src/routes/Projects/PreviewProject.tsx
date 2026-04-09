@@ -2,14 +2,15 @@ import React, { useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useProject } from "@/hooks/queries";
 import { useLang } from "@/hooks/useLang";
+import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 // framer-motion removed (no animations on this page)
 import { 
-  ChevronDown, ChevronUp, Play, Maximize2, X, 
+    ChevronDown, ChevronUp, Play, Maximize2, X, ChevronLeft, ChevronRight,
    MapPin, Users, Tag, Layers, 
     Code, FileText,  Copy, Check, Grid, List,
- User,  FolderTree,  File, Camera, Image,
-  Award, Link as LinkIcon, Info, Settings, 
-  Database, Trash2, Globe
+ User,  FolderTree, Camera,
+    Award, Link as LinkIcon, Info,
+    Globe
 } from "lucide-react";
 
 const ProjectDetails: React.FC = () => {
@@ -49,11 +50,82 @@ const ProjectDetails: React.FC = () => {
         setTimeout(() => setCopied(null), 2000);
     };
 
-    const formatBytes = (bytes: number) => {
-        if (!bytes) return "N/A";
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+    const formatRichText = (content?: string) => {
+        if (!content) return "";
+        return /<\/?[a-z][\s\S]*>/i.test(content) ? content : content.replace(/\n/g, "<br />");
+    };
+
+    const getOptionLabel = (value: any): string => {
+        if (typeof value === "string") return value;
+        if (!value || typeof value !== "object") return "";
+        return value.name || value.title || value.label || value.value || value._id || value.id || "";
+    };
+
+    const getOptionKey = (value: any, index: number): string => {
+        if (typeof value === "string") return value;
+        if (!value || typeof value !== "object") return `item-${index}`;
+        return value._id || value.id || value.name || value.title || `item-${index}`;
+    };
+
+    const isPhotoMaterialType = (type?: string): boolean => type === "photo" || type === "bulk";
+
+    const buildPhotoItems = (material: any): any[] => {
+        const merged: any[] = [];
+
+        if (material?.url) {
+            merged.push({
+                url: material.url,
+                mimeType: material.mimeType,
+                originalName: material.originalName,
+                size: material.size,
+                type: "photo",
+            });
+        }
+
+        if (Array.isArray(material?.items)) {
+            material.items
+                .filter((item: any) => !!item?.url)
+                .forEach((item: any) => {
+                    merged.push({
+                        url: item.url,
+                        mimeType: item.mimeType || material?.mimeType,
+                        originalName: item.originalName,
+                        size: item.size,
+                        type: "photo",
+                    });
+                });
+        }
+
+        const seen = new Set<string>();
+        return merged.filter((item: any) => {
+            const key = String(item?.url || "").trim();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    };
+
+    const normalizeProjectMaterials = (materials: any[] = []): any[] => {
+        const sorted = [...materials].sort((a, b) => (a?.order || 0) - (b?.order || 0));
+        return sorted.map((material, index) => {
+            if (!isPhotoMaterialType(material?.type)) {
+                return { ...material, order: index + 1 };
+            }
+
+            const photoItems = buildPhotoItems(material);
+            const primary = photoItems[0];
+
+            return {
+                ...material,
+                type: "photo",
+                items: photoItems,
+                url: primary?.url || material?.url,
+                mimeType: primary?.mimeType || material?.mimeType,
+                originalName: primary?.originalName || material?.originalName,
+                size: primary?.size || material?.size,
+                order: index + 1,
+            };
+        });
     };
 
    
@@ -78,6 +150,32 @@ const ProjectDetails: React.FC = () => {
             return out;
         }
         return obj;
+    };
+
+    const shiftSelectedPhoto = (direction: "next" | "prev") => {
+        setSelectedMedia((previous: any) => {
+            if (!previous || !isPhotoMaterialType(previous.type)) {
+                return previous;
+            }
+
+            const photoItems = buildPhotoItems(previous);
+
+            if (photoItems.length <= 1) {
+                return previous;
+            }
+
+            const currentIndex = Number.isFinite(Number(previous.selectedPhotoIndex))
+                ? Number(previous.selectedPhotoIndex)
+                : 0;
+            const delta = direction === "next" ? 1 : -1;
+            const nextIndex = (currentIndex + delta + photoItems.length) % photoItems.length;
+
+            return {
+                ...previous,
+                selectedPhotoIndex: nextIndex,
+                selectedPhoto: photoItems[nextIndex],
+            };
+        });
     };
 
  
@@ -112,6 +210,7 @@ const ProjectDetails: React.FC = () => {
 
     const p: any = project;
     const projectId = id || p?.id || p?._id;
+    const groupedMaterials = normalizeProjectMaterials(p.material || []);
 
     const DetailRow = ({ label, value, icon: Icon, copyable = false, copyId = "" }: any) => {
         const formatValue = (v: any) => {
@@ -181,9 +280,9 @@ const ProjectDetails: React.FC = () => {
         const key = m._id || m.id || idx;
         const caption = m.caption || m.textContent || m.label || "";
 
-        const MediaCard = ({ children, onClick }: any) => (
+        const MediaCard = ({ children, onClick, className = "" }: any) => (
             <div
-                className="group relative bg-white dark:bg-dark-800 rounded-xl overflow-hidden border border-light-200 dark:border-dark-700 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                className={`group relative bg-white dark:bg-dark-800 rounded-xl overflow-hidden border border-light-200 dark:border-dark-700 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${className}`}
                 onClick={onClick}
             >
                 {children}
@@ -192,34 +291,80 @@ const ProjectDetails: React.FC = () => {
 
         switch (m.type) {
             case "photo":
+                {
+                    const photoItems = buildPhotoItems(m);
+                    const primaryPhoto = photoItems[0];
+                    const isGroupedPhoto = photoItems.length > 1;
+
                 return (
-                    <MediaCard key={key} onClick={() => setSelectedMedia(m)}>
-                        <div className="relative aspect-square overflow-hidden">
-                                    <img src={m.url} alt={caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <MediaCard
+                        key={key}
+                        onClick={() =>
+                            setSelectedMedia({
+                                ...m,
+                                selectedPhoto: primaryPhoto || null,
+                                selectedPhotoIndex: 0,
+                            })
+                        }
+                        className={isGroupedPhoto ? "sm:col-span-2 lg:col-span-3" : ""}
+                    >
+                        <div className={`relative overflow-hidden ${isGroupedPhoto ? "" : "aspect-square"}`}>
+                            {isGroupedPhoto ? (
+                                <div className="w-full bg-black/5 dark:bg-black/20 p-2">
+                                    <div className="flex flex-wrap gap-1.5 justify-start">
+                                        {photoItems.map((item: any, photoIdx: number) => (
+                                        <div
+                                            key={`grouped-photo-${item.originalName || "photo"}-${photoIdx}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                setSelectedMedia({
+                                                    ...m,
+                                                    selectedPhoto: item,
+                                                    selectedPhotoIndex: photoIdx,
+                                                });
+                                            }}
+                                            className="relative w-[90px] sm:w-[110px] md:w-[130px] lg:w-[150px] max-w-[150px] max-h-[150px] aspect-square overflow-hidden rounded-sm cursor-zoom-in flex-none"
+                                        >
+                                            <img
+                                                src={item.url}
+                                                alt={caption || `Photo ${photoIdx + 1}`}
+                                                className="w-full h-full object-contain bg-black/30 group-hover:scale-105 transition-transform duration-500"
+                                                loading="lazy"
+                                            />
+                                            <div className="absolute top-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                                {photoIdx + 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </div>
+                            ) : primaryPhoto?.url ? (
+                                <img src={primaryPhoto.url} alt={caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-light-100 dark:bg-dark-800 text-light-400 dark:text-dark-500">
+                                    <Camera className="w-10 h-10 opacity-40" />
+                                </div>
+                            )}
                             <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Maximize2 className="w-4 h-4 text-white" />
                             </div>
                             <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm rounded px-2 py-1 text-xs text-white">
-                                Photo #{m.order}
+                                {photoItems.length > 1 ? `${photoItems.length} Photos` : `Photo #${m.order}`}
                             </div>
                         </div>
                         <div className="p-3 space-y-2">
                             {caption && <p className="text-sm text-light-600 dark:text-dark-400 line-clamp-2">{caption}</p>}
                             <div className="text-xs text-light-400 dark:text-dark-500 space-y-1">
                                 <div className="flex items-center justify-between">
-                                    <span>{m.mimeType || "image"}</span>
+                                    <span>{photoItems.length > 1 ? `${photoItems.length} grouped photos` : (primaryPhoto?.mimeType || m.mimeType || "image")}</span>
                                 </div>
-                                {m.size && <div className="flex items-center justify-between">
-                                    <span>Size:</span>
-                                    <span>{formatBytes(m.size)}</span>
-                                </div>}
-                                {m.originalName && <div className="truncate" title={m.originalName}>
-                                    <span>Original: {m.originalName}</span>
-                                </div>}
+                              
+                                
                             </div>
                         </div>
                     </MediaCard>
                 );
+                }
 
             case "video":
                 return (
@@ -249,8 +394,7 @@ const ProjectDetails: React.FC = () => {
                                 <div className="flex items-center justify-between">
                                     <span>{m.mimeType || "video"}</span>
                                 </div>
-                                {m.size && <div>Size: {formatBytes(m.size)}</div>}
-                                {m.originalName && <div className="truncate">{m.originalName}</div>}
+                               
                             </div>
                         </div>
                     </MediaCard>
@@ -259,33 +403,14 @@ const ProjectDetails: React.FC = () => {
             case "before_after":
                 return (
                     <MediaCard key={key}>
-                        <div className="relative aspect-square overflow-hidden">
-                            <div className="absolute inset-0 flex">
-                                <div className="w-1/2 overflow-hidden relative">
-                                    {m.before?.url ? (
-                                        <img src={m.before.url} alt={m.before?.label} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full bg-light-100 dark:bg-dark-700 flex items-center justify-center text-light-400 dark:text-dark-500">
-                                            <Image className="w-6 h-6 opacity-40" />
-                                        </div>
-                                    )}
-                                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">{m.before?.label || "Before"}</div>
-                                </div>
-                                <div className="w-1/2 overflow-hidden relative">
-                                    {m.after?.url ? (
-                                        <img src={m.after.url} alt={m.after?.label} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full bg-light-100 dark:bg-dark-700 flex items-center justify-center text-light-400 dark:text-dark-500">
-                                            <Image className="w-6 h-6 opacity-40" />
-                                        </div>
-                                    )}
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">{m.after?.label || "After"}</div>
-                                </div>
-                            </div>
-                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
-                                <div className="w-0.5 h-4 bg-black"></div>
-                            </div>
-                        </div>
+                        <BeforeAfterSlider
+                            beforeUrl={m.before?.url}
+                            afterUrl={m.after?.url}
+                            beforeLabel={m.before?.label || "Before"}
+                            afterLabel={m.after?.label || "After"}
+                            mediaClassName="aspect-square w-full"
+                            showSlider={false}
+                        />
                         <div className="p-3">
                             {caption && <p className="text-sm text-light-600 dark:text-dark-400 mb-2">{caption}</p>}
                             <div className="text-xs text-light-400 dark:text-dark-500">
@@ -309,7 +434,7 @@ const ProjectDetails: React.FC = () => {
                                     {caption && <p className="text-xs text-light-500 dark:text-secdark-400 font-medium">{caption}</p>}
                                     <span className="text-xs text-light-400 dark:text-dark-500">Text #{m.order}</span>
                                 </div>
-                                <p className="text-light-700 dark:text-dark-300 whitespace-pre-wrap">{m.textContent}</p>
+                                <div className="text-light-700 dark:text-dark-300" dangerouslySetInnerHTML={{ __html: formatRichText(m.textContent) }} />
                                 <div className="mt-2 pt-2 border-t border-light-200 dark:border-dark-700 text-xs text-light-400 dark:text-dark-500">
                                     {/* ID removed for privacy */}
                                 </div>
@@ -379,7 +504,7 @@ const ProjectDetails: React.FC = () => {
                         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="p-4 rounded-lg bg-white/5 dark:bg-dark-800/40 border border-light-100 dark:border-dark-700">
                                 <div className="text-xs text-light-400 dark:text-dark-400 uppercase">Materials</div>
-                                <div className="mt-2 text-2xl font-bold text-light-700 dark:text-secdark-500">{p.material?.length || 0}</div>
+                                <div className="mt-2 text-2xl font-bold text-light-700 dark:text-secdark-500">{groupedMaterials.length || 0}</div>
                             </div>
                             <div className="p-4 rounded-lg bg-white/5 dark:bg-dark-800/40 border border-light-100 dark:border-dark-700">
                                 <div className="text-xs text-light-400 dark:text-dark-400 uppercase">Team Members</div>
@@ -421,7 +546,7 @@ const ProjectDetails: React.FC = () => {
                         </button>
                     </div>
                     <div className="text-sm text-light-500 dark:text-secdark-400">
-                        {p.material?.length || 0} materials • {p.cast?.length || 0} team members
+                        {groupedMaterials.length || 0} materials • {p.cast?.length || 0} team members
                     </div>
                 </div>
 
@@ -450,9 +575,9 @@ const ProjectDetails: React.FC = () => {
                         <div>
                             <h3 className="text-sm font-medium text-light-700 dark:text-dark-300 mb-3">Categories</h3>
                             <div className="flex flex-wrap gap-2">
-                                {p.categories?.map((cat: string) => (
-                                    <span key={cat} className="px-3 py-1.5 bg-light-500 text-white dark:bg-secdark-700 dark:text-white rounded-lg text-sm">
-                                        {cat}
+                                {p.categories?.map((cat: any, idx: number) => (
+                                    <span key={getOptionKey(cat, idx)} className="px-3 py-1.5 bg-light-500 text-white dark:bg-secdark-700 dark:text-white rounded-lg text-sm">
+                                        {getOptionLabel(cat)}
                                     </span>
                                 )) || <span className="text-light-400 dark:text-dark-500">No categories</span>}
                             </div>
@@ -460,9 +585,9 @@ const ProjectDetails: React.FC = () => {
                         <div>
                             <h3 className="text-sm font-medium text-light-700 dark:text-dark-300 mb-3">Tags</h3>
                             <div className="flex flex-wrap gap-2">
-                                {p.tags?.map((tag: string) => (
-                                    <span key={tag} className="px-3 py-1.5 bg-light-100 dark:bg-dark-800 text-light-700 dark:text-dark-300 rounded-lg text-sm">
-                                        #{tag}
+                                {p.tags?.map((tag: any, idx: number) => (
+                                    <span key={getOptionKey(tag, idx)} className="px-3 py-1.5 bg-light-100 dark:bg-dark-800 text-light-700 dark:text-dark-300 rounded-lg text-sm">
+                                        #{getOptionLabel(tag)}
                                     </span>
                                 )) || <span className="text-light-400 dark:text-dark-500">No tags</span>}
                             </div>
@@ -470,9 +595,9 @@ const ProjectDetails: React.FC = () => {
                         <div>
                             <h3 className="text-sm font-medium text-light-700 dark:text-dark-300 mb-3">Project Types</h3>
                             <div className="flex flex-wrap gap-2">
-                                {p.types?.map((type: string) => (
-                                    <span key={type} className="px-3 py-1.5 border border-light-200 dark:border-dark-700 text-light-700 dark:text-dark-300 rounded-lg text-sm">
-                                        {type}
+                                {p.types?.map((type: any, idx: number) => (
+                                    <span key={getOptionKey(type, idx)} className="px-3 py-1.5 border border-light-200 dark:border-dark-700 text-light-700 dark:text-dark-300 rounded-lg text-sm">
+                                        {getOptionLabel(type)}
                                     </span>
                                 )) || <span className="text-light-400 dark:text-dark-500">No types</span>}
                             </div>
@@ -483,13 +608,13 @@ const ProjectDetails: React.FC = () => {
                 {/* Section: Materials & Media */}
                 <Section id="materials" title="Materials & Media" icon={Layers}>
                     <div className="mb-4 text-sm text-light-500 dark:text-secdark-400">
-                        Total: {p.material?.length || 0} items • Types: {p.material?.map((m: any) => m.type).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(", ") || "None"}
+                        Total: {groupedMaterials.length || 0} items • Types: {groupedMaterials.map((m: any) => m.type).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(", ") || "None"}
                     </div>
                     <div className={viewMode === "grid" 
                         ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                         : "space-y-4"
                     }>
-                        {(p.material || []).map((m: any, idx: number) => renderMaterialItem(m, idx))}
+                        {groupedMaterials.map((m: any, idx: number) => renderMaterialItem(m, idx))}
                     </div>
                 </Section>
 
@@ -528,15 +653,11 @@ const ProjectDetails: React.FC = () => {
                 {/* Section: Main Cover */}
                 {p.mainCover && (
                     <Section id="mainCover" title="Main Cover Details" icon={Camera}>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                             <div className="rounded-lg overflow-hidden border border-light-200 dark:border-dark-700">
                                 <img src={p.mainCover.url} alt={p.name} className="w-full h-auto" />
                             </div>
-                            <div className="space-y-3">
-                                <DetailRow label="MIME Type" value={p.mainCover.mimeType} icon={File} />
-                                <DetailRow label="Original Name" value={p.mainCover.originalName} icon={FileText} />
-                                <DetailRow label="Size" value={formatBytes(p.mainCover.size)} icon={Database} />
-                            </div>
+                            
                         </div>
                     </Section>
                 )}
@@ -549,7 +670,7 @@ const ProjectDetails: React.FC = () => {
                 <Section id="stats" title="Statistics & Summary" icon={Award}>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                         <div className="text-center p-4 bg-light-50 dark:bg-dark-800/50 rounded-lg border border-light-200 dark:border-dark-700">
-                            <div className="text-2xl font-bold text-light-500 dark:text-secdark-500">{p.material?.length || 0}</div>
+                            <div className="text-2xl font-bold text-light-500 dark:text-secdark-500">{groupedMaterials.length || 0}</div>
                             <div className="text-xs text-light-600 dark:text-dark-400">Materials</div>
                         </div>
                         <div className="text-center p-4 bg-light-50 dark:bg-dark-800/50 rounded-lg border border-light-200 dark:border-dark-700">
@@ -585,6 +706,13 @@ const ProjectDetails: React.FC = () => {
                     <div
                         className="relative w-full max-w-6xl max-h-[90vh] bg-black rounded-xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
+                        onWheel={(event) => {
+                            if (!isPhotoMaterialType(selectedMedia?.type)) return;
+                            const photoItems = buildPhotoItems(selectedMedia);
+                            if (photoItems.length <= 1) return;
+                            event.preventDefault();
+                            shiftSelectedPhoto(event.deltaY > 0 ? "next" : "prev");
+                        }}
                     >
                         <button
                             onClick={() => setSelectedMedia(null)}
@@ -593,9 +721,70 @@ const ProjectDetails: React.FC = () => {
                             <X className="w-5 h-5" />
                         </button>
                         
-                            {selectedMedia.type === "photo" && (
-                                <img src={selectedMedia.url} alt={selectedMedia.caption} className="w-full h-auto max-h-[90vh] object-contain" />
-                            )}
+                            {isPhotoMaterialType(selectedMedia.type) && (() => {
+                                const selectedItems = buildPhotoItems(selectedMedia);
+                                const totalPhotos = selectedItems.length;
+                                const currentIndex = totalPhotos > 0
+                                    ? Math.min(
+                                        Math.max(
+                                            Number.isFinite(Number(selectedMedia.selectedPhotoIndex))
+                                                ? Number(selectedMedia.selectedPhotoIndex)
+                                                : 0,
+                                            0,
+                                        ),
+                                        totalPhotos - 1,
+                                    )
+                                    : 0;
+                                const selectedPhoto = selectedMedia.selectedPhoto?.url
+                                    ? selectedItems[currentIndex] || selectedMedia.selectedPhoto
+                                    : selectedItems[0];
+
+                                if (!selectedPhoto?.url) {
+                                    return null;
+                                }
+
+                                return (
+                                    <div className="relative w-full">
+                                        <img
+                                            src={selectedPhoto.url}
+                                            alt={selectedMedia.caption || selectedPhoto.originalName || "Project photo"}
+                                            className="w-full h-auto max-h-[90vh] object-contain"
+                                        />
+
+                                        {totalPhotos > 1 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        shiftSelectedPhoto("prev");
+                                                    }}
+                                                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/55 hover:bg-black/75 rounded-full text-white transition-colors"
+                                                    aria-label="Previous photo"
+                                                >
+                                                    <ChevronLeft className="w-5 h-5" />
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        shiftSelectedPhoto("next");
+                                                    }}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/55 hover:bg-black/75 rounded-full text-white transition-colors"
+                                                    aria-label="Next photo"
+                                                >
+                                                    <ChevronRight className="w-5 h-5" />
+                                                </button>
+
+                                                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/55 text-white text-xs">
+                                                    {currentIndex + 1} / {totalPhotos}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         
                             {selectedMedia.type === "video" && (
                                 <video controls autoPlay src={selectedMedia.url} className="w-full h-auto max-h-[90vh]" />

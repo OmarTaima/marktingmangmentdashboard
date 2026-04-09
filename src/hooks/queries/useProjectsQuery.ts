@@ -7,6 +7,9 @@ import {
     updateProject,
     togglePublishProject,
     deleteProject,
+    getProjectCategories,
+    getProjectTypes,
+    type ProjectTaxonomyOption,
 } from "@/api/requests/projectsService";
 
 export const projectsKeys = {
@@ -15,6 +18,8 @@ export const projectsKeys = {
     list: (params?: Record<string, any>) => [...projectsKeys.lists(), params] as const,
     details: () => [...projectsKeys.all, "detail"] as const,
     detail: (id: string) => [...projectsKeys.details(), id] as const,
+    categories: () => [...projectsKeys.all, "categories"] as const,
+    types: () => [...projectsKeys.all, "types"] as const,
 };
 
 export const useProjects = (params?: Record<string, any>) => {
@@ -28,11 +33,36 @@ export const useProjects = (params?: Record<string, any>) => {
 };
 
 export const useProject = (id?: string, opts?: { enabled?: boolean }) => {
+    const queryClient = useQueryClient();
+
+    const shouldEnable = typeof opts?.enabled === "boolean" ? opts.enabled : !!id;
+    const cachedDetail = id ? (queryClient.getQueryData(projectsKeys.detail(id)) as Project | null | undefined) : undefined;
+
     return useQuery({
         queryKey: projectsKeys.detail(id || ""),
         queryFn: () => getProjectById(id || ""),
-        enabled: typeof opts?.enabled === "boolean" ? opts.enabled : !!id,
+        enabled: shouldEnable,
+        initialData: cachedDetail,
         staleTime: 5 * 60 * 1000,
+        refetchOnMount: true,
+        refetchOnWindowFocus: false,
+    });
+};
+
+export const useProjectCategories = () => {
+    return useQuery<ProjectTaxonomyOption[]>({
+        queryKey: projectsKeys.categories(),
+        queryFn: getProjectCategories,
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
+
+export const useProjectTypes = () => {
+    return useQuery<ProjectTaxonomyOption[]>({
+        queryKey: projectsKeys.types(),
+        queryFn: getProjectTypes,
+        staleTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
     });
 };
@@ -52,7 +82,9 @@ export const useCreateProject = () => {
                         ...current.filter((p: any) => ((p?.id || p?._id) !== createdId)),
                     ];
                 });
-                queryClient.setQueryData(projectsKeys.detail(createdId), createdProject as Project);
+                // Avoid seeding detail cache with create response because taxonomy fields can be raw IDs.
+                // Let the preview page fetch full project details so category/type names render immediately.
+                queryClient.removeQueries({ queryKey: projectsKeys.detail(createdId), exact: true });
             }
 
             queryClient.invalidateQueries({ queryKey: projectsKeys.lists() });

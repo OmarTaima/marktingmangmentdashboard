@@ -39,6 +39,7 @@ export interface Material {
   url?: string;
   thumbnail?: string;
   caption?: string;
+  items?: MaterialPhotoItem[];
   textContent?: string;
   htmlContent?: string;
   before?: { url?: string; label?: string; type?: string };
@@ -48,6 +49,14 @@ export interface Material {
   originalName?: string;
   order?: number;
   label?: string;
+}
+
+export interface MaterialPhotoItem {
+  url?: string;
+  mimeType?: string;
+  originalName?: string;
+  size?: number;
+  type?: 'photo';
 }
 
 export interface CastMember {

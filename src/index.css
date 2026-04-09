@@ -146,6 +146,47 @@
     }
 }
 
+@layer components {
+    .project-quill .ql-toolbar.ql-snow {
+        border: 0;
+        border-bottom: 1px solid var(--color-light-200);
+        background: var(--color-light-50);
+    }
+
+    .project-quill .ql-container.ql-snow {
+        border: 0;
+        min-height: 170px;
+        background: #ffffff;
+        color: var(--color-light-900);
+    }
+
+    .project-quill .ql-editor {
+        min-height: 170px;
+    }
+
+    .dark .project-quill .ql-toolbar.ql-snow {
+        border-bottom-color: var(--color-dark-700);
+        background: var(--color-dark-800);
+    }
+
+    .dark .project-quill .ql-container.ql-snow {
+        background: var(--color-dark-900);
+        color: var(--color-dark-50);
+    }
+
+    .dark .project-quill .ql-snow .ql-stroke {
+        stroke: var(--color-dark-200);
+    }
+
+    .dark .project-quill .ql-snow .ql-fill {
+        fill: var(--color-dark-200);
+    }
+
+    .dark .project-quill .ql-snow .ql-picker {
+        color: var(--color-dark-200);
+    }
+}
+
 .recharts-default-tooltip {
     @apply !border-light-600 dark:!border-dark-700 dark:!bg-dark-900 !rounded-lg !border !bg-white transition-colors;
 }
