@@ -35,8 +35,12 @@ interface UploadDataUrlOptions extends UploadFileOptions {
 }
 
 const DEFAULT_UPLOAD_FOLDER = "Markting/projects";
+const DEFAULT_SIGNATURE_ENDPOINT = "/api/cloudinary-signature";
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 
 export const isDataUrl = (value?: string): value is string => typeof value === "string" && value.startsWith("data:");
+
+const isLocalHostname = (hostname: string): boolean => LOCAL_HOSTNAMES.has(hostname.toLowerCase());
 
 const getUploadFolder = (folder?: string): string => {
     if (folder && folder.trim()) return folder.trim();
@@ -47,10 +51,31 @@ const getUploadFolder = (folder?: string): string => {
 
 const getSignatureEndpoint = (): string => {
     const endpoint = import.meta.env.VITE_CLOUDINARY_SIGNATURE_ENDPOINT;
-    if (typeof endpoint === "string" && endpoint.trim()) {
-        return endpoint.trim();
+    if (typeof endpoint !== "string" || !endpoint.trim()) {
+        return DEFAULT_SIGNATURE_ENDPOINT;
     }
-    return "/api/cloudinary-signature";
+
+    const trimmedEndpoint = endpoint.trim();
+    const isAbsoluteEndpoint = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmedEndpoint);
+
+    if (!isAbsoluteEndpoint) {
+        return trimmedEndpoint.startsWith("/") ? trimmedEndpoint : `/${trimmedEndpoint}`;
+    }
+
+    try {
+        const parsedEndpoint = new URL(trimmedEndpoint);
+        const envTargetsLocal = isLocalHostname(parsedEndpoint.hostname);
+        const appIsLocal = typeof window !== "undefined" && isLocalHostname(window.location.hostname);
+
+        // Prevent production builds from calling localhost when env is misconfigured.
+        if (envTargetsLocal && !appIsLocal) {
+            return DEFAULT_SIGNATURE_ENDPOINT;
+        }
+
+        return trimmedEndpoint;
+    } catch {
+        return DEFAULT_SIGNATURE_ENDPOINT;
+    }
 };
 
 const extensionFromMimeType = (mimeType: string): string => {
