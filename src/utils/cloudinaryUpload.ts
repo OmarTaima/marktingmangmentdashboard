@@ -1,13 +1,5 @@
 export type CloudinaryResourceType = "image" | "video";
 
-interface CloudinarySignatureResponse {
-    signature: string;
-    timestamp: number;
-    apiKey: string;
-    cloudName: string;
-    folder?: string;
-}
-
 interface CloudinaryUploadResponse {
     secure_url?: string;
     url?: string;
@@ -35,12 +27,9 @@ interface UploadDataUrlOptions extends UploadFileOptions {
 }
 
 const DEFAULT_UPLOAD_FOLDER = "Markting/projects";
-const DEFAULT_SIGNATURE_ENDPOINT = "/api/cloudinary-signature";
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
+const DEFAULT_CLOUD_NAME = "dv91eyjei";
 
 export const isDataUrl = (value?: string): value is string => typeof value === "string" && value.startsWith("data:");
-
-const isLocalHostname = (hostname: string): boolean => LOCAL_HOSTNAMES.has(hostname.toLowerCase());
 
 const getUploadFolder = (folder?: string): string => {
     if (folder && folder.trim()) return folder.trim();
@@ -49,33 +38,20 @@ const getUploadFolder = (folder?: string): string => {
     return DEFAULT_UPLOAD_FOLDER;
 };
 
-const getSignatureEndpoint = (): string => {
-    const endpoint = import.meta.env.VITE_CLOUDINARY_SIGNATURE_ENDPOINT;
-    if (typeof endpoint !== "string" || !endpoint.trim()) {
-        return DEFAULT_SIGNATURE_ENDPOINT;
+const getCloudName = (): string => {
+    const envCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    if (typeof envCloudName === "string" && envCloudName.trim()) {
+        return envCloudName.trim();
     }
+    return DEFAULT_CLOUD_NAME;
+};
 
-    const trimmedEndpoint = endpoint.trim();
-    const isAbsoluteEndpoint = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmedEndpoint);
-
-    if (!isAbsoluteEndpoint) {
-        return trimmedEndpoint.startsWith("/") ? trimmedEndpoint : `/${trimmedEndpoint}`;
+const getUploadPreset = (): string => {
+    const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (typeof preset === "string" && preset.trim()) {
+        return preset.trim();
     }
-
-    try {
-        const parsedEndpoint = new URL(trimmedEndpoint);
-        const envTargetsLocal = isLocalHostname(parsedEndpoint.hostname);
-        const appIsLocal = typeof window !== "undefined" && isLocalHostname(window.location.hostname);
-
-        // Prevent production builds from calling localhost when env is misconfigured.
-        if (envTargetsLocal && !appIsLocal) {
-            return DEFAULT_SIGNATURE_ENDPOINT;
-        }
-
-        return trimmedEndpoint;
-    } catch {
-        return DEFAULT_SIGNATURE_ENDPOINT;
-    }
+    throw new Error("Missing VITE_CLOUDINARY_UPLOAD_PRESET for Cloudinary upload.");
 };
 
 const extensionFromMimeType = (mimeType: string): string => {
@@ -108,36 +84,17 @@ const dataUrlToFile = (dataUrl: string, fileName: string): File => {
     return new File([buffer], ensureFileName(fileName, mimeType), { type: mimeType });
 };
 
-const fetchCloudinarySignature = async (folder: string): Promise<CloudinarySignatureResponse> => {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const response = await fetch(getSignatureEndpoint(), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ timestamp, folder }),
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || "Unable to fetch Cloudinary signature.");
-    }
-
-    return (await response.json()) as CloudinarySignatureResponse;
-};
-
 export const uploadFileToCloudinary = async (file: File, options: UploadFileOptions): Promise<CloudinaryUploadResult> => {
     const folder = getUploadFolder(options.folder);
-    const signature = await fetchCloudinarySignature(folder);
+    const uploadPreset = getUploadPreset();
+    const cloudName = getCloudName();
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("api_key", signature.apiKey);
-    formData.append("timestamp", String(signature.timestamp));
-    formData.append("signature", signature.signature);
-    formData.append("folder", signature.folder || folder);
+    formData.append("upload_preset", uploadPreset);
+    formData.append("folder", folder);
 
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${signature.cloudName}/${options.resourceType}/upload`;
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${options.resourceType}/upload`;
     const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
