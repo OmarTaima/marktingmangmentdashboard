@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Plus, Search, RefreshCw } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useLang } from "@/hooks/useLang";
-import { useProjects } from "@/hooks/queries";
+import { useProjects, useProjectCast } from "@/hooks/queries";
 
 const ProjectsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -14,6 +14,7 @@ const ProjectsPage: React.FC = () => {
 
     const [searchTerm, setSearchTerm] = useState<string>("");
     const { data: projects = [], isLoading, error, refetch } = useProjects();
+    const { data: projectCast = [] } = useProjectCast();
 
     const total = projects.length;
     const published = projects.filter((p: any) => p.published).length;
@@ -40,14 +41,39 @@ const ProjectsPage: React.FC = () => {
         const cast = project?.cast;
         if (Array.isArray(cast)) {
             const names = cast
-                .map((member: any) =>
-                    member?.name ||
-                    member?.fullName ||
-                    member?.client?.name ||
-                    member?.client?.personal?.fullName ||
-                    member?.client?.business?.name
-                )
-                .filter(Boolean);
+                .map((member: any) => {
+                    if (!member) return null;
+                    if (typeof member === 'string') {
+                        const found = projectCast.find((pc: any) => (pc._id || pc.id) === member || pc.name === member);
+                        return found?.name || member;
+                    }
+
+                    if (member.castId) {
+                        const castEntry = member.castId;
+                        if (typeof castEntry === 'string') {
+                            const found = projectCast.find((pc: any) => (pc._id || pc.id) === castEntry || pc.name === castEntry);
+                            return found?.name || castEntry;
+                        }
+                        if (typeof castEntry === 'object') {
+                            const found = projectCast.find((pc: any) => (pc._id || pc.id) === (castEntry._id || castEntry.id) || pc.name === castEntry.name);
+                            return castEntry.name || found?.name || '';
+                        }
+                    }
+
+                    if (typeof member === 'object') {
+                        return (
+                            member?.name ||
+                            member?.fullName ||
+                            member?.client?.name ||
+                            member?.client?.personal?.fullName ||
+                            member?.client?.business?.name ||
+                            null
+                        );
+                    }
+
+                    return null;
+                })
+                .filter(Boolean) as string[];
 
             if (names.length === 0) return "-";
             if (names.length <= 2) return names.join(", ");
@@ -55,7 +81,9 @@ const ProjectsPage: React.FC = () => {
         }
 
         if (cast && typeof cast === "object") {
-            return cast?.name || cast?.fullName || "-";
+            if (typeof cast === 'string') return cast;
+            const found = projectCast.find((pc: any) => (pc._id || pc.id) === (cast._id || cast.id) || pc.name === cast.name);
+            return cast?.name || cast?.fullName || found?.name || "-";
         }
 
         return "-";

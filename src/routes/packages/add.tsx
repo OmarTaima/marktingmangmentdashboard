@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Package as PackageIcon, Plus, Search, Trash2 } from "lucide-react";
+import { Check, Loader2, Package as PackageIcon, Plus, Search, Trash2, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLang } from "@/hooks/useLang";
@@ -214,6 +214,59 @@ const AddPackagePage = () => {
 
     const startEditPackage = (pkg: PackageType) => {
         setEditPackageId(pkg._id);
+        setNameEn(pkg.nameEn || "");
+        setNameAr(pkg.nameAr || "");
+        setDescription(pkg.description || "");
+        setDescriptionAr(pkg.descriptionAr || "");
+        setPrice(pkg.price?.toString() || "");
+
+        const ids: string[] = [];
+        const quantities: Record<string, number> = {};
+        const types: Record<string, DisplayType> = {};
+        const strings: Record<string, string> = {};
+        const bools: Record<string, boolean> = {};
+        const notes: Record<string, string> = {};
+
+        (pkg.items || []).forEach((entry: any) => {
+            const itemObj = entry?.item || entry;
+            const id = String(itemObj?._id || itemObj?.id || itemObj || "");
+            if (!id) return;
+
+            ids.push(id);
+
+            if (typeof entry?.quantity === "number") {
+                types[id] = "number";
+                quantities[id] = Math.max(1, Number(entry.quantity) || 1);
+            } else if (typeof entry?.quantity === "string") {
+                types[id] = "string";
+                strings[id] = entry.quantity;
+            } else if (typeof entry?.quantity === "boolean") {
+                types[id] = "availability";
+                bools[id] = entry.quantity;
+            } else {
+                types[id] = "number";
+                quantities[id] = 1;
+            }
+
+            notes[id] = typeof entry?.note === "string" ? entry.note : "";
+        });
+
+        setSelectedItemIds(ids);
+        setDisplayTypes(types);
+        setItemQuantities(quantities);
+        setStringValues(strings);
+        setAvailabilities(bools);
+        setItemNotes(notes);
+        setNameError("");
+        setPriceError("");
+        setError("");
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    const duplicatePackage = (pkg: PackageType) => {
+        // Do the same as startEditPackage but do NOT set editPackageId
+        setEditPackageId(null);
         setNameEn(pkg.nameEn || "");
         setNameAr(pkg.nameAr || "");
         setDescription(pkg.description || "");
@@ -745,6 +798,15 @@ const AddPackagePage = () => {
                                             </div>
 
                                             <div className="mt-4 flex items-center justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => duplicatePackage(pkg)}
+                                                    className="btn-ghost inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs"
+                                                >
+                                                    <Copy size={14} />
+                                                    {tr("duplicate", "Duplicate")}
+                                                </button>
+
                                                 <button
                                                     type="button"
                                                     onClick={() => startEditPackage(pkg)}

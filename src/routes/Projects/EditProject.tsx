@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useProject, useUpdateProject, useDeleteProject, useProjectCategories, useProjectTypes, useProjectCast } from "@/hooks/queries";
+import { useProject, useUpdateProject, useDeleteProject, useProjectCategories, useProjectTypes, useProjectCast, useProjects } from "@/hooks/queries";
 import { useLang } from "@/hooks/useLang";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -18,17 +18,17 @@ import {
 
 interface Material {
   _id?: string;
-    type: "photo" | "bulk" | "video" | "before_after" | "text" | "html";
+        type: "photo" | "bulk" | "video" | "before_after" | "text" | "html";
   order: number;
   caption?: string;
   url?: string;
   mimeType?: string;
   size?: number;
   originalName?: string;
-    items?: PhotoMaterialItem[];
+        items?: PhotoMaterialItem[];
   textContent?: string;
   htmlContent?: string;
-    thumbnail?: string;
+        thumbnail?: string | { url: string; mimeType?: string; size?: number; originalName?: string };
     before?: { url: string; label?: string; type?: string; mimeType?: string; originalName?: string; size?: number };
     after?: { url: string; label?: string; type?: string; mimeType?: string; originalName?: string; size?: number };
 }
@@ -64,6 +64,7 @@ const EditProject: React.FC = () => {
 
     const { data: project, isLoading, error } = useProject(id);
     const { data: projectCast = []} = useProjectCast();
+    const { data: allProjects = [] as any[], isLoading: projectsLoading } = useProjects();
     const update = useUpdateProject();
     const del = useDeleteProject();
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
@@ -80,6 +81,7 @@ const EditProject: React.FC = () => {
         materials: [] as Material[],
         cast: [] as Cast[],
         mainCover: null as any,
+        parentProject: null as any,
     });
     
     const [newTag, setNewTag] = useState("");
@@ -286,6 +288,19 @@ const EditProject: React.FC = () => {
             reader.readAsDataURL(file);
         });
 
+    const handleVideoThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingMaterial) return;
+        try {
+            const dataUrl = await readFileAsDataUrl(file);
+            setEditingMaterial((prev) => (prev ? { ...prev, thumbnail: { url: dataUrl, mimeType: file.type, originalName: file.name, size: file.size } } : prev));
+        } catch {
+            // ignore
+        } finally {
+            if (e.target) e.target.value = "";
+        }
+    };
+
     const isPhotoMaterialType = (type?: string): boolean => type === "photo" || type === "bulk";
 
     const buildPhotoItems = (material: Partial<Material>): PhotoMaterialItem[] => {
@@ -372,6 +387,30 @@ const EditProject: React.FC = () => {
             }
 
             if (typeof c === "object") {
+                // New server shape: { castId: <id|object>, order }
+                if (c.castId) {
+                    const castEntry = c.castId;
+                    if (typeof castEntry === 'string') {
+                        const found = projectCast.find((pc: any) => (pc._id || pc.id) === castEntry || pc.name === castEntry);
+                        return {
+                            _id: found?._id,
+                            name: found?.name || castEntry,
+                            title: (found as any)?.title || "",
+                            order: c.order || idx + 1,
+                        };
+                    }
+
+                    if (typeof castEntry === 'object') {
+                        const found = projectCast.find((pc: any) => (pc._id || pc.id) === (castEntry._id || castEntry.id) || pc.name === castEntry.name);
+                        return {
+                            _id: castEntry._id || found?._id,
+                            name: castEntry.name || found?.name || "",
+                            title: castEntry.title || (found as any)?.title || "",
+                            order: c.order || idx + 1,
+                        };
+                    }
+                }
+
                 if (c.name) return { ...c, order: c.order || idx + 1 };
                 const found = projectCast.find((pc: any) => pc._id === c._id || pc.id === c._id || pc._id === c.id || pc.name === c.name);
                 return { ...(found || {}), ...c, order: c.order || idx + 1 };
@@ -379,6 +418,20 @@ const EditProject: React.FC = () => {
 
             return { name: String(c), title: "", order: idx + 1 };
         }).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
+        // derive parentProject option from server payload when available
+        let parentInitial: any = null;
+        const rawParent: any = (project as any).parentProject;
+        if (rawParent) {
+            if (typeof rawParent === 'string') {
+                const found = allProjects.find((p: any) => (p.id || p._id) === rawParent || p.name === rawParent);
+                parentInitial = found || rawParent;
+            } else if (typeof rawParent === 'object') {
+                const pid = rawParent._id || rawParent.id;
+                const found = pid ? allProjects.find((p: any) => (p.id || p._id) === pid) : allProjects.find((p: any) => p.name === rawParent.name);
+                parentInitial = found || rawParent;
+            }
+        }
 
         setForm({
             name: project.name || "",
@@ -391,8 +444,9 @@ const EditProject: React.FC = () => {
             materials: normalizeProjectMaterials(project.material || []),
             cast: mappedCast,
             mainCover: project.mainCover || null,
+            parentProject: parentInitial,
         });
-    }, [project, projectCast]);
+    }, [project, projectCast, allProjects]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -794,6 +848,19 @@ const EditProject: React.FC = () => {
                             copy.mimeType = uploadedVideo.mimeType || copy.mimeType;
                             copy.originalName = uploadedVideo.originalName || copy.originalName;
                             copy.size = uploadedVideo.size || copy.size;
+
+                            // upload thumbnail if present (thumbnail may be string or object)
+                            const thumbAsset = typeof copy.thumbnail === 'string' ? { url: copy.thumbnail } : copy.thumbnail;
+                            if (thumbAsset?.url) {
+                                const uploadedThumb = await uploadAssetIfNeeded(
+                                    thumbAsset,
+                                    "image",
+                                    thumbAsset.originalName || `project-video-thumb-${materialIndex + 1}.jpg`,
+                                );
+
+                                // store only the cloudinary URL string for backend
+                                copy.thumbnail = uploadedThumb.url;
+                            }
                         }
 
                         if (copy.before?.url) {
@@ -827,10 +894,33 @@ const EditProject: React.FC = () => {
                     }),
                 );
 
-                clone.materials = clone.materials.map((material: any, index: number) => ({
-                    ...material,
-                    order: index + 1,
-                }));
+                clone.materials = clone.materials.map((material: any, index: number) => {
+                    if (!material) return { order: index + 1 };
+
+                    const getThumbUrl = (thumb: any) => {
+                        if (!thumb) return undefined;
+                        if (typeof thumb === 'string') return thumb;
+                        if (typeof thumb === 'object') return thumb.url || thumb.publicId || undefined;
+                        return undefined;
+                    };
+
+                    // Keep `items` only for bulk materials; strip for others
+                    if (material.type === "bulk") {
+                        return {
+                            ...material,
+                            items: Array.isArray(material.items) ? material.items : [],
+                            thumbnail: getThumbUrl(material.thumbnail),
+                            order: index + 1,
+                        };
+                    }
+
+                    const { items, thumbnail, ...rest } = material || {};
+                    return {
+                        ...rest,
+                        thumbnail: getThumbUrl(thumbnail),
+                        order: index + 1,
+                    };
+                });
             }
 
             if (Array.isArray(clone.cast)) {
@@ -853,6 +943,7 @@ const EditProject: React.FC = () => {
                 material: clone.materials,
                 cast: clone.cast,
                 mainCover: clone.mainCover,
+                parentProject: getOptionValue(clone.parentProject) || undefined,
             };
 
             update.mutate(
@@ -874,6 +965,31 @@ const EditProject: React.FC = () => {
             console.error("Project submission failed:", error);
             setSaveStatus("error");
             setTimeout(() => setSaveStatus("idle"), 3000);
+        }
+    };
+
+    const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        if (e.key !== "Enter") return;
+
+        // don't intercept when editing a material or cast modal is open
+        if (editingMaterial || editingCast) return;
+
+        const target = e.target as HTMLElement | null;
+        // allow Enter inside textareas or contenteditable elements
+        if (target && (target.tagName === "TEXTAREA" || target.getAttribute?.("contenteditable") === "true")) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const order: Array<"basic" | "materials" | "cast" | "media"> = ["basic", "materials", "cast", "media"];
+        const idx = order.indexOf(activeTab);
+        if (idx === -1) return;
+
+        if (idx < order.length - 1) {
+            setActiveTab(order[idx + 1]);
+        } else {
+            // on final step — do nothing (prevent form submit)
         }
     };
 
@@ -1026,7 +1142,7 @@ const EditProject: React.FC = () => {
                         <Camera className="w-4 h-4 inline mr-2" />
                         Main Cover
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => setActiveTab("media")}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
                             activeTab === "media"
@@ -1036,13 +1152,13 @@ const EditProject: React.FC = () => {
                     >
                         <File className="w-4 h-4 inline mr-2" />
                         HTML
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
             {/* Form Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
                     {/* Basic Information Tab */}
                     {activeTab === "basic" && (
                         <div className="space-y-6">
@@ -1093,6 +1209,27 @@ const EditProject: React.FC = () => {
                                                 placeholder="e.g., Cairo, Egypt"
                                             />
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                                            Parent Project
+                                        </label>
+                                        <Autocomplete
+                                            options={allProjects.filter((p: any) => ((p.id || p._id) !== id))}
+                                            value={form.parentProject || null}
+                                            onChange={(_, v) => setForm({ ...form, parentProject: v })}
+                                            getOptionLabel={(opt) => getOptionLabel(opt)}
+                                            isOptionEqualToValue={(o: any, v: any) => {
+                                                const oId = (o && (o._id || o.id)) || "";
+                                                const vId = (v && (v._id || v.id)) || "";
+                                                if (oId && vId) return String(oId) === String(vId);
+                                                return getOptionLabel(o) === getOptionLabel(v);
+                                            }}
+                                            renderInput={(params) => <TextField {...params} placeholder="Optional parent project" size="small" />}
+                                            sx={taxonomyAutocompleteSx}
+                                            slotProps={taxonomyAutocompleteSlotProps}
+                                        />
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-2">
@@ -1650,7 +1787,33 @@ const EditProject: React.FC = () => {
                                             <video src={editingMaterial.url} controls className="w-full h-40 object-cover rounded" />
                                         </div>
                                     )}
-                                   
+                                    {editingMaterial.type === "video" && (
+                                        <div className="mt-3">
+                                            <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Video Thumbnail (optional)</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleVideoThumbnailUpload}
+                                                className="input w-full"
+                                            />
+
+                                            {(() => {
+                                                const thumbUrl = typeof editingMaterial.thumbnail === 'string' ? editingMaterial.thumbnail : editingMaterial.thumbnail?.url;
+                                                const thumbName = typeof editingMaterial.thumbnail === 'object' ? editingMaterial.thumbnail?.originalName : undefined;
+                                                if (!thumbUrl) return null;
+
+                                                return (
+                                                    <div className="mt-3">
+                                                        <img src={thumbUrl} alt="Thumbnail preview" className="w-full h-40 object-cover rounded" />
+                                                        <div className="mt-2 text-xs text-light-500 dark:text-dark-400">File: {thumbName || 'Uploaded image'}</div>
+                                                        <div className="mt-2">
+                                                            <button type="button" onClick={() => setEditingMaterial(prev => prev ? { ...prev, thumbnail: undefined } : prev)} className="btn-ghost">Remove</button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
                                 </>
                             )}
 
