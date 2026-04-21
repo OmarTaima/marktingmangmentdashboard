@@ -10,6 +10,7 @@ import {
     getProjectCategories,
     getProjectTypes,
     type ProjectTaxonomyOption,
+    getProjectCast,
 } from "@/api/requests/projectsService";
 
 export const projectsKeys = {
@@ -20,6 +21,7 @@ export const projectsKeys = {
     detail: (id: string) => [...projectsKeys.details(), id] as const,
     categories: () => [...projectsKeys.all, "categories"] as const,
     types: () => [...projectsKeys.all, "types"] as const,
+    cast: () => [...projectsKeys.all, "cast"] as const,
 };
 
 export const useProjects = (params?: Record<string, any>) => {
@@ -62,6 +64,15 @@ export const useProjectTypes = () => {
     return useQuery<ProjectTaxonomyOption[]>({
         queryKey: projectsKeys.types(),
         queryFn: getProjectTypes,
+        staleTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
+
+export const useProjectCast = () => {
+    return useQuery<ProjectTaxonomyOption[]>({
+        queryKey: projectsKeys.cast(),
+        queryFn: getProjectCast,
         staleTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
     });

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useProject, useUpdateProject, useDeleteProject, useClients, useProjectCategories, useProjectTypes } from "@/hooks/queries";
-import type { Client } from "@/api/interfaces/clientinterface";
+import { useProject, useUpdateProject, useDeleteProject, useProjectCategories, useProjectTypes, useProjectCast } from "@/hooks/queries";
 import { useLang } from "@/hooks/useLang";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -64,9 +63,9 @@ const EditProject: React.FC = () => {
     const navigate = useNavigate();
 
     const { data: project, isLoading, error } = useProject(id);
+    const { data: projectCast = [], isLoading: projectCastLoading } = useProjectCast();
     const update = useUpdateProject();
     const del = useDeleteProject();
-    const { data: clients = [], isLoading: clientsLoading } = useClients();
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
     const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
 
@@ -351,22 +350,49 @@ const EditProject: React.FC = () => {
             .map((material, index) => ({ ...material, order: index + 1 }));
     };
 
+    const formInitializedRef = useRef(false);
+
     useEffect(() => {
-        if (project) {
-            setForm({
-                name: project.name || "",
-                description: project.description || "",
-                location: project.location || "",
-                published: project.published || false,
-                categories: project.categories || [],
-                tags: project.tags || [],
-                types: project.types || [],
-                materials: normalizeProjectMaterials(project.material || []),
-                cast: (project.cast || []).sort((a: any, b: any) => a.order - b.order),
-                mainCover: project.mainCover || null,
-            });
-        }
-    }, [project]);
+        if (!project) return;
+        if (formInitializedRef.current) return;
+        formInitializedRef.current = true;
+
+        const rawCast = project.cast || [];
+        const mappedCast = (Array.isArray(rawCast) ? rawCast : []).map((c: any, idx: number) => {
+            if (!c) return { name: "", title: "", order: idx + 1 };
+
+            if (typeof c === "string") {
+                const found = projectCast.find((pc: any) => (pc._id || pc.id) === c || pc.name === c);
+                return {
+                    _id: found?._id || undefined,
+                    name: found?.name || c,
+                    title: "",
+                    order: idx + 1,
+                };
+            }
+
+            if (typeof c === "object") {
+                if (c.name) return { ...c, order: c.order || idx + 1 };
+                const found = projectCast.find((pc: any) => pc._id === c._id || pc.id === c._id || pc._id === c.id || pc.name === c.name);
+                return { ...(found || {}), ...c, order: c.order || idx + 1 };
+            }
+
+            return { name: String(c), title: "", order: idx + 1 };
+        }).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
+        setForm({
+            name: project.name || "",
+            description: project.description || "",
+            location: project.location || "",
+            published: project.published || false,
+            categories: project.categories || [],
+            tags: project.tags || [],
+            types: project.types || [],
+            materials: normalizeProjectMaterials(project.material || []),
+            cast: mappedCast,
+            mainCover: project.mainCover || null,
+        });
+    }, [project, projectCast]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -1703,31 +1729,7 @@ const EditProject: React.FC = () => {
                             </button>
                         </div>
                         <div className="p-4 space-y-4">
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Link to existing client (optional)</label>
-                                <select
-                                    value={editingCast.clientId || ""}
-                                    onChange={(e) => {
-                                        const clientId = e.target.value || undefined;
-                                        if (!clientId) {
-                                            setEditingCast({ ...editingCast, clientId: undefined });
-                                            return;
-                                        }
-                                        const chosen = (clients as Client[]).find((c) => c._id === clientId);
-                                        setEditingCast({
-                                            ...editingCast,
-                                            clientId,
-                                            name: chosen?.personal?.fullName || chosen?.business?.name || editingCast.name,
-                                        });
-                                    }}
-                                    className="input w-full"
-                                >
-                                    <option value="">— Select client —</option>
-                                    {(!clientsLoading && clients) && (clients as Client[]).map((c) => (
-                                        <option key={c._id} value={c._id}>{c.personal?.fullName || c.business?.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            
                             <div>
                                 <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Name</label>
                                 <input

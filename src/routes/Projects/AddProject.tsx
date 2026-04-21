@@ -1,20 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useLang } from "@/hooks/useLang";
-import { useCreateProject, useClients, useProjectCategories, useProjectTypes } from "@/hooks/queries";
+import { useCreateProject, useProjectCategories, useProjectTypes,useProjectCast } from "@/hooks/queries";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 import { isDataUrl, uploadDataUrlToCloudinary } from "@/utils/cloudinaryUpload";
 import { compressImageFileToMaxBytes } from "@/utils/imageCompression";
-import type { Client } from "@/api/interfaces/clientinterface";
-import { Autocomplete, TextField } from "@mui/material";
+import { Autocomplete, TextField, Chip, Avatar } from "@mui/material";
 import { 
     Plus, X, ArrowLeft, CheckCircle, AlertCircle,
     Trash2, Edit, MapPin, Users, Layers,
     Image as ImageIcon, Video, Code, Upload, GripVertical,
     Camera, User, FileText, Info
 } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Calendar } from "lucide-react";
 
 interface Material {
   _id?: string;
@@ -25,6 +27,7 @@ interface Material {
   mimeType?: string;
   size?: number;
   originalName?: string;
+    thumbnail?: string | { url: string; mimeType?: string; size?: number; originalName?: string };
     items?: PhotoMaterialItem[];
   textContent?: string;
   htmlContent?: string;
@@ -60,10 +63,9 @@ const AddProject: React.FC = () => {
     void tr; // avoid unused variable warning
     
     const mutation = useCreateProject();
-    const { data: clients = [], isLoading: clientsLoading } = useClients();
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
     const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
-    
+    const { data: projectCast = []} = useProjectCast();
     const [form, setForm] = useState<any>({
         name: "",
         description: "",
@@ -71,7 +73,8 @@ const AddProject: React.FC = () => {
         published: false,
         categories: [] as string[],
         tags: [] as string[],
-        types: [] as string[],
+        types: [] as string[],    
+        publishAt: null as Date | null, // Add this
         materials: [] as Material[],
         cast: [] as Cast[],
         mainCover: null as any,
@@ -83,6 +86,7 @@ const AddProject: React.FC = () => {
     const [draggedMaterialIndex, setDraggedMaterialIndex] = useState<number | null>(null);
     const [editingCast, setEditingCast] = useState<Cast | null>(null);
     const [draggedCastIndex, setDraggedCastIndex] = useState<number | null>(null);
+    const [newMembersRows, setNewMembersRows] = useState<Cast[]>([]);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const displayImgRef = useRef<HTMLImageElement | null>(null);
@@ -96,6 +100,17 @@ const AddProject: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
     const isDraggingRef = useRef(false);
     const dragStartRef = useRef<{ x: number; y: number; center: { x: number; y: number } }>({ x: 0, y: 0, center: { x: 0.5, y: 0.5 } });
+
+    // Submission progress UI state
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadLabel, setUploadLabel] = useState("");
+    const [, setUploadedSteps] = useState(0);
+    const [, setTotalSteps] = useState(0);
+    const [estimatedSecondsLeft, setEstimatedSecondsLeft] = useState<number | null>(null);
+
+    // Do NOT auto-prefill `form.cast` from `projectCast` — users must add members manually
+    const [selectedExistingCast, setSelectedExistingCast] = useState<any[]>([]);
 
     const getOptionLabel = (value: any): string => {
         if (typeof value === "string") return value;
@@ -316,6 +331,19 @@ const AddProject: React.FC = () => {
         });
 
     const isPhotoMaterialType = (type?: string): boolean => type === "photo" || type === "bulk";
+        const handleVideoThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file || !editingMaterial) return;
+            try {
+                const dataUrl = await readFileAsDataUrl(file);
+                setEditingMaterial((prev) => (prev ? { ...prev, thumbnail: { url: dataUrl, mimeType: file.type, originalName: file.name, size: file.size } } : prev));
+            } catch {
+                // ignore
+            } finally {
+                if (e.target) e.target.value = "";
+            }
+        };
+
 
     const buildPhotoItems = (material: Partial<Material>): PhotoMaterialItem[] => {
         const merged: PhotoMaterialItem[] = [];
@@ -507,10 +535,28 @@ const AddProject: React.FC = () => {
         reader.readAsDataURL(file);
     };
 
-    const handleDeleteMaterial = (materialId: string) => {
-        setForm({
-            ...form,
-            materials: form.materials.filter((m: Material) => m._id !== materialId),
+    const handleDeleteMaterial = (materialId?: string | null, index?: number) => {
+        setForm((prev: any) => {
+            let nextMaterials: Material[] = [];
+
+            if (materialId) {
+                // remove by _id for existing materials
+                nextMaterials = prev.materials.filter((m: Material) => String(m._id || "") !== String(materialId));
+            } else if (typeof index === "number") {
+                // remove by index for newly-added materials without an _id
+                nextMaterials = prev.materials.filter((_: any, i: number) => i !== index);
+            } else {
+                // nothing to delete
+                return prev;
+            }
+
+            // reassign order numbers
+            nextMaterials = nextMaterials.map((m: Material, idx: number) => ({ ...m, order: idx + 1 }));
+
+            return {
+                ...prev,
+                materials: nextMaterials,
+            };
         });
     };
 
@@ -546,11 +592,14 @@ const AddProject: React.FC = () => {
 
     // Cast Management
     const handleAddCast = () => {
+        const nextOrder = form.cast.length + 1;
         setEditingCast({
             name: "",
             title: "",
-            order: form.cast.length + 1,
+            order: nextOrder,
         });
+        setNewMembersRows([{ name: "", title: "", order: nextOrder }]);
+        setSelectedExistingCast([]);
     };
 
     const handleEditCast = (cast: Cast) => {
@@ -558,24 +607,54 @@ const AddProject: React.FC = () => {
     };
 
     const handleSaveCast = () => {
-        if (editingCast) {
-            if (editingCast._id) {
-                // Update existing
-                setForm({
-                    ...form,
-                    cast: form.cast.map((c: Cast) =>
-                        c._id === editingCast._id ? editingCast : c
-                    ),
-                });
-            } else {
-                // Add new
-                setForm({
-                    ...form,
-                    cast: [...form.cast, { ...editingCast, order: form.cast.length + 1 }],
-                });
-            }
+        if (!editingCast) return;
+
+        if (editingCast._id) {
+            // Update existing
+            setForm((prev: any) => ({
+                ...prev,
+                cast: prev.cast.map((c: Cast) => (c._id === editingCast._id ? { ...c, ...editingCast } : c)),
+            }));
             setEditingCast(null);
+            return;
         }
+
+        // Add selected existing members (as full objects for UI, but mark them)
+        const existing = selectedExistingCast || [];
+        const rows = (newMembersRows || []).filter((r) => (r.name || "").trim());
+
+        if (existing.length || rows.length) {
+            setForm((prev: any) => {
+                const next = [...prev.cast];
+                existing.forEach((ex) => {
+                    next.push({
+                        _id: ex._id || ex.id,
+                        name: ex.name || "",
+                        title: ex.title || "",
+                        order: next.length + 1,
+                        __existing: true,
+                    });
+                });
+
+                rows.forEach((r) => {
+                    next.push({ name: r.name, title: r.title || "", order: next.length + 1 });
+                });
+
+                return { ...prev, cast: next };
+            });
+
+            setSelectedExistingCast([]);
+            setNewMembersRows([]);
+            setEditingCast(null);
+            return;
+        }
+
+        // Add single (fallback)
+        setForm((prev: any) => ({
+            ...prev,
+            cast: [...prev.cast, { ...editingCast, order: prev.cast.length + 1 }],
+        }));
+        setEditingCast(null);
     };
 
     const handleDeleteCast = (castIndex: number) => {
@@ -587,6 +666,8 @@ const AddProject: React.FC = () => {
             };
         });
     };
+
+    
 
     const handleCastDragStart = (index: number) => {
         setDraggedCastIndex(index);
@@ -760,7 +841,9 @@ const AddProject: React.FC = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cropEnabled, cropCenter.x, cropCenter.y, zoom, mainCoverMeta, form.mainCover]);
-
+const handleDateChange = (date: Date | null) => {
+    setForm({ ...form, publishAt: date });
+};
     useEffect(() => {
         const onResize = () => updateOverlayStyle();
         window.addEventListener('resize', onResize);
@@ -768,183 +851,294 @@ const AddProject: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mainCoverMeta, form.mainCover, cropCenter, zoom]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        // Validate required fields
-        if (!form.name.trim()) {
-            alert("Project name is required");
-            return;
+ const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!form.name.trim()) {
+        alert("Project name is required");
+        return;
+    }
+
+    setSaveStatus("saving");
+
+    try {
+        // shallow clone for inspection
+        const clone = JSON.parse(JSON.stringify(form));
+
+        // precompute how many asset uploads we will perform (data-URL based)
+        let uploadsCount = 0;
+        if (clone.mainCover) {
+            const coverSrc = clone.mainCover.croppedUrl || clone.mainCover.url;
+            if (isDataUrl(coverSrc)) uploadsCount += 1;
         }
-        
-        setSaveStatus("saving");
-        
-        try {
-            const uploadAssetIfNeeded = async (
-                asset: { url?: string; mimeType?: string; size?: number; originalName?: string },
-                resourceType: "image" | "video",
-                fallbackFileName: string,
-            ) => {
-                if (!asset?.url || !isDataUrl(asset.url)) {
-                    return asset;
+
+        if (Array.isArray(clone.materials)) {
+            clone.materials.forEach((m: any) => {
+                if (isPhotoMaterialType(m.type)) {
+                    const items = buildPhotoItems(m);
+                    items.forEach((it) => {
+                        if (isDataUrl(it.url)) uploadsCount += 1;
+                    });
+                }
+                if (m.type === "video" && m.url && isDataUrl(m.url)) uploadsCount += 1;
+                const mThumbUrl = typeof m.thumbnail === 'string' ? m.thumbnail : m.thumbnail?.url;
+                if (mThumbUrl && isDataUrl(mThumbUrl)) uploadsCount += 1;
+                if (m.before?.url && isDataUrl(m.before.url)) uploadsCount += 1;
+                if (m.after?.url && isDataUrl(m.after.url)) uploadsCount += 1;
+            });
+        }
+
+        const total = uploadsCount + 1; // +1 for final submission step
+        setTotalSteps(total);
+        setUploadedSteps(0);
+        setUploadProgress(0);
+        setUploadModalOpen(true);
+        const startTime = Date.now();
+        setEstimatedSecondsLeft(null);
+        setUploadLabel("Uploading assets...");
+
+        let completedSteps = 0;
+        const updateProgress = (label?: string) => {
+            completedSteps += 1;
+            setUploadedSteps(completedSteps);
+            const pct = Math.round((completedSteps / total) * 100);
+            setUploadProgress(pct);
+            if (label) setUploadLabel(label);
+
+            const elapsed = (Date.now() - startTime) / 1000;
+            const avg = elapsed / Math.max(1, completedSteps);
+            const remaining = Math.max(0, Math.round((total - completedSteps) * avg));
+            setEstimatedSecondsLeft(remaining);
+        };
+
+        const uploadAssetIfNeeded = async (
+            asset: { url?: string; mimeType?: string; size?: number; originalName?: string },
+            resourceType: "image" | "video",
+            fallbackFileName: string,
+        ) => {
+            if (!asset?.url || !isDataUrl(asset.url)) {
+                return asset;
+            }
+
+            const uploaded = await uploadDataUrlToCloudinary(asset.url, {
+                resourceType,
+                fileName: asset.originalName || fallbackFileName,
+            });
+
+            // count this uploaded step
+            updateProgress();
+
+            return {
+                ...asset,
+                url: uploaded.url,
+                mimeType: uploaded.mimeType || asset.mimeType,
+                size: uploaded.size || asset.size,
+                originalName: uploaded.originalName || asset.originalName || fallbackFileName,
+            };
+        };
+
+        // upload main cover if needed
+        if (clone.mainCover) {
+            const coverUploadSource = clone.mainCover.croppedUrl || clone.mainCover.url;
+            const uploadedMainCover = await uploadAssetIfNeeded(
+                { ...clone.mainCover, url: coverUploadSource },
+                "image",
+                clone.mainCover.originalName || `main-cover-${Date.now()}.jpg`,
+            );
+
+            clone.mainCover = {
+                ...clone.mainCover,
+                ...uploadedMainCover,
+                url: uploadedMainCover.url,
+            };
+
+            // remove cropping preview data that backend validation may reject
+            delete clone.mainCover.croppedUrl;
+            delete clone.mainCover.crop;
+        }
+
+        // process materials and upload nested assets when needed
+        if (Array.isArray(clone.materials)) {
+            clone.materials = await Promise.all(
+                clone.materials.map(async (m: any, materialIndex: number) => {
+                    const copy: any = { ...m };
+
+                    if (isPhotoMaterialType(copy.type)) {
+                        let normalizedItems = buildPhotoItems(copy).map((item) => ({
+                            url: item.url,
+                            mimeType: item.mimeType,
+                            originalName: item.originalName,
+                            size: item.size,
+                            type: "photo",
+                        }));
+
+                        normalizedItems = await Promise.all(
+                            normalizedItems.map(async (item, itemIndex) => {
+                                const uploadedItem = await uploadAssetIfNeeded(
+                                    item,
+                                    "image",
+                                    item.originalName || `project-photo-${materialIndex + 1}-${itemIndex + 1}.jpg`,
+                                );
+
+                                return {
+                                    ...item,
+                                    ...uploadedItem,
+                                    type: "photo",
+                                };
+                            }),
+                        );
+
+                        const [primary, ...restItems] = normalizedItems;
+                        copy.url = primary?.url || copy.url;
+                        copy.mimeType = primary?.mimeType || copy.mimeType;
+                        copy.originalName = primary?.originalName || copy.originalName;
+                        copy.size = primary?.size || copy.size;
+                        copy.items = restItems;
+                        copy.type = normalizedItems.length > 1 ? "bulk" : "photo";
+                    }
+
+                    if (copy.type === "video" && copy.url) {
+                        const uploadedVideo = await uploadAssetIfNeeded(
+                            copy,
+                            "video",
+                            copy.originalName || `project-video-${materialIndex + 1}.mp4`,
+                        );
+
+                        copy.url = uploadedVideo.url;
+                        copy.mimeType = uploadedVideo.mimeType || copy.mimeType;
+                        copy.originalName = uploadedVideo.originalName || copy.originalName;
+                        copy.size = uploadedVideo.size || copy.size;
+
+                        // upload thumbnail if present (thumbnail may be string or object)
+                        const thumbAsset = typeof copy.thumbnail === 'string' ? { url: copy.thumbnail } : copy.thumbnail;
+                        if (thumbAsset?.url) {
+                            const uploadedThumb = await uploadAssetIfNeeded(
+                                thumbAsset,
+                                "image",
+                                thumbAsset.originalName || `project-video-thumb-${materialIndex + 1}.jpg`,
+                            );
+
+                            // store only the cloudinary URL string for backend
+                            copy.thumbnail = uploadedThumb.url;
+                        }
+                    }
+
+                    if (copy.before?.url) {
+                        const uploadedBefore = await uploadAssetIfNeeded(
+                            copy.before,
+                            "image",
+                            copy.before.originalName || `before-${materialIndex + 1}.jpg`,
+                        );
+                        copy.before = { ...copy.before, ...uploadedBefore };
+                    }
+
+                    if (copy.after?.url) {
+                        const uploadedAfter = await uploadAssetIfNeeded(
+                            copy.after,
+                            "image",
+                            copy.after.originalName || `after-${materialIndex + 1}.jpg`,
+                        );
+                        copy.after = { ...copy.after, ...uploadedAfter };
+                    }
+
+                    if (copy.before) {
+                        const { url, label, type } = copy.before;
+                        copy.before = { url, label, type };
+                    }
+                    if (copy.after) {
+                        const { url, label, type } = copy.after;
+                        copy.after = { url, label, type };
+                    }
+
+                    return copy;
+                }),
+            );
+
+            clone.materials = clone.materials.map((material: any, index: number) => {
+                if (!material) return { order: index + 1 };
+
+                const getThumbUrl = (thumb: any) => {
+                    if (!thumb) return undefined;
+                    if (typeof thumb === 'string') return thumb;
+                    if (typeof thumb === 'object') return thumb.url || thumb.publicId || undefined;
+                    return undefined;
+                };
+
+                // Keep `items` only for bulk materials; strip for others
+                if (material.type === "bulk") {
+                    return {
+                        ...material,
+                        items: Array.isArray(material.items) ? material.items : [],
+                        thumbnail: getThumbUrl(material.thumbnail),
+                        order: index + 1,
+                    };
                 }
 
-                const uploaded = await uploadDataUrlToCloudinary(asset.url, {
-                    resourceType,
-                    fileName: asset.originalName || fallbackFileName,
-                });
-
+                const { items, thumbnail, ...rest } = material || {};
                 return {
-                    ...asset,
-                    url: uploaded.url,
-                    mimeType: uploaded.mimeType || asset.mimeType,
-                    size: uploaded.size || asset.size,
-                    originalName: uploaded.originalName || asset.originalName || fallbackFileName,
-                };
-            };
-
-            // Prepare data for submission (sanitize fields that server validation disallows)
-            const clone = JSON.parse(JSON.stringify(form));
-
-            if (clone.mainCover) {
-                const coverUploadSource = clone.mainCover.croppedUrl || clone.mainCover.url;
-                const uploadedMainCover = await uploadAssetIfNeeded(
-                    { ...clone.mainCover, url: coverUploadSource },
-                    "image",
-                    clone.mainCover.originalName || `main-cover-${Date.now()}.jpg`,
-                );
-
-                clone.mainCover = {
-                    ...clone.mainCover,
-                    ...uploadedMainCover,
-                    url: uploadedMainCover.url,
-                };
-
-                // remove cropping preview data that backend validation may reject
-                delete clone.mainCover.croppedUrl;
-                delete clone.mainCover.crop;
-            }
-
-            // strip nested metadata from before/after sub-objects (server expects simple {url,label,type})
-            if (Array.isArray(clone.materials)) {
-                clone.materials = await Promise.all(
-                    clone.materials.map(async (m: any, materialIndex: number) => {
-                        const copy: any = { ...m };
-
-                        if (isPhotoMaterialType(copy.type)) {
-                            let normalizedItems = buildPhotoItems(copy).map((item) => ({
-                                url: item.url,
-                                mimeType: item.mimeType,
-                                originalName: item.originalName,
-                                size: item.size,
-                                type: "photo",
-                            }));
-
-                            normalizedItems = await Promise.all(
-                                normalizedItems.map(async (item, itemIndex) => {
-                                    const uploadedItem = await uploadAssetIfNeeded(
-                                        item,
-                                        "image",
-                                        item.originalName || `project-photo-${materialIndex + 1}-${itemIndex + 1}.jpg`,
-                                    );
-
-                                    return {
-                                        ...item,
-                                        ...uploadedItem,
-                                        type: "photo",
-                                    };
-                                }),
-                            );
-
-                            const [primary, ...restItems] = normalizedItems;
-                            copy.url = primary?.url || copy.url;
-                            copy.mimeType = primary?.mimeType || copy.mimeType;
-                            copy.originalName = primary?.originalName || copy.originalName;
-                            copy.size = primary?.size || copy.size;
-                            copy.items = restItems;
-                            copy.type = normalizedItems.length > 1 ? "bulk" : "photo";
-                        }
-
-                        if (copy.type === "video" && copy.url) {
-                            const uploadedVideo = await uploadAssetIfNeeded(
-                                copy,
-                                "video",
-                                copy.originalName || `project-video-${materialIndex + 1}.mp4`,
-                            );
-
-                            copy.url = uploadedVideo.url;
-                            copy.mimeType = uploadedVideo.mimeType || copy.mimeType;
-                            copy.originalName = uploadedVideo.originalName || copy.originalName;
-                            copy.size = uploadedVideo.size || copy.size;
-                        }
-
-                        if (copy.before?.url) {
-                            const uploadedBefore = await uploadAssetIfNeeded(
-                                copy.before,
-                                "image",
-                                copy.before.originalName || `before-${materialIndex + 1}.jpg`,
-                            );
-                            copy.before = { ...copy.before, ...uploadedBefore };
-                        }
-
-                        if (copy.after?.url) {
-                            const uploadedAfter = await uploadAssetIfNeeded(
-                                copy.after,
-                                "image",
-                                copy.after.originalName || `after-${materialIndex + 1}.jpg`,
-                            );
-                            copy.after = { ...copy.after, ...uploadedAfter };
-                        }
-
-                        if (copy.before) {
-                            const { url, label, type } = copy.before;
-                            copy.before = { url, label, type };
-                        }
-                        if (copy.after) {
-                            const { url, label, type } = copy.after;
-                            copy.after = { url, label, type };
-                        }
-
-                        return copy;
-                    }),
-                );
-
-                clone.materials = clone.materials.map((material: any, index: number) => ({
-                    ...material,
+                    ...rest,
+                    thumbnail: getThumbUrl(thumbnail),
                     order: index + 1,
-                }));
-            }
-
-            const submitData = {
-                name: clone.name,
-                description: clone.description,
-                location: clone.location,
-                published: clone.published,
-                categories: normalizeTaxonomyArrayField(clone.categories),
-                tags: normalizeArrayField(clone.tags),
-                types: normalizeTaxonomyArrayField(clone.types),
-                material: clone.materials,
-                cast: clone.cast,
-                mainCover: clone.mainCover,
-            };
-
-            mutation.mutate(submitData, {
-                onSuccess: (newProject: any) => {
-                    setSaveStatus("success");
-                    setTimeout(() => {
-                        const projectId = newProject?.id || newProject?._id;
-                        navigate(projectId ? `/projects/${projectId}` : "/projects");
-                    }, 1500);
-                },
-                onError: () => {
-                    setSaveStatus("error");
-                    setTimeout(() => setSaveStatus("idle"), 3000);
-                },
+                };
             });
-        } catch (error) {
-            console.error("Project submission failed:", error);
-            setSaveStatus("error");
-            setTimeout(() => setSaveStatus("idle"), 3000);
+        }
+
+        // Prepare cast for submission: existing members are sent as their id only; new members include name/title
+        if (Array.isArray(clone.cast)) {
+            clone.cast = clone.cast.map((c: any) => {
+                if (!c) return c;
+                // If the cast item is a plain string (id), convert to object form expected by backend
+                if (typeof c === "string") return { name: c };
+                // If it's marked as existing, send as object with name set to the id
+                if (c.__existing && (c._id || c.id)) return { name: c._id || c.id };
+                // New members: send name/title/order
+                return { name: c.name || "", title: c.title || "", order: c.order };
+            });
+        }
+
+        const submitData = {
+            name: clone.name,
+            description: clone.description,
+            location: clone.location,
+            published: clone.published,
+            publishedAt: clone.publishAt ? new Date(clone.publishAt).toISOString() : undefined,
+            categories: normalizeTaxonomyArrayField(clone.categories),
+            tags: normalizeArrayField(clone.tags),
+            types: normalizeTaxonomyArrayField(clone.types),
+            material: clone.materials,
+            cast: clone.cast,
+            mainCover: clone.mainCover,
+        };
+
+        // final submission step (use mutateAsync to await completion and update progress)
+        setUploadLabel("Submitting project...");
+        const created = await mutation.mutateAsync(submitData as any);
+
+        // mark final step complete
+        updateProgress();
+
+        setSaveStatus("success");
+        setTimeout(() => {
+            // close modal and navigate to created project if available
+            setUploadModalOpen(false);
+            const projectId = created?.id;
+            navigate(projectId ? `/projects/${projectId}` : "/projects");
+        }, 900);
+    } catch (error) {
+        console.error("Project submission failed:", error);
+        setSaveStatus("error");
+        setUploadLabel("Failed to create project");
+        setTimeout(() => setSaveStatus("idle"), 3000);
+        setTimeout(() => setUploadModalOpen(false), 2000);
+    }
+};
+
+    const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        if (activeTab === "media" && e.key === "Enter") {
+            const target = e.target as HTMLElement | null;
+            if (!target || target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+            }
         }
     };
 
@@ -958,6 +1152,15 @@ const AddProject: React.FC = () => {
     const formatRichText = (content?: string) => {
         if (!content) return "";
         return /<\/?[a-z][\s\S]*>/i.test(content) ? content : content.replace(/\n/g, "<br />");
+    };
+
+    const formatTimeShort = (secs: number) => {
+        const s = Math.max(0, Math.round(secs || 0));
+        if (s === 0) return "0s";
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return `${m}m ${r}s`;
     };
 
     const isSaving = mutation.isPending || saveStatus === "saving";
@@ -1073,74 +1276,103 @@ const AddProject: React.FC = () => {
 
             {/* Form Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-                <form onSubmit={handleSubmit}>
+                <form onKeyDown={handleFormKeyDown}>
                     {/* Basic Information Tab */}
-                    {activeTab === "basic" && (
-                        <div className="space-y-6">
-                            <div className="card p-6">
-                                <h2 className="text-lg font-semibold text-light-900 dark:text-dark-50 mb-4">Basic Information</h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
-                                            Project Name *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={form.name}
-                                            onChange={handleChange}
-                                            required
-                                            className="input w-full"
-                                            placeholder="Enter project name"
-                                        />
-                                    </div>
+{activeTab === "basic" && (
+    <div className="space-y-6">
+        <div className="card p-6">
+            <h2 className="text-lg font-semibold text-light-900 dark:text-dark-50 mb-4">Basic Information</h2>
+            <div className="space-y-4">
+                <div>
+                    <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                        Project Name *
+                    </label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={form.name}
+                        onChange={handleChange}
+                        required
+                        className="input w-full"
+                        placeholder="Enter project name"
+                    />
+                </div>
 
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
-                                            Description
-                                        </label>
-                                        <textarea
-                                            name="description"
-                                            value={form.description}
-                                            onChange={handleChange}
-                                            rows={4}
-                                            className="input w-full resize-y min-h-[100px]"
-                                            placeholder="Describe the project..."
-                                        />
-                                    </div>
+                <div>
+                    <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                        Description
+                    </label>
+                    <textarea
+                        name="description"
+                        value={form.description}
+                        onChange={handleChange}
+                        rows={4}
+                        className="input w-full resize-y min-h-[100px]"
+                        placeholder="Describe the project..."
+                    />
+                </div>
 
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
-                                            Location
-                                        </label>
-                                        <div className="relative">
-                                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-light-400 dark:text-dark-500" />
-                                            <input
-                                                type="text"
-                                                name="location"
-                                                value={form.location}
-                                                onChange={handleChange}
-                                                className="input w-full pl-9"
-                                                placeholder="e.g., Cairo, Egypt"
-                                            />
-                                        </div>
-                                    </div>
+                <div>
+                    <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                        Location
+                    </label>
+                    <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-light-400 dark:text-dark-500" />
+                        <input
+                            type="text"
+                            name="location"
+                            value={form.location}
+                            onChange={handleChange}
+                            className="input w-full pl-9"
+                            placeholder="e.g., Cairo, Egypt"
+                        />
+                    </div>
+                </div>
 
-                                    <div className="flex items-center gap-3 pt-2">
-                                        <input
-                                            type="checkbox"
-                                            name="published"
-                                            id="published"
-                                            checked={form.published}
-                                            onChange={handleChange}
-                                            className="w-4 h-4 rounded border-light-300 dark:border-dark-600 text-light-500 dark:text-secdark-500 focus:ring-light-500 dark:focus:ring-secdark-500"
-                                        />
-                                        <label htmlFor="published" className="text-sm text-light-700 dark:text-dark-300">
-                                            Publish this project immediately (make it publicly visible)
-                                        </label>
-                                    </div>
-                                </div>
+                <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            name="published"
+                            id="published"
+                            checked={form.published}
+                            onChange={handleChange}
+                            className="w-4 h-4 rounded border-light-300 dark:border-dark-600 text-light-500 dark:text-secdark-500 focus:ring-light-500 dark:focus:ring-secdark-500"
+                        />
+                        <label htmlFor="published" className="text-sm text-light-700 dark:text-dark-300">
+                            Schedule for publishing (if unchecked, project will be published immediately)
+                        </label>
+                    </div>
+                    
+                    {form.published && (
+                        <div className="ml-7 mt-2">
+                            <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                                Publish Date & Time
+                            </label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-light-400 dark:text-dark-500 z-10" />
+                                <DatePicker
+                                    selected={form.publishAt}
+                                    onChange={handleDateChange}
+                                    showTimeSelect
+                                    dateFormat="MMMM d, yyyy h:mm aa"
+                                    placeholderText="Select date and time to publish"
+                                    minDate={new Date()}
+                                    className="input w-full pl-10"
+                                    timeIntervals={15}
+                                    timeCaption="Time"
+                                    calendarClassName="dark:bg-dark-800 dark:text-dark-50"
+                                    popperClassName="z-50"
+                                />
                             </div>
+                            <p className="mt-1 text-xs text-light-500 dark:text-dark-400">
+                                The project will be automatically published at the selected date and time
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
 
                             <div className="card p-6">
                                 <h2 className="text-lg font-semibold text-light-900 dark:text-dark-50 mb-4">Categories & Tags</h2>
@@ -1391,7 +1623,7 @@ const AddProject: React.FC = () => {
                                                     <button type="button" onClick={() => handleEditMaterial(material)} title="Edit" aria-label="Edit material" className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-light-200 dark:border-dark-700 bg-white/70 dark:bg-dark-900/50 hover:bg-light-100 dark:hover:bg-dark-800 text-light-600 dark:text-dark-400 transition-colors">
                                                         <Edit className="w-4 h-4" />
                                                     </button>
-                                                    <button type="button" onClick={() => handleDeleteMaterial(material._id!)} title="Delete" aria-label="Delete material" className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-danger-200 dark:border-danger-900/40 bg-white/70 dark:bg-dark-900/50 hover:bg-danger-50 dark:hover:bg-danger-950/30 text-danger-500 transition-colors">
+                                                    <button type="button" onClick={() => handleDeleteMaterial(material._id, idx)} title="Delete" aria-label="Delete material" className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-danger-200 dark:border-danger-900/40 bg-white/70 dark:bg-dark-900/50 hover:bg-danger-50 dark:hover:bg-danger-950/30 text-danger-500 transition-colors">
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -1414,10 +1646,12 @@ const AddProject: React.FC = () => {
                             <div className="card p-6">
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-lg font-semibold text-light-900 dark:text-dark-50">Cast & Crew</h2>
-                                    <button type="button" onClick={handleAddCast} className="btn-primary inline-flex items-center gap-2">
-                                        <Plus className="w-4 h-4" />
-                                        Add Member
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                            <button type="button" onClick={handleAddCast} className="btn-primary inline-flex items-center gap-2">
+                                                <Plus className="w-4 h-4" />
+                                                Add Member
+                                            </button>
+                                        </div>
                                 </div>
 
                                 <div className="space-y-3">
@@ -1580,33 +1814,71 @@ const AddProject: React.FC = () => {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-4 pt-8 mt-8 border-t border-light-200 dark:border-dark-800">
-                        <Link to="/projects" className="btn-ghost">
-                            Cancel
-                        </Link>
-                        <button
-                            type="submit"
-                            disabled={isSaving}
-                            className={`inline-flex items-center gap-2 min-w-[120px] justify-center rounded-lg px-4 py-2 transition-colors ${
-                                isSaving
-                                    ? "bg-light-100 dark:bg-dark-800 text-light-700 dark:text-dark-200 border border-light-200 dark:border-dark-700 cursor-not-allowed"
-                                    : "btn-primary"
-                            }`}
-                        >
-                            {saveStatus === "saving" && (
-                                <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                            )}
-                            {saveStatus === "success" && <CheckCircle className="w-4 h-4" />}
-                            {saveStatus === "error" && <AlertCircle className="w-4 h-4" />}
-                            {saveStatus === "idle" && <Plus className="w-4 h-4" />}
-                            {saveStatus === "saving" && "Creating..."}
-                            {saveStatus === "success" && "Created!"}
-                            {saveStatus === "error" && "Failed!"}
-                            {saveStatus === "idle" && "Create Project"}
-                        </button>
-                    </div>
+<div className="flex items-center justify-between gap-4 pt-8 mt-8 border-t border-light-200 dark:border-dark-800">
+    <Link to="/projects" className="btn-ghost">
+        Cancel
+    </Link>
+    
+    <div className="flex items-center gap-3">
+        {activeTab !== "media" ? (
+   <button
+    type="button"
+    onClick={() => {
+        const order: Array<"basic" | "materials" | "cast" | "media"> = ["basic", "materials", "cast", "media"];
+        const idx = order.indexOf(activeTab);
+        const next = idx >= 0 && idx < order.length - 1 ? order[idx + 1] : "media";
+        setActiveTab(next); // TypeScript now knows next is of the correct type
+    }}
+    className="btn-primary inline-flex items-center gap-2"
+>
+    <Plus className="w-4 h-4" />
+    Next
+</button>
+) : (
+    <button
+        type="button"  // Change from "submit" to "button"
+        onClick={handleSubmit}  // Call handleSubmit directly
+        disabled={isSaving}
+        className={`inline-flex items-center gap-2 min-w-[120px] justify-center rounded-lg px-4 py-2 transition-colors ${
+            isSaving
+                ? "bg-light-100 dark:bg-dark-800 text-light-700 dark:text-dark-200 border border-light-200 dark:border-dark-700 cursor-not-allowed"
+                : "btn-primary"
+        }`}
+    >
+        {saveStatus === "saving" && (
+            <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+        )}
+        {saveStatus === "success" && <CheckCircle className="w-4 h-4" />}
+        {saveStatus === "error" && <AlertCircle className="w-4 h-4" />}
+        {saveStatus === "idle" && <CheckCircle className="w-4 h-4" />}
+        {saveStatus === "saving" && "Creating..."}
+        {saveStatus === "success" && "Created!"}
+        {saveStatus === "error" && "Failed!"}
+        {saveStatus === "idle" && "Create Project"}
+    </button>
+)}
+    </div>
+</div>
                 </form>
             </div>
+
+            {uploadModalOpen && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" style={{ zIndex: 9999 }}>
+                    <div className="bg-white dark:bg-dark-800 rounded-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-semibold text-light-900 dark:text-dark-50">Creating project</h3>
+                        <div className="mt-2 text-sm text-light-600 dark:text-dark-400">{uploadLabel || "Working..."}</div>
+
+                        <div className="mt-4 w-full bg-light-100 dark:bg-dark-700 h-3 rounded-full overflow-hidden">
+                            <div className="h-3 bg-light-500 dark:bg-secdark-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between text-xs text-light-500 dark:text-dark-400">
+                            <div>{uploadProgress}%</div>
+                            <div>{estimatedSecondsLeft !== null ? `${formatTimeShort(estimatedSecondsLeft)} remaining` : "Estimating..."}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Material Edit Modal */}
             {editingMaterial && (
@@ -1695,6 +1967,32 @@ const AddProject: React.FC = () => {
                                             <video src={editingMaterial.url} controls className="w-full h-40 object-cover rounded" />
                                         </div>
                                     )}
+
+                                    {editingMaterial.type === "video" && (
+                                        <div className="mt-3">
+                                            <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Thumbnail</label>
+                                            {(() => {
+                                                const thumbUrl = typeof editingMaterial.thumbnail === 'string' ? editingMaterial.thumbnail : editingMaterial.thumbnail?.url;
+                                                const thumbName = typeof editingMaterial.thumbnail === 'object' ? editingMaterial.thumbnail?.originalName : undefined;
+                                                if (thumbUrl) {
+                                                    return (
+                                                        <div className="flex items-center gap-3">
+                                                            <img src={thumbUrl} alt={thumbName || 'Thumbnail'} className="w-32 h-20 object-cover rounded border" />
+                                                            <div className="flex flex-col">
+                                                                <button type="button" onClick={() => setEditingMaterial(prev => prev ? { ...prev, thumbnail: undefined } : prev)} className="btn-ghost">Remove</button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div>
+                                                        <input type="file" accept="image/*" onChange={handleVideoThumbnailUpload} className="input" />
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
                                   
                                 </>
                             )}
@@ -1763,6 +2061,8 @@ const AddProject: React.FC = () => {
                 </div>
             )}
 
+            
+
             {/* Cast Edit Modal */}
             {editingCast && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setEditingCast(null)}>
@@ -1776,54 +2076,117 @@ const AddProject: React.FC = () => {
                             </button>
                         </div>
                         <div className="p-4 space-y-4">
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Link to existing client (optional)</label>
-                                <select
-                                    value={editingCast.clientId || ""}
-                                    onChange={(e) => {
-                                        const clientId = e.target.value || undefined;
-                                        if (!clientId) {
-                                            setEditingCast({ ...editingCast, clientId: undefined });
-                                            return;
-                                        }
-                                        const chosen = (clients as Client[]).find((c) => c._id === clientId);
-                                        setEditingCast({
-                                            ...editingCast,
-                                            clientId,
-                                            name: chosen?.personal?.fullName || chosen?.business?.name || editingCast.name,
-                                        });
-                                    }}
-                                    className="input w-full"
-                                >
-                                    <option value="">— Select client —</option>
-                                    {(!clientsLoading && clients) && (clients as Client[]).map((c) => (
-                                        <option key={c._id} value={c._id}>{c.personal?.fullName || c.business?.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Name</label>
-                                <input
-                                    type="text"
-                                    value={editingCast.name}
-                                    onChange={(e) => setEditingCast({ ...editingCast, name: e.target.value })}
-                                    className="input w-full"
-                                    placeholder="Full name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Title/Role</label>
-                                <input
-                                    type="text"
-                                    value={editingCast.title}
-                                    onChange={(e) => setEditingCast({ ...editingCast, title: e.target.value })}
-                                    className="input w-full"
-                                    placeholder="e.g., Creative Director, Photographer"
-                                />
-                            </div>
+
+                                    {editingCast && editingCast._id ? (
+                                <>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Name</label>
+                                        <input
+                                            type="text"
+                                            value={editingCast.name}
+                                            onChange={(e) => setEditingCast({ ...editingCast, name: e.target.value })}
+                                            className="input w-full"
+                                            placeholder="Full name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Title/Role</label>
+                                        <input
+                                            type="text"
+                                            value={editingCast.title}
+                                            onChange={(e) => setEditingCast({ ...editingCast, title: e.target.value })}
+                                            className="input w-full"
+                                            placeholder="e.g., Creative Director, Photographer"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">Members</label>
+                                            <p className="text-xs text-light-500 dark:text-dark-400 mb-2">Select existing members or add new ones below. Use <span className="font-medium">Add Member</span> to append rows.</p>
+
+                                            <Autocomplete
+                                                multiple
+                                                disablePortal
+                                                filterSelectedOptions
+                                                options={projectCast}
+                                                value={selectedExistingCast}
+                                                onChange={(_, val) => setSelectedExistingCast(val as any[])}
+                                                getOptionLabel={getOptionLabel}
+                                                isOptionEqualToValue={(o, v) => (o._id || o.id) === (v._id || v.id)}
+                                                className="w-full mb-3"
+                                                sx={taxonomyAutocompleteSx}
+                                                slotProps={taxonomyAutocompleteSlotProps}
+                                                renderOption={(props, option: any) => (
+                                                    <li {...props} className="flex items-center gap-3 px-3 py-2">
+                                                        <div className="w-8 h-8 rounded-full bg-light-100 dark:bg-dark-800 flex items-center justify-center text-sm font-medium text-light-700 dark:text-dark-200">
+                                                            {getOptionLabel(option).charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="font-medium text-sm text-light-900 dark:text-dark-50">{getOptionLabel(option)}</div>
+                                                            {option.title && <div className="text-xs text-light-500 dark:text-dark-400">{option.title}</div>}
+                                                        </div>
+                                                    </li>
+                                                )}
+                                                renderTags={(value: any[], getTagProps) =>
+                                                    value.map((option, index) => {
+                                                        const label = getOptionLabel(option);
+                                                        const initial = label ? label.charAt(0).toUpperCase() : "?";
+                                                        return (
+                                                            <Chip
+                                                                label={label}
+                                                                avatar={<Avatar sx={{ width: 20, height: 20, fontSize: 12 }}>{initial}</Avatar>}
+                                                                size="small"
+                                                                {...getTagProps({ index })}
+                                                            />
+                                                        );
+                                                    })
+                                                }
+                                                renderInput={(params) => <TextField {...params} placeholder="Search existing members" size="small" />}
+                                            />
+
+                                            {newMembersRows.map((row, rIdx) => (
+                                                <div key={rIdx} className="grid grid-cols-12 gap-2 items-center mb-2">
+                                                    <input
+                                                        type="text"
+                                                        value={row.name}
+                                                        onChange={(e) => setNewMembersRows((prev) => prev.map((p, i) => (i === rIdx ? { ...p, name: e.target.value } : p)))}
+                                                        className="input col-span-7"
+                                                        placeholder="Full name"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={row.title}
+                                                        onChange={(e) => setNewMembersRows((prev) => prev.map((p, i) => (i === rIdx ? { ...p, title: e.target.value } : p)))}
+                                                        className="input col-span-4"
+                                                        placeholder="Title/Role (optional)"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setNewMembersRows((prev) => prev.filter((_, i) => i !== rIdx))}
+                                                        className="p-2 rounded hover:bg-light-100 dark:hover:bg-dark-800 text-danger-500"
+                                                        title="Remove"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewMembersRows((prev) => [...prev, { name: "", title: "", order: form.cast.length + prev.length + 1 }])}
+                                                    className="btn-secondary"
+                                                >
+                                                    <Plus className="w-4 h-4 inline mr-2" />
+                                                    Add Member
+                                                </button>
+                                            </div>
+                                        </div>
+                            )}
                             <div className="flex justify-end gap-2 pt-4">
                                 <button onClick={() => setEditingCast(null)} className="btn-ghost">Cancel</button>
-                                <button onClick={handleSaveCast} className="btn-primary">Save Member</button>
+                                <button onClick={handleSaveCast} className="btn-primary">{editingCast && editingCast._id ? "Save Member" : "Save Members"}</button>
                             </div>
                         </div>
                     </div>

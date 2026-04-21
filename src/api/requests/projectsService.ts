@@ -158,7 +158,7 @@ export const deleteProject = async (id: string) => {
 export const getProjectCategories = async (): Promise<ProjectTaxonomyOption[]> => {
   try {
     const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/categories`, {
-      params: { pageCount: "all" },
+      params: { PageCount: "all" },
     });
     const raw = extractArrayFromResponse(response.data);
     const normalized = raw
@@ -173,7 +173,7 @@ export const getProjectCategories = async (): Promise<ProjectTaxonomyOption[]> =
 export const getProjectTypes = async (): Promise<ProjectTaxonomyOption[]> => {
   try {
     const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/types`, {
-      params: { pageCount: "all" },
+      params: { PageCount: "all" },
     });
     const raw = extractArrayFromResponse(response.data);
     const normalized = raw
@@ -184,3 +184,21 @@ export const getProjectTypes = async (): Promise<ProjectTaxonomyOption[]> => {
     throw error;
   }
 };
+
+
+export const getProjectCast = async (): Promise<ProjectTaxonomyOption[]> => {
+  try {
+    const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/cast`, {
+      params: { PageCount: "all" },
+    });
+    const raw = extractArrayFromResponse(response.data);
+    const normalized = raw
+      .map(normalizeTaxonomyOption)
+      .filter((item): item is ProjectTaxonomyOption => !!item);
+    return uniqueTaxonomyOptions(normalized);
+  } catch (error) {
+    throw error;
+  }
+};
+
+

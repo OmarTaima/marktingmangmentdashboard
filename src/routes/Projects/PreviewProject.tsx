@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useProject } from "@/hooks/queries";
+import { useProject, useProjectCast } from "@/hooks/queries";
 import { useLang } from "@/hooks/useLang";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
 // framer-motion removed (no animations on this page)
@@ -23,6 +23,7 @@ const ProjectDetails: React.FC = () => {
     void tr; // to avoid unused variable warning since tr is used in JSX
 
     const { data: project, isLoading, error } = useProject(id);
+    const { data: projectCast = [] } = useProjectCast();
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [selectedMedia, setSelectedMedia] = useState<any>(null);
     const [copied, setCopied] = useState<string | null>(null);
@@ -180,6 +181,66 @@ const ProjectDetails: React.FC = () => {
 
  
 
+    // derive project helpers and display data unconditionally to keep hooks order stable
+    const p: any = project;
+    const projectId = id || p?.id || p?._id;
+    const groupedMaterials = normalizeProjectMaterials(p?.material || []);
+
+    const displayCast = useMemo(() => {
+        const raw = p?.cast || [];
+        return (Array.isArray(raw) ? raw : []).map((c: any, idx: number) => {
+            if (!c) return { _id: undefined, name: "", title: "", order: idx + 1 };
+
+            // simple string id
+            if (typeof c === "string") {
+                const found = projectCast.find((pc: any) => (pc._id || pc.id) === c || pc.name === c);
+                return {
+                    _id: found?._id,
+                    name: found?.name || c,
+                    title: (found as any)?.title || "",
+                    order: idx + 1,
+                };
+            }
+
+            // New server shape: { castId: <id|object>, order }
+            if (c.castId) {
+                const castEntry = c.castId;
+                if (typeof castEntry === 'string') {
+                    const found = projectCast.find((pc: any) => (pc._id || pc.id) === castEntry || pc.name === castEntry);
+                    return {
+                        _id: found?._id,
+                        name: found?.name || castEntry,
+                        title: (found as any)?.title || "",
+                        order: c.order || idx + 1,
+                    };
+                }
+
+                if (typeof castEntry === 'object') {
+                    const found = projectCast.find((pc: any) => (pc._id || pc.id) === (castEntry._id || castEntry.id) || pc.name === castEntry.name);
+                    return {
+                        _id: castEntry._id || found?._id,
+                        name: castEntry.name || found?.name || "",
+                        title: castEntry.title || (found as any)?.title || "",
+                        order: c.order || idx + 1,
+                    };
+                }
+            }
+
+            // legacy object shape
+            if (typeof c === "object") {
+                if (c.name) {
+                    const found = projectCast.find((pc: any) => (pc._id || pc.id) === (c._id || c.id) || pc.name === c.name);
+                    return { _id: c._id || found?._id, name: c.name, title: c.title || (found as any)?.title || "", order: c.order || idx + 1 };
+                }
+
+                const found = projectCast.find((pc: any) => pc._id === c._id || pc.id === c._id || pc._id === c.id || pc.name === c.name);
+                return { ...(found || {}), ...c, order: c.order || idx + 1 };
+            }
+
+            return { name: String(c), title: "", order: idx + 1 };
+        });
+    }, [p?.cast, projectCast]);
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-light-50 dark:bg-dark-950 flex items-center justify-center">
@@ -208,9 +269,7 @@ const ProjectDetails: React.FC = () => {
         );
     }
 
-    const p: any = project;
-    const projectId = id || p?.id || p?._id;
-    const groupedMaterials = normalizeProjectMaterials(p.material || []);
+    /* `p`, `groupedMaterials`, and `displayCast` moved earlier to keep hooks order stable */
 
     const DetailRow = ({ label, value, icon: Icon, copyable = false, copyId = "" }: any) => {
         const formatValue = (v: any) => {
@@ -488,15 +547,25 @@ const ProjectDetails: React.FC = () => {
                     <div className="relative z-10">
                         <div className="flex items-start justify-between gap-4">
                             <div>
+
                                 <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-xs uppercase tracking-wider text-light-400 dark:text-dark-300">Project Library</span>
                                 <h1 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-semibold text-light-900 dark:text-dark-50 leading-tight">{p.name}</h1>
                                 <p className="mt-2 text-sm text-light-600 dark:text-dark-400 max-w-3xl">{p.description}</p>
+
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <Link to="/projects" className="btn-ghost">Back</Link>
-                                {projectId && (
-                                    <Link to={`/projects/${projectId}/edit`} className="btn-primary">Edit</Link>
+                            <div className="flex flex-col items-end gap-3">
+                                <div className="flex items-center gap-3">
+                                    <Link to="/projects" className="btn-ghost">Back</Link>
+                                    {projectId && (
+                                        <Link to={`/projects/${projectId}/edit`} className="btn-primary">Edit</Link>
+                                    )}
+                                </div>
+
+                                {p.mainCover?.url && (
+                                    <div className="hidden sm:block w-36 h-24 rounded-lg overflow-hidden border border-light-200 dark:border-dark-700">
+                                        <img src={p.mainCover.url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -621,16 +690,16 @@ const ProjectDetails: React.FC = () => {
                 {/* Section: Cast & Crew */}
                 <Section id="cast" title="Cast & Crew" icon={Users}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {(p.cast || []).sort((a: any, b: any) => a.order - b.order).map((c: any) => (
+                        {displayCast.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((c: any) => (
                             <div
                                 key={c._id || c.name}
                                 className="bg-white dark:bg-dark-800 rounded-xl p-4 border border-light-200 dark:border-dark-700 hover:shadow-md transition-all"
                             >
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-light-200 to-light-300 dark:from-dark-700 dark:to-dark-600 rounded-full flex items-center justify-center">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-light-200 to-light-300 dark:from-dark-700 dark:to-dark-600 rounded-full flex items-center justify-center">
                                             <span className="text-lg font-medium text-light-600 dark:text-dark-300">
-                                                {c.name.charAt(0)}
+                                                {c.name ? c.name.charAt(0).toUpperCase() : "?"}
                                             </span>
                                         </div>
                                         <div>
@@ -650,17 +719,7 @@ const ProjectDetails: React.FC = () => {
 
                
 
-                {/* Section: Main Cover */}
-                {p.mainCover && (
-                    <Section id="mainCover" title="Main Cover Details" icon={Camera}>
-                        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                            <div className="rounded-lg overflow-hidden border border-light-200 dark:border-dark-700">
-                                <img src={p.mainCover.url} alt={p.name} className="w-full h-auto" />
-                            </div>
-                            
-                        </div>
-                    </Section>
-                )}
+                {/* Main cover shown in header preview; detailed section removed */}
 
                 
 
