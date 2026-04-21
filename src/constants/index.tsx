@@ -31,69 +31,72 @@ export const navbarLinks = [
         ],
     },
     {
-        title: "Client Management",
+        title: "Clients",
         links: [
             {
                 label: "Strategies",
                 icon: NotepadText,
                 path: "/strategies",
             },
-            {
-                label: "Quotations",
-                icon: FileText,
-                path: "/quotations",
+               {
+                label: "Clients",
+                icon: Users,
+                path: "/clients",
             },
-            {
-                label: "Packages",
-                icon: Package,
-                path: "/packages",
-            },
-            {
-                label: "Projects",
-                icon: Target,
-                path: "/projects",
-            },
+          
+         
+          
+           
+        ],
+    },
+    {
+        title: "Docments",
+        links: [
             {
                 label: "Contracts",
                 icon: FileSignature,
                 path: "/contracts",
             },
-        ],
-    },
-    {
-        title: "Operations",
-        links: [
-            {
-                label: "Clients",
-                icon: Users,
-                path: "/clients",
-            },
 
-            // {
-            //     label: "Add Packages",
-            //     icon: Target,
-            //     path: "/packages/add",
-            // },
+             {
+                label: "Quotations",
+                icon: FileText,
+                path: "/quotations",
+            },
             {
                 label: "Terms",
                 icon: FileSignature,
                 path: "/terms",
             },
-            {
+          
+           
+        ],
+    },
+    {
+        title: "Sales",
+        links: [
+              {
                 label: "Services",
                 icon: Briefcase,
                 path: "/services",
             },
-            {
+               {
+                label: "Packages",
+                icon: Package,
+                path: "/packages",
+            },
+             {
                 label: "Items",
                 icon: Layers,
                 path: "/items",
             },
+            
         ],
     },
-    {
+     {
         title: "Management",
         links: [
+              
             {
                 label: "Users",
                 icon: Layers,
@@ -112,18 +115,18 @@ export const navbarLinks = [
         ],
     },
     {
-        title: "Account",
+        title: "Protofolio",
         links: [
             {
-                label: "Profile",
-                icon: UserCircle,
-                path: "/profile",
+                label: "Projects",
+                icon: Target,
+                path: "/projects",
             },
-            {
-                label: "Logout",
-                icon: LogOut,
-                path: "/logout",
-            },
+            // {
+            //     label: "Logout",
+            //     icon: LogOut,
+            //     path: "/logout",
+            // },
         ],
     },
 ];
