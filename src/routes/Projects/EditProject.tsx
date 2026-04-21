@@ -63,7 +63,7 @@ const EditProject: React.FC = () => {
     const navigate = useNavigate();
 
     const { data: project, isLoading, error } = useProject(id);
-    const { data: projectCast = [], isLoading: projectCastLoading } = useProjectCast();
+    const { data: projectCast = []} = useProjectCast();
     const update = useUpdateProject();
     const del = useDeleteProject();
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
