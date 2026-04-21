@@ -66,7 +66,7 @@ const AddProject: React.FC = () => {
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
     const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
     const { data: projectCast = []} = useProjectCast();
-    const { data: allProjects = [] as any[], isLoading: projectsLoading } = useProjects();
+    const { data: allProjects = [] as any[]} = useProjects();
     const [form, setForm] = useState<any>({
         name: "",
         description: "",

@@ -13,7 +13,7 @@ import {
   FileText, Info, AlertCircle, CheckCircle, Plus,
   Edit, Eye, MapPin,  Users, Layers,
         Image, Video, Code, Upload, GripVertical,
-  Camera, File
+  Camera
 } from "lucide-react";
 
 interface Material {
@@ -64,7 +64,7 @@ const EditProject: React.FC = () => {
 
     const { data: project, isLoading, error } = useProject(id);
     const { data: projectCast = []} = useProjectCast();
-    const { data: allProjects = [] as any[], isLoading: projectsLoading } = useProjects();
+    const { data: allProjects = [] as any[] } = useProjects();
     const update = useUpdateProject();
     const del = useDeleteProject();
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
