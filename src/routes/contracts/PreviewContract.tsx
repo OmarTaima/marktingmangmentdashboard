@@ -325,14 +325,26 @@ const PreviewContract = ({ clientId, clientName, onBack, onCreateNew, onEdit }: 
                                                     </h5>
                                                     <div className="flex flex-wrap gap-2">
                                                         {contract.terms.map((termItem: any, idx: number) => {
+                                                            // Support multiple backend shapes:
+                                                            // - custom terms: { isCustom: true, customKey, customKeyAr }
+                                                            // - populated terms: { term: { _id, key, keyAr, ... } }
+                                                            // - id-only: { term: "id" }
+                                                            // - sometimes term fields might be at the top level: { key, keyAr }
                                                             let keyText = "";
 
-                                                            if (termItem.isCustom) {
-                                                                keyText = lang === "ar" ? termItem.customKeyAr : termItem.customKey;
+                                                            if (termItem?.isCustom) {
+                                                                keyText = lang === "ar"
+                                                                    ? termItem.customKeyAr || termItem.keyAr || termItem.key
+                                                                    : termItem.customKey || termItem.key || "";
                                                             } else {
-                                                                const term = termItem.term;
-                                                                if (term && typeof term === "object") {
-                                                                    keyText = lang === "ar" ? term.keyAr : term.key;
+                                                                const nested = termItem?.term ?? termItem;
+                                                                if (typeof nested === "string") {
+                                                                    // ID only: fall back to any top-level key fields
+                                                                    keyText = lang === "ar" ? termItem.keyAr || "" : termItem.key || "";
+                                                                } else if (nested && typeof nested === "object") {
+                                                                    keyText = lang === "ar"
+                                                                        ? nested.keyAr || termItem.keyAr || nested.key || termItem.key || ""
+                                                                        : nested.key || termItem.key || nested.keyAr || termItem.keyAr || "";
                                                                 }
                                                             }
 

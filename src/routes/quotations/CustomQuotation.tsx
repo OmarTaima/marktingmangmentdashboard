@@ -57,6 +57,23 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
         else setSelectedPackages([...selectedPackages, packageId]);
     };
 
+    const toggleService = (serviceId: string) => {
+        const svc = services.find((s: any) => String(s._id) === String(serviceId));
+        const svcPackageIds = (svc?.packages || []).map((p: any) => String(p._id ?? p.id)).filter(Boolean);
+        if (svcPackageIds.length === 0) return;
+
+        const allSelected = svcPackageIds.every((id: string) => selectedPackages.includes(id));
+        if (allSelected) {
+            setSelectedPackages((prev) => prev.filter((id) => !svcPackageIds.includes(id)));
+        } else {
+            setSelectedPackages((prev) => {
+                const set = new Set(prev.map((id) => String(id)));
+                svcPackageIds.forEach((id) => set.add(id));
+                return Array.from(set);
+            });
+        }
+    };
+
     const addCustomService = () => {
         const name = customServiceName.trim();
         const nameAr = customNameAr.trim();
@@ -73,12 +90,21 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
     const removeCustomService = (id: string) => setCustomServices(customServices.filter((s) => s.id !== id));
 
     const calculateSubtotal = () => {
-        const allPackages = services.flatMap((s: any) => s.packages || []);
+        // Collect packages from services and dedupe
+        const fromServices = services.flatMap((s: any) => s.packages || []);
+        const dedup = new Map<string, any>();
+        fromServices.forEach((p: any) => {
+            const id = String(p._id ?? p.id ?? "");
+            if (id) dedup.set(id, p);
+        });
+        const allPackages = Array.from(dedup.values());
+
         const packagesTotal = selectedPackages.reduce((sum, pkgId) => {
-            const pkg = allPackages.find((p: any) => p._id === pkgId);
-            return sum + (pkg?.price || 0);
+            const pkg = allPackages.find((p: any) => String(p._id ?? p.id ?? "") === String(pkgId));
+            return sum + (Number(pkg?.price) || 0);
         }, 0);
-        const customTotal = customServices.reduce((sum, s) => sum + s.price, 0);
+
+        const customTotal = customServices.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
         return packagesTotal + customTotal;
     };
 
@@ -186,7 +212,10 @@ const CustomQuotation = ({ clientName, onBack, onSuccess }: CustomQuotationProps
                                         return (
                                             <button
                                                 key={service._id}
-                                                onClick={() => setExpandedServiceId(service._id)}
+                                                onClick={() => {
+                                                    toggleService(service._id);
+                                                    setExpandedServiceId(service._id);
+                                                }}
                                                 className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
                                                     isActive
                                                         ? "bg-light-500 dark:bg-secdark-700 text-white"

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, Trash2, Edit2, Download, FileCheck, ChevronLeft, ChevronRight, Eye, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, Trash2, Edit2, Download, ChevronLeft, ChevronRight, Eye, Plus } from "lucide-react";
 import LocalizedArrow from "@/components/LocalizedArrow";
 import { useLang } from "@/hooks/useLang";
-import { showAlert, showConfirm, showToast } from "@/utils/swal";
-import { useClients, useServices, useQuotations, useDeleteQuotation, useConvertQuotationToContract, useItems } from "@/hooks/queries";
+import { showAlert, showConfirm, } from "@/utils/swal";
+import { useClients, useServices, useQuotations, useDeleteQuotation,  useItems } from "@/hooks/queries";
 import type { Quotation, QuotationQueryParams } from "@/api/requests/quotationsService";
 
 interface PreviewQuotationProps {
@@ -44,6 +43,18 @@ const PreviewQuotation = ({
     const services = servicesResponse?.data || [];
     const { data: itemsResponse, isLoading: itemsLoading } = useItems({ limit: 1000 });
     const items = itemsResponse?.data || [];
+
+    // Small helper to return a localized name for different possible shapes
+    const getName = (obj: any) => {
+        if (!obj) return "";
+        if (lang === "ar") return obj.nameAr || obj.ar || obj.name || (obj as any).nameEn || (obj as any).en || "";
+        return (obj as any).nameEn || (obj as any).en || obj.name || obj.ar || (obj as any).nameAr || "";
+    };
+
+    // Flatten all packages from services for easy lookup in the UI
+    const allPackages = services.flatMap((s: any) =>
+        (s.packages || []).map((p: any) => ({ ...p, serviceName: getName(s) })),
+    );
 
     // For custom quotations (no real clientId) we may get a stub id like `custom-...`.
     // Avoid sending such stub ids to the API — the backend doesn't accept them and returns 500.
@@ -121,7 +132,7 @@ const PreviewQuotation = ({
                   if (!q) return false;
                   let qClientId: any = null;
                   if (typeof q.clientId === "string") qClientId = q.clientId;
-                  else if (q.clientId && typeof q.clientId === "object") qClientId = q.clientId._1d || q.clientId._id || q.clientId.id || q.clientId;
+                  else if (q.clientId && typeof q.clientId === "object") qClientId = q.clientId._id || q.clientId.id || q.clientId;
                   else if (typeof q.client === "string") qClientId = q.client;
                   else if (q.client && typeof q.client === "object") qClientId = q.client._id || q.client.id || q.client;
 
@@ -148,20 +159,11 @@ const PreviewQuotation = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [quotationsResponse, quotations.length, displayedQuotations.length, totalQuotations, shouldFetchQuotations]);
 
-    const navigate = useNavigate();
     const deleteQuotationMutation = useDeleteQuotation();
-    const convertQuotationMutation = useConvertQuotationToContract();
 
     const isDeleting = deleteQuotationMutation.isPending ? "pending" : null;
-    const isConverting = convertQuotationMutation.isPending ? "pending" : null;
 
-    // Contract conversion modal
-    const [showConvertModal, setShowConvertModal] = useState<boolean>(false);
-    const [convertQuotationId, setConvertQuotationId] = useState<string | null>(null);
-    const [convertQuotation, setConvertQuotation] = useState<Quotation | null>(null);
-    const [contractStartDate, setContractStartDate] = useState<string>("");
-    const [contractEndDate, setContractEndDate] = useState<string>("");
-    const [contractTerms, setContractTerms] = useState<string>("");
+
 
     const handleDeleteQuotation = async (id: string) => {
         const confirmed = await showConfirm(
@@ -258,7 +260,7 @@ const PreviewQuotation = ({
             let itemNumber = 1;
 
             const allPackages = services.flatMap((s: any) =>
-                (s.packages || []).map((p: any) => ({ ...p, serviceName: lang === "ar" ? s.ar : s.en })),
+                (s.packages || []).map((p: any) => ({ ...p, serviceName: getName(s) })),
             );
 
             if (quotation.packages && quotation.packages.length > 0) {
@@ -266,7 +268,7 @@ const PreviewQuotation = ({
                     const pkgIdStr = typeof pkgId === "string" ? pkgId : pkgId._id || pkgId.id;
                     const pkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
                     if (pkg) {
-                        const packageName = (lang === "ar" ? pkg.nameAr : pkg.nameEn) || pkg.name || "Package";
+                        const packageName = getName(pkg) || pkg.name || "Package";
                         const serviceName = pkg.serviceName || "Service";
                         const packagePrice = pkg.price || 0;
 
@@ -281,17 +283,17 @@ const PreviewQuotation = ({
                         if (pkg.items && pkg.items.length > 0) {
                             pkg.items.forEach((it: any) => {
                                 const inner = (it && (it.item || it)) || {};
-                                let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                let name = getName(inner) || "";
                                 const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
 
                                 if (!name || name === "(item)") {
                                     const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
-                                    if (itemId) {
-                                        const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
-                                        if (foundItem) {
-                                            name = foundItem.name || (foundItem as any).nameEn || (foundItem as any).nameAr;
+                                        if (itemId) {
+                                            const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
+                                            if (foundItem) {
+                                                name = getName(foundItem) || "(item)";
+                                            }
                                         }
-                                    }
                                 }
 
                                 const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
@@ -514,7 +516,7 @@ const PreviewQuotation = ({
             let itemNumber = 1;
 
             const allPackages = services.flatMap((s: any) =>
-                (s.packages || []).map((p: any) => ({ ...p, serviceName: lang === "ar" ? s.ar : s.en })),
+                (s.packages || []).map((p: any) => ({ ...p, serviceName: getName(s) })),
             );
 
             if (quotation.packages && quotation.packages.length > 0) {
@@ -522,7 +524,7 @@ const PreviewQuotation = ({
                     const pkgIdStr = typeof pkgId === "string" ? pkgId : pkgId._id || pkgId.id;
                     const pkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
                     if (pkg) {
-                        const packageName = (lang === "ar" ? pkg.nameAr : pkg.nameEn) || pkg.name || "Package";
+                        const packageName = getName(pkg) || pkg.name || "Package";
                         const serviceName = pkg.serviceName || "Service";
                         const packagePrice = pkg.price || 0;
 
@@ -538,7 +540,7 @@ const PreviewQuotation = ({
                         if (pkg.items && pkg.items.length > 0) {
                             pkg.items.forEach((it: any) => {
                                 const inner = (it && (it.item || it)) || {};
-                                let name = inner?.name || inner?.nameEn || inner?.nameAr;
+                                let name = getName(inner) || "";
                                 const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
 
                                 // If item is just an ID (string or object with only _id), resolve from items list
@@ -547,7 +549,7 @@ const PreviewQuotation = ({
                                     if (itemId) {
                                         const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
                                         if (foundItem) {
-                                            name = foundItem.name || (foundItem as any).nameEn || (foundItem as any).nameAr;
+                                            name = getName(foundItem) || "(item)";
                                         }
                                     }
                                 }
@@ -954,6 +956,81 @@ const PreviewQuotation = ({
                                             {new Date(quotation.createdAt).toLocaleString()}
                                         </p>
                                         {quotation.note && <p className="text-light-600 dark:text-dark-400 mb-2 text-sm italic">{quotation.note}</p>}
+
+                                        {/* Packages, services and custom services preview */}
+                                        {quotation.packages && quotation.packages.length > 0 && (
+                                            <div className="mb-2">
+                                                <h5 className="text-light-700 dark:text-dark-300 mb-1 text-sm font-medium">{tr("packages", "Packages")}</h5>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {quotation.packages.map((pkgRef: any, pidx: number) => {
+                                                        const pkgIdStr = typeof pkgRef === "string" ? pkgRef : pkgRef._id || pkgRef.id || "";
+                                                        const pkg = allPackages.find((p: any) => String(p._id) === String(pkgIdStr) || String(p.id) === String(pkgIdStr));
+                                                        const packageName = pkg ? getName(pkg) : typeof pkgRef === "object" ? getName(pkgRef) : pkgIdStr || "Package";
+
+                                                        return (
+                                                            <div key={pidx} className="rounded-lg border border-light-200/80 bg-white px-3 py-2 text-sm dark:border-dark-700/80 dark:bg-dark-800/60">
+                                                                <div className="font-semibold">{packageName} {pkg?.serviceName && <span className="text-xs font-normal">({pkg.serviceName})</span>}</div>
+                                                                {pkg && pkg.items && pkg.items.length > 0 && (
+                                                                    <div className="mt-1 text-xs text-light-600 dark:text-dark-400">
+                                                                        {pkg.items.map((it: any, idx2: number) => {
+                                                                            const inner = (it && (it.item || it)) || {};
+                                                                            let name = getName(inner) || "";
+                                                                            const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
+
+                                                                            if (!name) {
+                                                                                const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
+                                                                                if (itemId) {
+                                                                                    const found = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
+                                                                                    if (found) name = getName(found) || "(item)";
+                                                                                }
+                                                                            }
+
+                                                                            return (
+                                                                                <div key={idx2} className="flex items-center gap-2">
+                                                                                    <span className="text-xs">•</span>
+                                                                                    <span className="text-xs">{name || "(item)"}{typeof quantity !== "undefined" ? ` x${quantity}` : ""}</span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quotation.servicesPricing && quotation.servicesPricing.length > 0 && (
+                                            <div className="mb-2">
+                                                <h5 className="text-light-700 dark:text-dark-300 mb-1 text-sm font-medium">{tr("services", "Services")}</h5>
+                                                <div className="flex flex-wrap gap-2 text-sm text-light-600 dark:text-dark-400">
+                                                    {quotation.servicesPricing.map((sp: any, si: number) => {
+                                                        const serviceObj = sp.service && typeof sp.service === "object" ? sp.service : services.find((s: any) => String(s._id) === String(sp.service) || String(s.id) === String(sp.service));
+                                                        const serviceName = serviceObj ? (lang === "ar" ? serviceObj.ar || serviceObj.en : serviceObj.en || serviceObj.ar) : (sp.service?.toString?.() || "Service");
+                                                        return (
+                                                            <div key={si} className="rounded-full border px-3 py-1 bg-light-50 dark:bg-dark-900/40">
+                                                                <span className="text-sm font-medium">{serviceName}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {quotation.customServices && quotation.customServices.length > 0 && (
+                                            <div className="mb-2">
+                                                <h5 className="text-light-700 dark:text-dark-300 mb-1 text-sm font-medium">{tr("custom_services", "Custom Services")}</h5>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {quotation.customServices.map((cs: any, cidx: number) => (
+                                                        <div key={cidx} className="rounded-full border px-3 py-1 bg-light-50 dark:bg-dark-900/40 text-sm">
+                                                            <span>{lang === "ar" ? cs.ar : cs.en} {cs.price ? <span className="ml-2 text-xs">({cs.price} {lang === "ar" ? "ج.م" : "EGP"})</span> : null}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <p className="text-light-900 dark:text-dark-50 font-bold">
                                             {quotation.total} {lang === "ar" ? "ج.م" : "EGP"}
                                             {quotation.isTotalOverridden && (

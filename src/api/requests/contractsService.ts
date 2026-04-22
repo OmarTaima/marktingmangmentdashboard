@@ -103,7 +103,7 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
         "/contracts",
         async () => {
             try {
-                const response = await api.get("/contracts");
+                const response = await api.get("/contracts?PageCount=all");
                 const raw = response.data;
 
                 const data: Contract[] = Array.isArray(raw)

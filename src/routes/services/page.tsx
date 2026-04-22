@@ -14,13 +14,11 @@ const ServicesPage = () => {
     const [inputEn, setInputEn] = useState<string>("");
     const [inputAr, setInputAr] = useState<string>("");
     const [inputDescription, setInputDescription] = useState<string>("");
-    const [inputPrice, setInputPrice] = useState<string>("");
     const [inputPackages, setInputPackages] = useState<string[]>([]);
     const [editingId, setEditingId] = useState<string>("");
     const [editingValueEn, setEditingValueEn] = useState<string>("");
     const [editingValueAr, setEditingValueAr] = useState<string>("");
     const [editingDescription, setEditingDescription] = useState<string>("");
-    const [editingPrice, setEditingPrice] = useState<string>("");
     const [editingPackages, setEditingPackages] = useState<string[]>([]);
     const [showPackageDropdown, setShowPackageDropdown] = useState<boolean>(false);
     const [showEditPackageDropdown, setShowEditPackageDropdown] = useState<boolean>(false);
@@ -71,7 +69,6 @@ const ServicesPage = () => {
         const en = (inputEn || "").trim();
         const ar = (inputAr || "").trim();
         const desc = (inputDescription || "").trim();
-        const price = inputPrice ? parseFloat(inputPrice) : undefined;
 
         if (!en || !ar) {
             setError(t("service_name_required") || "English and Arabic names are required");
@@ -84,13 +81,12 @@ const ServicesPage = () => {
                 en,
                 ar,
                 description: desc || undefined,
-                price,
+                
                 packages: inputPackages.length > 0 ? inputPackages : undefined,
             });
             setInputEn("");
             setInputAr("");
             setInputDescription("");
-            setInputPrice("");
             setInputPackages([]);
             setShowPackageDropdown(false);
             setInputPackages([]);
@@ -139,7 +135,6 @@ const ServicesPage = () => {
         setEditingValueEn(service.en || "");
         setEditingValueAr(service.ar || "");
         setEditingDescription(service.description || "");
-        setEditingPrice(service.price?.toString() || "");
         // Extract package IDs from package objects
         const packageIds = service.packages?.map((pkg) => (typeof pkg === "string" ? pkg : pkg._id)) || [];
         setEditingPackages(packageIds);
@@ -149,7 +144,6 @@ const ServicesPage = () => {
         const en = (editingValueEn || "").trim();
         const ar = (editingValueAr || "").trim();
         const desc = (editingDescription || "").trim();
-        const price = editingPrice ? parseFloat(editingPrice) : undefined;
 
         if (!en || !ar) {
             setError(t("service_name_required") || "English and Arabic names are required");
@@ -166,7 +160,7 @@ const ServicesPage = () => {
                     en,
                     ar,
                     description: desc || undefined,
-                    price,
+                    
                     packages: packageIds.length > 0 ? packageIds : undefined,
                 },
             });
@@ -174,7 +168,6 @@ const ServicesPage = () => {
             setEditingValueEn("");
             setEditingValueAr("");
             setEditingDescription("");
-            setEditingPrice("");
             setEditingPackages([]);
             setShowEditPackageDropdown(false);
         } catch (e: any) {
@@ -187,7 +180,7 @@ const ServicesPage = () => {
         setEditingValueEn("");
         setEditingValueAr("");
         setEditingDescription("");
-        setEditingPrice("");
+     
         setEditingPackages([]);
         setShowEditPackageDropdown(false);
     };
@@ -298,14 +291,7 @@ const ServicesPage = () => {
                                                         className="input w-full"
                                                         placeholder={tr("service_description", "Description")}
                                                     />
-                                                    <input
-                                                        value={editingPrice}
-                                                        onChange={(e) => setEditingPrice(e.target.value)}
-                                                        onKeyDown={handleEditKeyDown}
-                                                        type="number"
-                                                        className="input w-full"
-                                                        placeholder={tr("price", "Price")}
-                                                    />
+                                                   
                                                     <div className="relative w-full min-w-0">
                                                         <button
                                                             type="button"
@@ -380,11 +366,7 @@ const ServicesPage = () => {
                                                                     {service.description}
                                                                 </span>
                                                             )}
-                                                            {service.price !== undefined && (
-                                                                <span className="text-light-600 dark:text-dark-400 mt-1 text-xs font-semibold">
-                                                                    {t("starting_price") || "Starting Price"}: {service.price}
-                                                                </span>
-                                                            )}
+                                                           
                                                             {service.packages && service.packages.length > 0 && (
                                                                 <span className="text-light-600 dark:text-dark-400 mt-1 text-xs">
                                                                     {t("packages") || "Packages"}: {service.packages.length}{" "}
@@ -500,15 +482,7 @@ const ServicesPage = () => {
                         disabled={isSaving}
                         className="input w-full disabled:opacity-50"
                     />
-                    <input
-                        value={inputPrice}
-                        onChange={(e) => setInputPrice(e.target.value)}
-                        onKeyDown={handleCreateKeyDown}
-                        type="number"
-                        placeholder={tr("price", "Price (optional)")}
-                        disabled={isSaving}
-                        className="input w-full disabled:opacity-50"
-                    />
+                   
                     <div className="relative w-full">
                         <button
                             type="button"

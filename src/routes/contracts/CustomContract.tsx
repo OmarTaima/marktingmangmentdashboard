@@ -223,8 +223,8 @@ const CustomContract = ({ onBack, onSuccess, editContract }: CustomContractProps
                 }
 
                 // Get names from resolved item
-                const itemNameAr = resolvedItem?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
-                const itemNameEn = resolvedItem?.nameEn || resolvedItem?.en || resolvedItem?.name || "Item";
+                const itemNameAr = (resolvedItem as any)?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
+                const itemNameEn = (resolvedItem as any)?.nameEn || (resolvedItem as any)?.en || resolvedItem?.name || "Item";
 
                 // classify
                 const lower = (itemNameAr + " " + itemNameEn).toLowerCase();

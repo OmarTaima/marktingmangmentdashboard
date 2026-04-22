@@ -139,10 +139,29 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
     };
 
     const toggleService = (serviceId: string) => {
-        if (selectedServiceIds.includes(serviceId)) {
-            setSelectedServiceIds(selectedServiceIds.filter((id) => id !== serviceId));
+        // If the service exposes packages, toggle all its package ids instead
+        const svc = services.find((s: any) => getEntityId(s) === serviceId);
+        const svcPackageIds = svc ? getServicePackages(svc).map((p: any) => getEntityId(p)).filter(Boolean) : [];
+
+        if (svcPackageIds.length > 0) {
+            const allSelected = svcPackageIds.every((id: string) => selectedPackages.includes(id));
+            if (allSelected) {
+                // Deselect all packages of this service
+                setSelectedPackages((prev) => prev.filter((id) => !svcPackageIds.includes(id)));
+            } else {
+                // Add all packages of this service
+                setSelectedPackages((prev) => {
+                    const set = new Set(prev);
+                    svcPackageIds.forEach((id) => set.add(id));
+                    return Array.from(set);
+                });
+            }
+
+            // Keep selectedServiceIds reserved for services without packages
+            setSelectedServiceIds((prev) => prev.filter((id) => id !== serviceId));
         } else {
-            setSelectedServiceIds([...selectedServiceIds, serviceId]);
+            // Toggle simple service selection (no packages)
+            setSelectedServiceIds((prev) => (prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]));
         }
     };
 
@@ -172,10 +191,19 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
     };
 
     const calculateSubtotal = () => {
-        const allPackages = services.flatMap((s: any) => getServicePackages(s));
-        const servicesTotal = selectedPackages.reduce((sum, pkgId) => {
+        // Merge packages from the global catalog and from service references, dedupe by id
+        const fromServices = services.flatMap((s: any) => getServicePackages(s) || []);
+        const merged = [...allPackagesCatalog, ...fromServices];
+        const dedup = new Map<string, any>();
+        merged.forEach((p: any) => {
+            const id = getEntityId(p);
+            if (id) dedup.set(id, p);
+        });
+        const allPackages = Array.from(dedup.values());
+
+        const packagesTotal = selectedPackages.reduce((sum, pkgId) => {
             const pkg = allPackages.find((p: any) => getEntityId(p) === String(pkgId));
-            return sum + (pkg?.price || 0);
+            return sum + (Number(pkg?.price) || 0);
         }, 0);
 
         const directServicesTotal = services.reduce((sum, service: any) => {
@@ -186,11 +214,9 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
             return sum + (Number(service?.price) || 0);
         }, 0);
 
-        const customServicesTotal = customServices.reduce((sum, customService) => {
-            return sum + customService.price;
-        }, 0);
+        const customServicesTotal = customServices.reduce((sum, customService) => sum + (Number(customService.price) || 0), 0);
 
-        return servicesTotal + directServicesTotal + customServicesTotal;
+        return packagesTotal + directServicesTotal + customServicesTotal;
     };
 
     const calculateTotal = () => {
@@ -359,7 +385,10 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                             return (
                                                 <button
                                                     key={serviceId}
-                                                    onClick={() => setExpandedServiceId(serviceId)}
+                                                    onClick={() => {
+                                                        toggleService(serviceId);
+                                                        setExpandedServiceId(serviceId);
+                                                    }}
                                                     className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-shadow ${
                                                         isActive
                                                             ? "bg-light-500 dark:bg-secdark-700 text-white"
@@ -561,20 +590,13 @@ const CreateQuotation = ({ clientId, clientName, onBack, onSuccess, editQuotatio
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        {service.price != null && (
-                                                            <div
-                                                                className={`text-sm font-medium ${
-                                                                    !hasPackages && isServiceSelected
-                                                                        ? "text-white"
-                                                                        : "text-light-900 dark:text-dark-50"
-                                                                }`}
-                                                            >
-                                                                {service.price} {lang === "ar" ? "ج.م" : "EGP"}
-                                                            </div>
-                                                        )}
+                                                    
                                                         {hasPackages && (
                                                             <button
-                                                                onClick={() => toggleExpandService(serviceId)}
+                                                                onClick={() => {
+                                                                    toggleService(serviceId);
+                                                                    toggleExpandService(serviceId);
+                                                                }}
                                                                 className="btn-primary text-sm"
                                                             >
                                                                 {isExpanded

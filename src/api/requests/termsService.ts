@@ -44,7 +44,7 @@ export interface GetContractTermsParams {
 export const contractTermsService = {
     getAll: async (params?: GetContractTermsParams): Promise<ContractTermsResponse> => {
         void params;
-        const response = await axiosInstance.get("/contract-terms");
+        const response = await axiosInstance.get("/contract-terms?PageCount=all");
         const raw = response.data;
 
         const data: ContractTerm[] = Array.isArray(raw)

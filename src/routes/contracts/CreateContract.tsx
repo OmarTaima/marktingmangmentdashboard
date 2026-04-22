@@ -89,23 +89,33 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
         Array<{ termId?: string; key: string; keyAr: string; value: string; valueAr: string; isCustom: boolean }>
     >(
         (editContract?.terms || []).map((termItem: any) => {
-            if (termItem.isCustom) {
+            // Normalize different shapes coming from the backend. The backend may return:
+            // - custom terms with customKey/customValue
+            // - non-custom terms as { term: "id" }
+            // - non-custom terms as { term: { _id, key, keyAr, value, valueAr } }
+            // - or sometimes the term object may be present at the top level
+            if (termItem?.isCustom) {
                 return {
-                    key: termItem.customKey || "",
-                    keyAr: termItem.customKeyAr || "",
-                    value: termItem.customValue || "",
-                    valueAr: termItem.customValueAr || "",
+                    key: termItem.customKey || termItem.key || "",
+                    keyAr: termItem.customKeyAr || termItem.keyAr || "",
+                    value: termItem.customValue || termItem.value || "",
+                    valueAr: termItem.customValueAr || termItem.valueAr || "",
                     isCustom: true,
                 };
             } else {
-                // For predefined terms, fetch from term reference
-                const term = termItem.term;
+                const rawTerm = termItem?.term ?? termItem;
+                const termId = typeof rawTerm === "string" ? rawTerm : rawTerm?._id ?? rawTerm?.id ?? termItem?.termId ?? "";
+                const key = rawTerm?.key ?? termItem?.key ?? "";
+                const keyAr = rawTerm?.keyAr ?? termItem?.keyAr ?? "";
+                const value = rawTerm?.value ?? termItem?.value ?? "";
+                const valueAr = rawTerm?.valueAr ?? termItem?.valueAr ?? "";
+
                 return {
-                    termId: typeof term === "string" ? term : term?._id,
-                    key: term?.key || "",
-                    keyAr: term?.keyAr || "",
-                    value: term?.value || "",
-                    valueAr: term?.valueAr || "",
+                    termId: termId,
+                    key,
+                    keyAr,
+                    value,
+                    valueAr,
                     isCustom: false,
                 };
             }
@@ -246,8 +256,8 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                 }
 
                 // Get names from resolved item
-                const itemNameAr = resolvedItem?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
-                const itemNameEn = resolvedItem?.nameEn || resolvedItem?.en || resolvedItem?.name || "Item";
+                const itemNameAr = (resolvedItem as any)?.nameAr || resolvedItem?.ar || resolvedItem?.name || "عنصر";
+                const itemNameEn = (resolvedItem as any)?.nameEn || (resolvedItem as any)?.en || resolvedItem?.name || "Item";
 
                 // classify
                 const lower = (itemNameAr + " " + itemNameEn).toLowerCase();
@@ -324,24 +334,30 @@ const CreateContract = ({ clientId, clientName, onBack, onSuccess, editContract,
                 return;
             }
 
-            // Map contract terms to the format we need
+            // Map contract terms to the format we need (robust to several backend shapes)
             const loadedTerms = contract.terms.map((termItem: any) => {
-                if (termItem.isCustom) {
+                if (termItem?.isCustom) {
                     return {
-                        key: termItem.customKey || "",
-                        keyAr: termItem.customKeyAr || "",
-                        value: termItem.customValue || "",
-                        valueAr: termItem.customValueAr || "",
+                        key: termItem.customKey || termItem.key || "",
+                        keyAr: termItem.customKeyAr || termItem.keyAr || "",
+                        value: termItem.customValue || termItem.value || "",
+                        valueAr: termItem.customValueAr || termItem.valueAr || "",
                         isCustom: true,
                     };
                 } else {
-                    const term = termItem.term;
+                    const rawTerm = termItem?.term ?? termItem;
+                    const termId = typeof rawTerm === "string" ? rawTerm : rawTerm?._id ?? rawTerm?.id ?? termItem?.termId ?? "";
+                    const key = rawTerm?.key ?? termItem?.key ?? "";
+                    const keyAr = rawTerm?.keyAr ?? termItem?.keyAr ?? "";
+                    const value = rawTerm?.value ?? termItem?.value ?? "";
+                    const valueAr = rawTerm?.valueAr ?? termItem?.valueAr ?? "";
+
                     return {
-                        termId: typeof term === "string" ? term : term?._id,
-                        key: term?.key || "",
-                        keyAr: term?.keyAr || "",
-                        value: term?.value || "",
-                        valueAr: term?.valueAr || "",
+                        termId: termId,
+                        key,
+                        keyAr,
+                        value,
+                        valueAr,
                         isCustom: false,
                     };
                 }

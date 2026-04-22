@@ -101,7 +101,9 @@ export const createCampaign = async (payload: CreateCampaignPayload): Promise<Ca
  * GET /campaigns
  */
 export const getAllCampaigns = async (): Promise<Campaign[]> => {
-    const response = await axiosInstance.get(CAMPAIGNS_ENDPOINT);
+    const response = await axiosInstance.get(CAMPAIGNS_ENDPOINT, {
+        params: { PageCount: "all" },
+    });
     return normalizeCampaignListResponse(response.data);
 };
 

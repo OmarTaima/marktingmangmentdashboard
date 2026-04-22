@@ -44,7 +44,7 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
         async () => {
             try {
                 // Backend currently rejects query params for this endpoint, so fetch plain list.
-                const response = await api.get("/items");
+                const response = await api.get("/items?PageCount=all");
                 const raw = response.data;
 
                 const data: Item[] = Array.isArray(raw)

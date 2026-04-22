@@ -10,12 +10,12 @@ import {
     Target,
     FileText,
     NotepadText,
-    Settings,
-    MessageSquare,
+    // Settings,
+    // MessageSquare,
     UserCircle,
-    LogOut,
+    // LogOut,
     Layers,
-    UserPlus,
+    // UserPlus,
 } from "lucide-react";
 
 export const navbarLinks = [
@@ -33,16 +33,21 @@ export const navbarLinks = [
     {
         title: "Clients",
         links: [
+                {
+                label: "Clients",
+                icon: Users,
+                path: "/clients",
+            },
             {
                 label: "Strategies",
                 icon: NotepadText,
                 path: "/strategies",
             },
-               {
-                label: "Clients",
-                icon: Users,
-                path: "/clients",
-            },
+           {
+            label: "Accounts",
+            icon: UserCircle,
+            path: "/accounts",
+           }
           
          
           
@@ -52,22 +57,23 @@ export const navbarLinks = [
     {
         title: "Docments",
         links: [
-            {
-                label: "Contracts",
+                {
+                label: "Terms",
                 icon: FileSignature,
-                path: "/contracts",
+                path: "/terms",
             },
-
+          
              {
                 label: "Quotations",
                 icon: FileText,
                 path: "/quotations",
             },
-            {
-                label: "Terms",
+          {
+                label: "Contracts",
                 icon: FileSignature,
-                path: "/terms",
+                path: "/contracts",
             },
+
           
            
         ],
@@ -75,45 +81,46 @@ export const navbarLinks = [
     {
         title: "Sales",
         links: [
-              {
-                label: "Services",
-                icon: Briefcase,
-                path: "/services",
-            },
-               {
-                label: "Packages",
-                icon: Package,
-                path: "/packages",
-            },
              {
                 label: "Items",
                 icon: Layers,
                 path: "/items",
             },
             
+               {
+                label: "Packages",
+                icon: Package,
+                path: "/packages",
+            },
+              {
+                label: "Services",
+                icon: Briefcase,
+                path: "/services",
+            },
+            
         ],
     },
-     {
-        title: "Management",
-        links: [
+    //  {
+    //     title: "Management",
+    //     links: [
               
-            {
-                label: "Users",
-                icon: Layers,
-                path: "/users",
-            },
-            {
-                label: "Communications",
-                icon: MessageSquare,
-                path: "/communications",
-            },
-            {
-                label: "Settings",
-                icon: Settings,
-                path: "/settings",
-            },
-        ],
-    },
+    //         {
+    //             label: "Users",
+    //             icon: Layers,
+    //             path: "/users",
+    //         },
+    //         {
+    //             label: "Communications",
+    //             icon: MessageSquare,
+    //             path: "/communications",
+    //         },
+    //         {
+    //             label: "Settings",
+    //             icon: Settings,
+    //             path: "/settings",
+    //         },
+    //     ],
+    // },
     {
         title: "Protofolio",
         links: [

@@ -57,7 +57,7 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
             try {
                 void params;
                 // Backend currently rejects query params on this endpoint, so fetch plain list.
-                const response = await api.get("/packages");
+                const response = await api.get("/packages?PageCount=all");
                 const raw = response.data;
 
                 const data: Package[] = Array.isArray(raw)

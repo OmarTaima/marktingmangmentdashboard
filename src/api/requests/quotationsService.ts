@@ -155,7 +155,7 @@ export const getQuotations = async (params?: QuotationQueryParams, signal?: Abor
         async () => {
             void params;
             // Backend currently rejects query params on this endpoint, so request plain list.
-            const response = await api.get("/quotations", { signal });
+            const response = await api.get("/quotations?PageCount=all", { signal });
             return normalizeQuotationListResponse(response.data);
         },
         params,
