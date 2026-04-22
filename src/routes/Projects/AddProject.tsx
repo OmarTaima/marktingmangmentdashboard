@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useLang } from "@/hooks/useLang";
-import { useCreateProject, useProjectCategories, useProjectTypes,useProjectCast } from "@/hooks/queries";
+import { useCreateProject, useProjectCategories, useProjectTypes, useProjectCast, useProjects } from "@/hooks/queries";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
@@ -66,6 +66,7 @@ const AddProject: React.FC = () => {
     const { data: projectCategories = [], isLoading: projectCategoriesLoading } = useProjectCategories();
     const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
     const { data: projectCast = []} = useProjectCast();
+    const { data: allProjects = [] as any[]} = useProjects();
     const [form, setForm] = useState<any>({
         name: "",
         description: "",
@@ -75,6 +76,7 @@ const AddProject: React.FC = () => {
         tags: [] as string[],
         types: [] as string[],    
         publishAt: null as Date | null, // Add this
+        parentProject: null as any,
         materials: [] as Material[],
         cast: [] as Cast[],
         mainCover: null as any,
@@ -1108,6 +1110,7 @@ const handleDateChange = (date: Date | null) => {
             material: clone.materials,
             cast: clone.cast,
             mainCover: clone.mainCover,
+            parentProject: getOptionValue(clone.parentProject) || undefined,
         };
 
         // final submission step (use mutateAsync to await completion and update progress)
@@ -1134,11 +1137,27 @@ const handleDateChange = (date: Date | null) => {
 };
 
     const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-        if (activeTab === "media" && e.key === "Enter") {
-            const target = e.target as HTMLElement | null;
-            if (!target || target.tagName !== "TEXTAREA") {
-                e.preventDefault();
-            }
+        if (e.key !== "Enter") return;
+
+        // don't intercept when editing a material or cast modal is open
+        if (editingMaterial || editingCast) return;
+
+        const target = e.target as HTMLElement | null;
+        // allow Enter inside textareas or contenteditable elements
+        if (target && (target.tagName === "TEXTAREA" || target.getAttribute?.("contenteditable") === "true")) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const order: Array<"basic" | "materials" | "cast" | "media"> = ["basic", "materials", "cast", "media"];
+        const idx = order.indexOf(activeTab);
+        if (idx === -1) return;
+
+        if (idx < order.length - 1) {
+            setActiveTab(order[idx + 1]);
+        } else {
+            // on final step — do nothing (prevent form submit)
         }
     };
 
@@ -1327,6 +1346,27 @@ const handleDateChange = (date: Date | null) => {
                             placeholder="e.g., Cairo, Egypt"
                         />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block mb-2 text-sm font-medium text-light-700 dark:text-dark-300">
+                        Parent Project
+                    </label>
+                    <Autocomplete
+                        options={allProjects}
+                        value={form.parentProject || null}
+                        onChange={(_, v) => setForm({ ...form, parentProject: v })}
+                        getOptionLabel={(opt) => getOptionLabel(opt)}
+                        isOptionEqualToValue={(o: any, v: any) => {
+                            const oId = (o && (o._id || o.id)) || "";
+                            const vId = (v && (v._id || v.id)) || "";
+                            if (oId && vId) return String(oId) === String(vId);
+                            return getOptionLabel(o) === getOptionLabel(v);
+                        }}
+                        renderInput={(params) => <TextField {...params} placeholder="Optional parent project" size="small" />}
+                        sx={taxonomyAutocompleteSx}
+                        slotProps={taxonomyAutocompleteSlotProps}
+                    />
                 </div>
 
                 <div className="space-y-3 pt-2">
