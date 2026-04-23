@@ -5,6 +5,8 @@ import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm, } from "@/utils/swal";
 import { useClients, useServices, useQuotations, useDeleteQuotation,  useItems } from "@/hooks/queries";
 import type { Quotation, QuotationQueryParams } from "@/api/requests/quotationsService";
+import { generateQuotationPDF } from "@/utils/quotationPdfGenerator";
+
 
 interface PreviewQuotationProps {
     clientId?: string;
@@ -182,529 +184,69 @@ const PreviewQuotation = ({
         }
     };
 
-    const handlePreviewPDF = async (quotation: Quotation) => {
-        // Wait for necessary data to be available to avoid undefined lookups
-        const waitForLoaded = async (timeout = 10000) => {
-            const start = Date.now();
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-                if (!clientsLoading && !servicesLoading && !itemsLoading && !quotationsLoading) return true;
-                if (Date.now() - start > timeout) return false;
-                // small delay
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((r) => setTimeout(r, 100));
-            }
-        };
+const handlePreviewPDF = async (quotation: Quotation) => {
+    // Wait for necessary data to be available
+    const waitForLoaded = async (timeout = 10000) => {
+        const start = Date.now();
+        while (true) {
+            if (!clientsLoading && !servicesLoading && !itemsLoading && !quotationsLoading) return true;
+            if (Date.now() - start > timeout) return false;
+            await new Promise((r) => setTimeout(r, 100));
+        }
+    };
 
-        const loaded = await waitForLoaded(10000);
-        if (!loaded) {
-            showAlert(t("data_still_loading") || "Data is still loading. Please try again in a moment.", "warning");
+    const loaded = await waitForLoaded(10000);
+    if (!loaded) {
+        showAlert(t("data_still_loading") || "Data is still loading. Please try again in a moment.", "warning");
+        return;
+    }
+    
+    try {
+        const client = clients.find((c) => c.id === quotation.clientId);
+        const clientNameForPdf = client?.business?.businessName || "";
+
+        await generateQuotationPDF({
+            quotation,
+            clientName: clientNameForPdf,
+            lang: lang as "ar" | "en",
+            t,
+            services,
+            items,
+        });
+    } catch (error: any) {
+        console.error("PDF Generation Error:", error);
+        showAlert(`${t("failed_to_generate_preview") || "Failed to generate preview"}: ${error?.message || "Please try again."}`, "error");
+    }
+};
+
+const handleDownloadPDF = async (id: string) => {
+    setIsDownloading(id);
+    try {
+        const quotation = quotations.find((q) => q._id === id);
+        if (!quotation) {
+            showAlert(t("quotation_not_found") || "Quotation not found", "warning");
             return;
         }
-        try {
-            const client = clients.find((c) => c.id === quotation.clientId);
-            const clientName = client?.business?.businessName || "";
 
-            const jsPDF = (await import("jspdf")).default;
-            const autoTable = (await import("jspdf-autotable")).default;
-
-            const doc = new jsPDF({
-                orientation: "portrait",
-                unit: "mm",
-                format: "a4",
-            }) as any;
-
-            const currency = lang === "ar" ? "ج.م" : "EGP";
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            const primaryColor: [number, number, number] = [102, 126, 234];
-            const darkGray: [number, number, number] = [74, 85, 104];
-            const lightGray: [number, number, number] = [237, 242, 247];
-
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.rect(0, 0, pageWidth, 60, "F");
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
-            doc.setFont("helvetica", "bold");
-            doc.text("Your Company Name", 20, 25);
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text("123 Business St, City, Country", 20, 32);
-            doc.text("+20 123 456 7890 | info@yourcompany.com", 20, 38);
-
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.text(lang === "ar" ? "عرض سعر" : "QUOTATION", pageWidth - 20, 25, { align: "right" });
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "normal");
-            doc.text(quotation.quotationNumber, pageWidth - 20, 32, { align: "right" });
-
-            const dateStr = new Date(quotation.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US");
-            doc.text((lang === "ar" ? "التاريخ: " : "Date: ") + dateStr, pageWidth - 20, 38, { align: "right" });
-
-            let yPos = 75;
-            if (clientName) {
-                doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-                doc.setFontSize(11);
-                doc.setFont("helvetica", "bold");
-                doc.text(lang === "ar" ? "العميل:" : "Client:", 20, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(clientName, 20, yPos + 6);
-                yPos += 20;
-            }
-
-            const tableData: any[] = [];
-            let itemNumber = 1;
-
-            const allPackages = services.flatMap((s: any) =>
-                (s.packages || []).map((p: any) => ({ ...p, serviceName: getName(s) })),
-            );
-
-            if (quotation.packages && quotation.packages.length > 0) {
-                quotation.packages.forEach((pkgId: any) => {
-                    const pkgIdStr = typeof pkgId === "string" ? pkgId : pkgId._id || pkgId.id;
-                    const pkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
-                    if (pkg) {
-                        const packageName = getName(pkg) || pkg.name || "Package";
-                        const serviceName = pkg.serviceName || "Service";
-                        const packagePrice = pkg.price || 0;
-
-                        tableData.push([
-                            itemNumber++,
-                            `${packageName}\n(${serviceName})`,
-                            `${packagePrice.toFixed(2)} ${currency}`,
-                            "-",
-                            `${packagePrice.toFixed(2)} ${currency}`,
-                        ]);
-
-                        if (pkg.items && pkg.items.length > 0) {
-                            pkg.items.forEach((it: any) => {
-                                const inner = (it && (it.item || it)) || {};
-                                let name = getName(inner) || "";
-                                const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
-
-                                if (!name || name === "(item)") {
-                                    const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
-                                        if (itemId) {
-                                            const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
-                                            if (foundItem) {
-                                                name = getName(foundItem) || "(item)";
-                                            }
-                                        }
-                                }
-
-                                const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
-                                const itemText = `• ${name || "(item)"}${qtyText}`;
-
-                                tableData.push(["", itemText, "", "", ""]);
-                            });
-                        }
-                    }
-                });
-            }
-
-            if (quotation.servicesPricing && quotation.servicesPricing.length > 0) {
-                quotation.servicesPricing.forEach((sp: any) => {
-                    const service = sp.service;
-                    if (!service) return;
-
-                    const serviceName = (lang === "ar" ? service.ar : service.en) || "Service";
-                    const price = sp.customPrice || service.price || 0;
-                    tableData.push([itemNumber++, serviceName, `${price.toFixed(2)} ${currency}`, "-", `${price.toFixed(2)} ${currency}`]);
-                });
-            }
-
-            if (quotation.customServices && quotation.customServices.length > 0) {
-                quotation.customServices.forEach((cs: any) => {
-                    let finalPrice = cs.price;
-                    let discountText = "-";
-
-                    if (cs.discount && cs.discount > 0) {
-                        if (cs.discountType === "percentage") {
-                            const discountAmt = (cs.price * cs.discount) / 100;
-                            finalPrice = cs.price - discountAmt;
-                            discountText = `${cs.discount}% (${discountAmt.toFixed(2)} ${currency})`;
-                        } else {
-                            finalPrice = cs.price - cs.discount;
-                            discountText = `${cs.discount.toFixed(2)} ${currency}`;
-                        }
-                    }
-
-                    tableData.push([
-                        itemNumber++,
-                        `${lang === "ar" ? cs.ar : cs.en}\n${lang === "ar" ? "(خدمة مخصصة)" : "(Custom)"}`,
-                        `${cs.price.toFixed(2)} ${currency}`,
-                        discountText,
-                        `${finalPrice.toFixed(2)} ${currency}`,
-                    ]);
-                });
-            }
-
-            if (tableData.length === 0) {
-                tableData.push([1, lang === "ar" ? "لا توجد خدمات" : "No services", `0.00 ${currency}`, "-", `0.00 ${currency}`]);
-            }
-
-            autoTable(doc, {
-                startY: yPos,
-                head: [
-                    [
-                        "#",
-                        lang === "ar" ? "الخدمة" : "Service",
-                        lang === "ar" ? "السعر" : "Price",
-                        lang === "ar" ? "الخصم" : "Discount",
-                        lang === "ar" ? "المجموع" : "Total",
-                    ],
-                ],
-                body: tableData,
-                theme: "striped",
-                headStyles: {
-                    fillColor: primaryColor,
-                    textColor: [255, 255, 255],
-                    fontSize: 11,
-                    fontStyle: "bold",
-                },
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 5,
-                },
-                columnStyles: {
-                    0: { cellWidth: 15, halign: "center" },
-                    1: { cellWidth: "auto" },
-                    2: { cellWidth: 35, halign: "right" },
-                    3: { cellWidth: 35, halign: "right" },
-                    4: { cellWidth: 35, halign: "right" },
-                },
-            });
-
-            const finalY = doc.lastAutoTable.finalY + 10;
-            const summaryX = pageWidth - 80;
-
-            doc.setFontSize(10);
-            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-
-            doc.text(lang === "ar" ? "المجموع الفرعي:" : "Subtotal:", summaryX, finalY);
-            doc.text(`${quotation.subtotal.toFixed(2)} ${currency}`, pageWidth - 20, finalY, { align: "right" });
-
-            if (quotation.discountValue > 0) {
-                let discountAmount = 0;
-                if (quotation.discountType === "percentage") {
-                    discountAmount = (quotation.subtotal * quotation.discountValue) / 100;
-                } else {
-                    discountAmount = quotation.discountValue;
-                }
-
-                doc.text(
-                    `${lang === "ar" ? "الخصم" : "Discount"} (${quotation.discountType === "percentage" ? quotation.discountValue + "%" : currency}):`,
-                    summaryX,
-                    finalY + 7,
-                );
-                doc.text(`-${discountAmount.toFixed(2)} ${currency}`, pageWidth - 20, finalY + 7, { align: "right" });
-            }
-
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            const totalY = quotation.discountValue > 0 ? finalY + 14 : finalY + 7;
-            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-            doc.rect(summaryX - 5, totalY - 5, 75, 10, "F");
-            doc.text(lang === "ar" ? "الإجمالي:" : "Total:", summaryX, totalY + 2);
-            doc.text(`${quotation.total.toFixed(2)} ${currency}`, pageWidth - 20, totalY + 2, { align: "right" });
-
-            if (quotation.note) {
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text(lang === "ar" ? "ملاحظات:" : "Notes:", 20, totalY + 15);
-                doc.setFont("helvetica", "normal");
-                const splitNote = doc.splitTextToSize(quotation.note, pageWidth - 40);
-                doc.text(splitNote, 20, totalY + 21);
-            }
-
-            doc.setFontSize(9);
-            doc.setTextColor(150, 150, 150);
-            const footerText = lang === "ar" ? "شكراً لثقتكم بنا" : "Thank you for your business";
-            doc.text(footerText, pageWidth / 2, pageHeight - 20, { align: "center" });
-
-            const statusText =
-                lang === "ar"
-                    ? quotation.status === "draft"
-                        ? "مسودة"
-                        : quotation.status === "sent"
-                          ? "مرسل"
-                          : quotation.status === "approved"
-                            ? "موافق عليه"
-                            : quotation.status === "rejected"
-                              ? "مرفوض"
-                              : quotation.status
-                    : quotation.status.toUpperCase();
-            doc.text(`${lang === "ar" ? "الحالة" : "Status"}: ${statusText}`, pageWidth / 2, pageHeight - 15, { align: "center" });
-
-            // Open in new window instead of downloading
-            const pdfBlob = doc.output("blob");
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            window.open(pdfUrl, "_blank");
-        } catch (error: any) {
-            showAlert(`${t("failed_to_generate_preview") || "Failed to generate preview"}: ${error?.message || "Please try again."}`, "error");
-        }
-    };
-
-    const handleDownloadPDF = async (id: string) => {
-        setIsDownloading(id);
-        try {
-            const quotation = quotations.find((q) => q._id === id);
-            if (!quotation) {
-                showAlert(t("quotation_not_found") || "Quotation not found", "warning");
-                return;
-            }
-
-            const client = clients.find((c) => c.id === quotation.clientId);
-            const clientName = client?.business?.businessName || "";
-
-            const jsPDF = (await import("jspdf")).default;
-            const autoTable = (await import("jspdf-autotable")).default;
-
-            const doc = new jsPDF({
-                orientation: "portrait",
-                unit: "mm",
-                format: "a4",
-            }) as any;
-
-            const currency = lang === "ar" ? "ج.م" : "EGP";
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            const primaryColor: [number, number, number] = [102, 126, 234];
-            const darkGray: [number, number, number] = [74, 85, 104];
-            const lightGray: [number, number, number] = [237, 242, 247];
-
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.rect(0, 0, pageWidth, 60, "F");
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
-            doc.setFont("helvetica", "bold");
-            doc.text("Your Company Name", 20, 25);
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text("123 Business St, City, Country", 20, 32);
-            doc.text("+20 123 456 7890 | info@yourcompany.com", 20, 38);
-
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.text(lang === "ar" ? "عرض سعر" : "QUOTATION", pageWidth - 20, 25, { align: "right" });
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "normal");
-            doc.text(quotation.quotationNumber, pageWidth - 20, 32, { align: "right" });
-
-            const dateStr = new Date(quotation.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US");
-            doc.text((lang === "ar" ? "التاريخ: " : "Date: ") + dateStr, pageWidth - 20, 38, { align: "right" });
-
-            let yPos = 75;
-            if (clientName) {
-                doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-                doc.setFontSize(11);
-                doc.setFont("helvetica", "bold");
-                doc.text(lang === "ar" ? "العميل:" : "Client:", 20, yPos);
-                doc.setFont("helvetica", "normal");
-                doc.text(clientName, 20, yPos + 6);
-                yPos += 20;
-            }
-
-            const tableData: any[] = [];
-            let itemNumber = 1;
-
-            const allPackages = services.flatMap((s: any) =>
-                (s.packages || []).map((p: any) => ({ ...p, serviceName: getName(s) })),
-            );
-
-            if (quotation.packages && quotation.packages.length > 0) {
-                quotation.packages.forEach((pkgId: any) => {
-                    const pkgIdStr = typeof pkgId === "string" ? pkgId : pkgId._id || pkgId.id;
-                    const pkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
-                    if (pkg) {
-                        const packageName = getName(pkg) || pkg.name || "Package";
-                        const serviceName = pkg.serviceName || "Service";
-                        const packagePrice = pkg.price || 0;
-
-                        tableData.push([
-                            itemNumber++,
-                            `${packageName}\n(${serviceName})`,
-                            `${packagePrice.toFixed(2)} ${currency}`,
-                            "-",
-                            `${packagePrice.toFixed(2)} ${currency}`,
-                        ]);
-
-                        // If package has items, add them as descriptive rows beneath the package
-                        if (pkg.items && pkg.items.length > 0) {
-                            pkg.items.forEach((it: any) => {
-                                const inner = (it && (it.item || it)) || {};
-                                let name = getName(inner) || "";
-                                const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
-
-                                // If item is just an ID (string or object with only _id), resolve from items list
-                                if (!name || name === "(item)") {
-                                    const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
-                                    if (itemId) {
-                                        const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
-                                        if (foundItem) {
-                                            name = getName(foundItem) || "(item)";
-                                        }
-                                    }
-                                }
-
-                                const qtyText = typeof quantity !== "undefined" ? ` x${quantity}` : "";
-                                const itemText = `• ${name || "(item)"}${qtyText}`;
-
-                                tableData.push(["", itemText, "", "", ""]);
-                            });
-                        }
-                    }
-                });
-            }
-
-            if (quotation.servicesPricing && quotation.servicesPricing.length > 0) {
-                quotation.servicesPricing.forEach((sp: any) => {
-                    const service = sp.service;
-                    if (!service) return;
-
-                    const serviceName = (lang === "ar" ? service.ar : service.en) || "Service";
-                    const price = sp.customPrice || service.price || 0;
-                    tableData.push([itemNumber++, serviceName, `${price.toFixed(2)} ${currency}`, "-", `${price.toFixed(2)} ${currency}`]);
-                });
-            }
-
-            if (quotation.customServices && quotation.customServices.length > 0) {
-                quotation.customServices.forEach((cs: any) => {
-                    let finalPrice = cs.price;
-                    let discountText = "-";
-
-                    if (cs.discount && cs.discount > 0) {
-                        if (cs.discountType === "percentage") {
-                            const discountAmt = (cs.price * cs.discount) / 100;
-                            finalPrice = cs.price - discountAmt;
-                            discountText = `${cs.discount}% (${discountAmt.toFixed(2)} ${currency})`;
-                        } else {
-                            finalPrice = cs.price - cs.discount;
-                            discountText = `${cs.discount.toFixed(2)} ${currency}`;
-                        }
-                    }
-
-                    tableData.push([
-                        itemNumber++,
-                        `${lang === "ar" ? cs.ar : cs.en}\n${lang === "ar" ? "(خدمة مخصصة)" : "(Custom)"}`,
-                        `${cs.price.toFixed(2)} ${currency}`,
-                        discountText,
-                        `${finalPrice.toFixed(2)} ${currency}`,
-                    ]);
-                });
-            }
-
-            if (tableData.length === 0) {
-                tableData.push([1, lang === "ar" ? "لا توجد خدمات" : "No services", `0.00 ${currency}`, "-", `0.00 ${currency}`]);
-            }
-
-            autoTable(doc, {
-                startY: yPos,
-                head: [
-                    [
-                        "#",
-                        lang === "ar" ? "الخدمة" : "Service",
-                        lang === "ar" ? "السعر" : "Price",
-                        lang === "ar" ? "الخصم" : "Discount",
-                        lang === "ar" ? "المجموع" : "Total",
-                    ],
-                ],
-                body: tableData,
-                theme: "striped",
-                headStyles: {
-                    fillColor: primaryColor,
-                    textColor: [255, 255, 255],
-                    fontSize: 11,
-                    fontStyle: "bold",
-                },
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 5,
-                },
-                columnStyles: {
-                    0: { cellWidth: 15, halign: "center" },
-                    1: { cellWidth: "auto" },
-                    2: { cellWidth: 35, halign: "right" },
-                    3: { cellWidth: 35, halign: "right" },
-                    4: { cellWidth: 35, halign: "right" },
-                },
-            });
-
-            const finalY = doc.lastAutoTable.finalY + 10;
-            const summaryX = pageWidth - 80;
-
-            doc.setFontSize(10);
-            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-
-            doc.text(lang === "ar" ? "المجموع الفرعي:" : "Subtotal:", summaryX, finalY);
-            doc.text(`${quotation.subtotal.toFixed(2)} ${currency}`, pageWidth - 20, finalY, { align: "right" });
-
-            if (quotation.discountValue > 0) {
-                let discountAmount = 0;
-                if (quotation.discountType === "percentage") {
-                    discountAmount = (quotation.subtotal * quotation.discountValue) / 100;
-                } else {
-                    discountAmount = quotation.discountValue;
-                }
-
-                doc.text(
-                    `${lang === "ar" ? "الخصم" : "Discount"} (${quotation.discountType === "percentage" ? quotation.discountValue + "%" : currency}):`,
-                    summaryX,
-                    finalY + 7,
-                );
-                doc.text(`-${discountAmount.toFixed(2)} ${currency}`, pageWidth - 20, finalY + 7, { align: "right" });
-            }
-
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            const totalY = quotation.discountValue > 0 ? finalY + 14 : finalY + 7;
-            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-            doc.rect(summaryX - 5, totalY - 5, 75, 10, "F");
-            doc.text(lang === "ar" ? "الإجمالي:" : "Total:", summaryX, totalY + 2);
-            doc.text(`${quotation.total.toFixed(2)} ${currency}`, pageWidth - 20, totalY + 2, { align: "right" });
-
-            if (quotation.note) {
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text(lang === "ar" ? "ملاحظات:" : "Notes:", 20, totalY + 15);
-                doc.setFont("helvetica", "normal");
-                const splitNote = doc.splitTextToSize(quotation.note, pageWidth - 40);
-                doc.text(splitNote, 20, totalY + 21);
-            }
-
-            doc.setFontSize(9);
-            doc.setTextColor(150, 150, 150);
-            const footerText = lang === "ar" ? "شكراً لثقتكم بنا" : "Thank you for your business";
-            doc.text(footerText, pageWidth / 2, pageHeight - 20, { align: "center" });
-
-            const statusText =
-                lang === "ar"
-                    ? quotation.status === "draft"
-                        ? "مسودة"
-                        : quotation.status === "sent"
-                          ? "مرسل"
-                          : quotation.status === "approved"
-                            ? "موافق عليه"
-                            : quotation.status === "rejected"
-                              ? "مرفوض"
-                              : quotation.status
-                    : quotation.status.toUpperCase();
-            doc.text(`${lang === "ar" ? "الحالة" : "Status"}: ${statusText}`, pageWidth / 2, pageHeight - 15, { align: "center" });
-
-            doc.save(`quotation-${quotation.quotationNumber}.pdf`);
-        } catch (error) {
-            showAlert(t("failed_to_generate_pdf") || "Failed to generate PDF. Please try again.", "error");
-        } finally {
-            setIsDownloading(null);
-        }
-    };
+        const client = clients.find((c) => c.id === quotation.clientId);
+        const clientNameForPdf = client?.business?.businessName || "";
+
+        await generateQuotationPDF({
+            quotation,
+            clientName: clientNameForPdf,
+            lang: lang as "ar" | "en",
+            t,
+            services,
+            items,
+        });
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        showAlert(t("failed_to_generate_pdf") || "Failed to generate PDF. Please try again.", "error");
+    } finally {
+        setIsDownloading(null);
+    }
+};
+  
 
     // Auto preview / download when requested by parent
     useEffect(() => {
@@ -762,76 +304,7 @@ const PreviewQuotation = ({
         setAutoDownloadDone(false);
     }, [autoDownloadQuotationId]);
 
-    // const handleConvertToContract = async () => {
-    //     if (!convertQuotationId || !convertQuotation) return;
-    //     if (!contractStartDate || !contractEndDate) {
-    //         showAlert(t("please_fill_dates") || "Please fill in start and end dates", "warning");
-    //         return;
-    //     }
 
-    //     // Generate contract body from quotation
-    //     let contractBody = `Contract based on Quotation ${convertQuotation.quotationNumber || ""}\n\n`;
-    //     contractBody += `Client: ${convertQuotation.clientName || clientName}\n`;
-    //     contractBody += `Total Amount: ${convertQuotation.total || 0} EGP\n\n`;
-
-    //     if (convertQuotation.packages && convertQuotation.packages.length > 0) {
-    //         contractBody += "Services:\n";
-    //         convertQuotation.packages.forEach((pkg: any, index: number) => {
-    //             const pkgName = typeof pkg === "string" ? pkg : pkg.nameEn || pkg.name || `Package ${index + 1}`;
-    //             contractBody += `- ${pkgName}\n`;
-    //         });
-    //     }
-
-    //     if (convertQuotation.customServices && convertQuotation.customServices.length > 0) {
-    //         contractBody += "\nCustom Services:\n";
-    //         convertQuotation.customServices.forEach((cs: any) => {
-    //             contractBody += `- ${cs.en || cs.ar}: ${cs.price} EGP\n`;
-    //         });
-    //     }
-
-    //     if (convertQuotation.note) {
-    //         contractBody += `\nNotes: ${convertQuotation.note}\n`;
-    //     }
-
-    //     if (contractTerms) {
-    //         contractBody += `\nTerms:\n${contractTerms}\n`;
-    //     }
-
-    //     try {
-    //         await convertQuotationMutation.mutateAsync({
-    //             id: convertQuotationId,
-    //             payload: {
-    //                 startDate: contractStartDate,
-    //                 endDate: contractEndDate,
-    //                 contractTerms: contractTerms || undefined,
-    //                 body: contractBody,
-    //             },
-    //         });
-
-    //         setShowConvertModal(false);
-    //         setConvertQuotationId(null);
-    //         setConvertQuotation(null);
-    //         setContractStartDate("");
-    //         setContractEndDate("");
-    //         setContractTerms("");
-
-    //         showToast(t("quotation_converted_to_contract") || "Quotation successfully converted to contract!", "success");
-
-    //         // Navigate to contracts page
-    //         navigate("/contracts");
-    //     } catch (error: any) {
-    //         showAlert(error.response?.data?.message || t("failed_to_convert_quotation") || "Failed to convert to contract", "error");
-    //     }
-    // };
-
-    // const openConvertModal = (quotation: Quotation) => {
-    //     setConvertQuotationId(quotation._id);
-    //     setConvertQuotation(quotation);
-    //     setContractStartDate("");
-    //     setContractEndDate("");
-    //     setContractTerms("");
-    //     setShowConvertModal(true);
-    // };
 
     const totalPages = Math.ceil(totalQuotations / pageSize);
 
