@@ -210,7 +210,6 @@ const handlePreviewPDF = async (quotation: Quotation) => {
             clientName: clientNameForPdf,
             lang: lang as "ar" | "en",
             t,
-            services,
             items,
         });
     } catch (error: any) {
@@ -236,7 +235,6 @@ const handleDownloadPDF = async (id: string) => {
             clientName: clientNameForPdf,
             lang: lang as "ar" | "en",
             t,
-            services,
             items,
         });
     } catch (error) {

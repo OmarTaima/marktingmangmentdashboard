@@ -5,14 +5,14 @@ interface QuotationPDFOptions {
     clientName: string;
     lang: "ar" | "en";
     t: (key: string) => string;
-    services: any[];
-    items: any[];
+    items?: any[];
 }
 
-export const generateQuotationPDF = async ({ quotation, clientName, lang, services, items }: QuotationPDFOptions) => {
+export const generateQuotationPDF = async ({ quotation, clientName, lang, items = [] }: QuotationPDFOptions) => {
     try {
         const isRTL = lang === "ar";
         const dateStr = quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US") : "";
+        const validUntilStr = quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US") : "";
 
         // Helper function to safely escape HTML
         const escapeHtml = (text: string) => {
@@ -25,149 +25,146 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
                 .replace(/'/g, "&#39;");
         };
 
-        const currency = lang === "ar" ? "ج.م" : "EGP";
-
         // Helper function to get localized name
-        const getName = (obj: any) => {
+        const getLocalizedName = (obj: any) => {
             if (!obj) return "";
-            if (lang === "ar") return obj.nameAr || obj.ar || obj.name || obj.nameEn || obj.en || "";
-            return obj.nameEn || obj.en || obj.name || obj.ar || obj.nameAr || "";
+            if (lang === "ar") {
+                return obj.nameAr || obj.ar || obj.name || obj.nameEn || obj.en || "";
+            }
+            return obj.nameEn || obj.en || obj.name || obj.nameAr || obj.ar || "";
         };
 
-        // Build services HTML - this will show packages with their items properly indented
+        // Helper function to find item by ID
+        const findItemById = (itemId: string) => {
+            return items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
+        };
+
+        // Helper function to get item name from various formats
+        const getItemName = (item: any) => {
+            // If item has a name directly
+            if (item.name) return getLocalizedName(item) || item.name;
+            
+            // If item has an item object
+            if (item.item) {
+                if (typeof item.item === 'object') {
+                    return getLocalizedName(item.item) || item.item.name || "(item)";
+                }
+                if (typeof item.item === 'string') {
+                    const found = findItemById(item.item);
+                    if (found) return getLocalizedName(found) || found.name || "(item)";
+                    return `Item ${item.item.slice(-6)}`;
+                }
+            }
+            
+            return "(item)";
+        };
+
+        // Helper function to format quantity display
+        const formatQuantity = (quantity: any) => {
+            if (quantity === undefined || quantity === null) return "";
+            if (typeof quantity === 'boolean') {
+                return quantity ? " ✓" : "";
+            }
+            if (typeof quantity === 'number') {
+                return ` ×${quantity}`;
+            }
+            if (typeof quantity === 'string') {
+                // Check if it's a percentage
+                if (quantity.includes('%')) {
+                    return ` (${quantity})`;
+                }
+                // Check if it's a number string
+                const num = parseFloat(quantity);
+                if (!isNaN(num)) {
+                    return ` ×${num}`;
+                }
+                return ` (${quantity})`;
+            }
+            return "";
+        };
+
+        const currency = lang === "ar" ? "ج.م" : "EGP";
+
+        // Build services HTML
         let servicesHTML = "";
         let itemNumber = 1;
 
-        // Get all packages from services
-        const allPackages = services.flatMap((s: any) =>
-            (s.packages || []).map((p: any) => ({ 
-                ...p, 
-                serviceName: getName(s),
-                serviceId: s._id || s.id
-            }))
-        );
-
-        // Track which packages have been processed to avoid duplicates
-        const processedPackages = new Set();
-
-        // Helper function to add package row
-        const addPackageRow = (pkg: any, pkgId: string) => {
-            if (processedPackages.has(pkgId)) return false;
-            processedPackages.add(pkgId);
-            
-            const packageName = getName(pkg) || pkg.name || "Package";
-            const serviceName = pkg.serviceName || "";
-            const packagePrice = pkg.price || 0;
-            const packageDiscount = pkg.discount || 0;
-            const packageDiscountType = pkg.discountType || "fixed";
-            
-            let finalPackagePrice = packagePrice;
-            let discountText = "-";
-            
-            if (packageDiscount > 0) {
-                if (packageDiscountType === "percentage") {
-                    const discountAmt = (packagePrice * packageDiscount) / 100;
-                    finalPackagePrice = packagePrice - discountAmt;
-                    discountText = `${packageDiscount}%`;
-                } else {
-                    finalPackagePrice = packagePrice - packageDiscount;
-                    discountText = `${packageDiscount} ${currency}`;
-                }
-            }
-            
-            servicesHTML += `
-                <tr style="background-color: #f0fdf4;">
-                    <td style="text-align: center; padding: 12px; font-weight: 700;">${itemNumber++}</td>
-                    <td style="padding: 12px;">
-                        <strong style="color: #166534;">📦 ${escapeHtml(packageName)}</strong>
-                        ${serviceName ? `<br><small style="color: #666;">${lang === "ar" ? "خدمة:" : "Service:"} ${escapeHtml(serviceName)}</small>` : ''}
-                    </td>
-                    <td style="text-align: right; padding: 12px;">${packagePrice.toFixed(2)} ${currency}</td>
-                    <td style="text-align: center; padding: 12px;">${discountText}</td>
-                    <td style="text-align: right; padding: 12px;"><strong>${finalPackagePrice.toFixed(2)} ${currency}</strong></td>
-                </tr>
-            `;
-            
-            // Add package items as indented rows
-            if (pkg.items && pkg.items.length > 0) {
-                for (const it of pkg.items) {
-                    const inner = (it && (it.item || it)) || {};
-                    let itemName = getName(inner) || "";
-                    let itemPrice = inner.price || 0;
-                    const quantity = typeof it?.quantity !== "undefined" ? it.quantity : inner?.quantity;
-                    
-                    // Try to find item details from items list if not directly available
-                    if (!itemName || itemName === "(item)") {
-                        const itemId = typeof inner === "string" ? inner : inner?._id || inner?.id;
-                        if (itemId) {
-                            const foundItem = items.find((i: any) => String(i._id) === String(itemId) || String(i.id) === String(itemId));
-                            if (foundItem) {
-                                itemName = getName(foundItem) || "(item)";
-                                itemPrice = foundItem.price || 0;
-                            }
-                        }
-                    }
-                    
-                    const qtyText = quantity ? ` x${quantity}` : "";
-                    const itemTotal = itemPrice * (quantity || 1);
-                    
-                    servicesHTML += `
-                        <tr style="background-color: #fafafa;">
-                            <td style="padding: 8px; text-align: center;"></td>
-                            <td style="padding-left: 30px; padding: 8px;">
-                                <span style="color: #6b7280;">↳</span> ${escapeHtml(itemName || "(item)")}${qtyText}
-                            </td>
-                            <td style="text-align: right; padding: 8px;">${itemPrice.toFixed(2)} ${currency}</td>
-                            <td style="text-align: center; padding: 8px;">-</td>
-                            <td style="text-align: right; padding: 8px;">${itemTotal.toFixed(2)} ${currency}</td>
-                        </tr>
-                    `;
-                }
-            }
-            
-            return true;
-        };
-
-        // Process packages from quotation
+        // Process packages
         if (quotation.packages && quotation.packages.length > 0) {
-            for (const pkgRef of quotation.packages) {
-                const pkgIdStr = typeof pkgRef === "string" ? pkgRef : pkgRef._id || pkgRef.id;
-                const foundPkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
-                if (foundPkg) {
-                    addPackageRow(foundPkg, pkgIdStr);
+            for (const pkg of quotation.packages) {
+                if (pkg.deleted === true) continue;
+                
+                const packageName = getLocalizedName(pkg) || pkg.name || "Package";
+                const packagePrice = pkg.price || 0;
+                
+                servicesHTML += `
+                    <tr style="background-color: #f0fdf4;">
+                        <td style="text-align: center; padding: 12px; font-weight: 700;">${itemNumber++}</td>
+                        <td style="padding: 12px;">
+                            <strong style="color: #166534;">📦 ${escapeHtml(packageName)}</strong>
+                            <div style="font-size: 9pt; color: #166534; margin-top: 4px;">${packagePrice.toFixed(2)} ${currency}</div>
+                        </td>
+                        <td style="text-align: right; padding: 12px;">${packagePrice.toFixed(2)} ${currency}</td>
+                        <td style="text-align: center; padding: 12px;">-</td>
+                        <td style="text-align: right; padding: 12px;"><strong>${packagePrice.toFixed(2)} ${currency}</strong></td>
+                    </tr>
+                `;
+                
+                // Process package items - just show as indented list without prices
+                if (pkg.items && pkg.items.length > 0) {
+                    for (const it of pkg.items) {
+                        const itemName = getItemName(it);
+                        const quantityText = formatQuantity(it.quantity);
+                        const itemNote = it.note || "";
+                        
+                        // Clean up any weird characters
+                        const cleanNote = itemNote ? itemNote.replace(/[���]/g, '') : '';
+                        
+                        servicesHTML += `
+                            <tr style="background-color: #fafafa;">
+                                <td style="padding: 8px; text-align: center;"></td>
+                                <td style="padding-left: 30px; padding: 8px; color: #4a5568;">
+                                    <span style="color: #9ca3af;">↳</span> ${escapeHtml(itemName)}${quantityText}
+                                    ${cleanNote ? `<div style="font-size: 9pt; color: #f59e0b; margin-top: 4px; margin-left: 16px;">📝 ${escapeHtml(cleanNote)}</div>` : ''}
+                                </td>
+                                <td style="padding: 8px;"></td>
+                                <td style="padding: 8px;"></td>
+                                <td style="padding: 8px;"></td>
+                            </tr>
+                        `;
+                    }
                 }
             }
         }
 
-        // Process individual services (not in packages)
+        // Process services pricing
         if (quotation.servicesPricing && quotation.servicesPricing.length > 0) {
             for (const sp of quotation.servicesPricing) {
                 const service = sp.service;
                 if (!service) continue;
                 
-                // Check if this service is already part of a package we added
-                const isInPackage = quotation.packages?.some((pkgRef: any) => {
-                    const pkgIdStr = typeof pkgRef === "string" ? pkgRef : pkgRef._id || pkgRef.id;
-                    const pkg = allPackages.find((p: any) => p._id === pkgIdStr || p.id === pkgIdStr);
-                    return pkg?.serviceId === (service._id || service.id);
-                });
+                let serviceName = "";
+                let price = sp.customPrice || 0;
                 
-                if (!isInPackage) {
-                    const serviceName = (lang === "ar" ? service.ar : service.en) || "Service";
-                    const price = sp.customPrice || service.price || 0;
-                    servicesHTML += `
-                        <tr>
-                            <td style="text-align: center; padding: 12px;">${itemNumber++}</td>
-                            <td style="padding: 12px;">
-                                ${escapeHtml(serviceName)}
-                                <br><small style="color: #666;">${lang === "ar" ? "خدمة فردية" : "Individual Service"}</small>
-                            </td>
-                            <td style="text-align: right; padding: 12px;">${price.toFixed(2)} ${currency}</td>
-                            <td style="text-align: center; padding: 12px;">-</td>
-                            <td style="text-align: right; padding: 12px;"><strong>${price.toFixed(2)} ${currency}</strong></td>
-                        </tr>
-                    `;
+                if (typeof service === 'object' && service !== null) {
+                    serviceName = getLocalizedName(service) || "Service";
+                    if (!price) price = service.price || 0;
+                } else if (typeof service === 'string') {
+                    serviceName = `Service ${service.slice(-6)}`;
                 }
+                
+                servicesHTML += `
+                    <tr>
+                        <td style="text-align: center; padding: 12px;">${itemNumber++}</td>
+                        <td style="padding: 12px;">
+                            ${escapeHtml(serviceName)}
+                            <div style="font-size: 9pt; color: #666; margin-top: 4px;">${lang === "ar" ? "خدمة فردية" : "Individual Service"}</div>
+                        </td>
+                        <td style="text-align: right; padding: 12px;">${price.toFixed(2)} ${currency}</td>
+                        <td style="text-align: center; padding: 12px;">-</td>
+                        <td style="text-align: right; padding: 12px;"><strong>${price.toFixed(2)} ${currency}</strong></td>
+                    </tr>
+                `;
             }
         }
 
@@ -177,7 +174,7 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
                 let finalPrice = cs.price;
                 let discountText = "-";
                 const serviceName = lang === "ar" ? cs.ar : cs.en;
-
+                
                 if (cs.discount && cs.discount > 0) {
                     if (cs.discountType === "percentage") {
                         const discountAmt = (cs.price * cs.discount) / 100;
@@ -194,7 +191,7 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
                         <td style="text-align: center; padding: 12px;">${itemNumber++}</td>
                         <td style="padding: 12px;">
                             ${escapeHtml(serviceName)}
-                            <br><small style="color: #666;">${lang === "ar" ? "خدمة مخصصة" : "Custom Service"}</small>
+                            <div style="font-size: 9pt; color: #666; margin-top: 4px;">${lang === "ar" ? "خدمة مخصصة" : "Custom Service"}</div>
                         </td>
                         <td style="text-align: right; padding: 12px;">${cs.price.toFixed(2)} ${currency}</td>
                         <td style="text-align: center; padding: 12px;">${discountText}</td>
@@ -235,6 +232,9 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             };
             statusText = statusMap[quotation.status] || quotation.status;
         }
+
+        // Clean up any weird characters in notes
+        const cleanMainNote = quotation.note ? quotation.note.replace(/[���]/g, '') : '';
 
         const htmlContent = `<!DOCTYPE html>
 <html dir="${isRTL ? "rtl" : "ltr"}" lang="${lang}">
@@ -356,6 +356,7 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             padding: 10px;
             border: 1px solid #e2e8f0;
             font-size: 10pt;
+            vertical-align: top;
         }
 
         .services-table tr:nth-child(even) {
@@ -407,6 +408,14 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             word-break: break-word;
         }
 
+        .validity-section {
+            margin: 15px 0;
+            padding: 10px 20px;
+            background: #fef3c7;
+            border-radius: 8px;
+            text-align: center;
+        }
+
         .divider {
             border: 0;
             border-top: 1px solid #c8c8c8;
@@ -427,24 +436,6 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
         .status-approved { background: #dcfce7; color: #166534; }
         .status-rejected { background: #fee2e2; color: #991b1b; }
         .status-expired { background: #fed7aa; color: #92400e; }
-
-        .contract-details {
-            margin: 25px 0;
-            padding: 15px 20px;
-        }
-
-        .detail-row {
-            margin: 8px 0;
-            font-size: 10pt;
-        }
-
-        .validation-note {
-            margin: 15px 0;
-            padding: 0 20px;
-            font-size: 9pt;
-            color: #666;
-            font-style: italic;
-        }
 
         .signature-section {
             margin-top: 40px;
@@ -497,14 +488,6 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
                 background: #dc2626 !important;
                 color: white !important;
             }
-
-            .page-break {
-                page-break-before: always;
-            }
-
-            .no-break {
-                page-break-inside: avoid;
-            }
         }
     </style>
 </head>
@@ -523,7 +506,7 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             <div class="quotation-info">
                 <div style="font-size: 16pt; font-weight: 700; margin-bottom: 5px;">${lang === "ar" ? "عرض سعر" : "QUOTATION"}</div>
                 <div style="font-size: 11pt;">${quotation.quotationNumber || ""}</div>
-                <div style="font-size: 9pt; margin-top: 5px;">${dateStr}</div>
+                <div style="font-size: 9pt; margin-top: 5px;">${lang === "ar" ? "التاريخ:" : "Date:"} ${dateStr}</div>
                 <div class="status-badge status-${quotation.status || 'draft'}">${statusText}</div>
             </div>
         </div>
@@ -541,9 +524,9 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             <thead>
                 <tr>
                     <th style="width: 5%;">#</th>
-                    <th style="width: 50%;">${lang === "ar" ? "الخدمة / الباقة" : "Service / Package"}</th>
-                    <th style="width: 15%;">${lang === "ar" ? "السعر" : "Price"}</th>
-                    <th style="width: 15%;">${lang === "ar" ? "الخصم" : "Discount"}</th>
+                    <th style="width: 55%;">${lang === "ar" ? "الخدمة / الباقة" : "Service / Package"}</th>
+                    <th style="width: 13%;">${lang === "ar" ? "السعر" : "Price"}</th>
+                    <th style="width: 12%;">${lang === "ar" ? "الخصم" : "Discount"}</th>
                     <th style="width: 15%;">${lang === "ar" ? "الإجمالي" : "Total"}</th>
                 </tr>
             </thead>
@@ -568,10 +551,16 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
             </div>
         </div>
 
-        ${quotation.note && quotation.note.trim() ? `
+        ${validUntilStr ? `
+        <div class="validity-section">
+            <strong>${lang === "ar" ? "صالح حتى:" : "Valid Until:"}</strong> ${validUntilStr}
+        </div>
+        ` : ''}
+
+        ${cleanMainNote ? `
         <div class="notes-section">
             <div class="notes-title">${lang === "ar" ? "ملاحظات:" : "Notes:"}</div>
-            <div class="notes-content">${escapeHtml(quotation.note).replace(/\n/g, '<br>')}</div>
+            <div class="notes-content">${escapeHtml(cleanMainNote).replace(/\n/g, '<br>')}</div>
         </div>
         ` : ''}
 
@@ -605,7 +594,6 @@ export const generateQuotationPDF = async ({ quotation, clientName, lang, servic
         printWindow.document.write(htmlContent);
         printWindow.document.close();
 
-        // Wait for content to load and trigger print
         printWindow.onload = () => {
             setTimeout(() => {
                 printWindow.print();

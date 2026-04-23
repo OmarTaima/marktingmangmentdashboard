@@ -151,17 +151,16 @@ const QuotationsPage = () => {
     };
 
     // Services and items needed to generate PDFs client-side
-    const { data: servicesResponse, } = useServices({ limit: 100 });
-    const services = servicesResponse?.data || [];
     const { data: itemsResponse,} = useItems({ limit: 1000 });
     const items = itemsResponse?.data || [];
 
     // Generate PDF for a quotation (mode = 'preview' opens in new tab, 'download' saves file)
 const generatePdfForQuotation = async (quotation: any, mode: "preview" | "download") => {
     try {
-        // Find client name for the quotation
         let clientNameForPdf = "";
-        if (quotation.clientId) {
+        if (quotation.clientId && typeof quotation.clientId === 'object') {
+            clientNameForPdf = quotation.clientId.business?.businessName || "";
+        } else if (quotation.clientId && typeof quotation.clientId === 'string') {
             const client = clients.find((c) => c.id === quotation.clientId);
             clientNameForPdf = client?.business?.businessName || "";
         } else if (quotation.clientName) {
@@ -170,15 +169,12 @@ const generatePdfForQuotation = async (quotation: any, mode: "preview" | "downlo
             clientNameForPdf = quotation.customName;
         }
 
-        // Since the PDF generator now uses print dialog, mode doesn't affect the output
-        // It always opens print dialog. We'll just call the generator.
         await generateQuotationPDF({
             quotation,
             clientName: clientNameForPdf,
             lang: lang as "ar" | "en",
             t,
-            services,
-            items,
+            items, // Pass items array for lookups
         });
     } catch (error: any) {
         console.error("PDF Generation Error:", error);
