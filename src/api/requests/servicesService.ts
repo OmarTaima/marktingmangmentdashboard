@@ -54,7 +54,7 @@ export interface ServiceQueryParams {
 export const getServices = async (params?: ServiceQueryParams): Promise<ServiceListResponse> => {
     void params;
     // Backend currently rejects query params on this endpoint, so request plain list.
-    const response = await api.get("/services");
+    const response = await api.get("/services?PageCount=all");
     const raw = response.data;
 
     const data: Service[] = Array.isArray(raw)
@@ -79,7 +79,7 @@ export const getServices = async (params?: ServiceQueryParams): Promise<ServiceL
  * Get a single service by ID
  */
 export const getServiceById = async (id: string): Promise<Service> => {
-    const response = await api.get(`/services/${id}`);
+    const response = await api.get(`/services/${id}`, { params: { PageCount: "all" } });
     return response.data.data;
 };
 

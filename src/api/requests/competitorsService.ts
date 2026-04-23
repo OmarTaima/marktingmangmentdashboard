@@ -130,7 +130,7 @@ const transformCompetitorToFrontendFormat = (backendData: any): Competitor | nul
 export const getCompetitorsByClientId = async (clientId: string): Promise<Competitor[]> => {
     return withCache(`/clients/${clientId}/competitors`, async () => {
         try {
-            const response = await axiosInstance.get(`/clients/${clientId}/competitors`);
+            const response = await axiosInstance.get(`/clients/${clientId}/competitors?PageCount=all`);
 
             // Handle different response structures
             let competitorsData = [];

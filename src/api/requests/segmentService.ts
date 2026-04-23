@@ -155,7 +155,7 @@ const transformSegmentToFrontendFormat = (backendData: any): any => {
 export const getSegmentsByClientId = async (clientId: string): Promise<Segment[]> => {
     return withCache(`/clients/${clientId}/segments`, async () => {
         try {
-            const response = await axiosInstance.get(`/clients/${clientId}/segments`);
+            const response = await axiosInstance.get(`/clients/${clientId}/segments?PageCount=all`);
 
             // Handle different response structures
             let segmentsData = [];

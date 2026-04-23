@@ -146,7 +146,7 @@ export const getContracts = async (params?: ContractQueryParams): Promise<Contra
 export const getContractById = async (id: string): Promise<Contract> => {
     return withCache(`/contracts/${id}`, async () => {
         try {
-            const response = await api.get(`/contracts/${id}`);
+            const response = await api.get(`/contracts/${id}?PageCount=all`);
             return response.data.data;
         } catch (error) {
             throw error;

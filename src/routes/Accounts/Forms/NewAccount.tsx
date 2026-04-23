@@ -1,6 +1,9 @@
 import { useState, type FC } from "react";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
+import { useClients } from "@/hooks/queries/useClientsQuery";
+import { createClientAccount } from "@/api/requests/clientService";
+import type { Client } from "@/api/interfaces/clientinterface";
 
 type NewAccountFormData = {
     client?: string;
@@ -15,15 +18,19 @@ type NewAccountFormData = {
     mailPassword?: string;
 };
 
+type NewAccountSubmitData = NewAccountFormData & { clientObject?: Client | null };
+
 type NewAccountProps = {
-    onSubmit?: (data: NewAccountFormData) => void;
+    onSubmit?: (data: NewAccountSubmitData) => void;
     onCancel?: () => void;
     initialData?: NewAccountFormData;
 };
 
 export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialData }) => {
     const { t } = useLang();
-    
+    const { data: clients, isLoading: clientsLoading } = useClients();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const [formData, setFormData] = useState<NewAccountFormData>(initialData || {
         client: "",
         platformName: "",
@@ -39,16 +46,15 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
     
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         const newErrors: Record<string, string> = {};
         
-        // Add your validation logic here if needed
-        // Example:
-        // if (!formData.platformName?.trim()) {
-        //     newErrors.platformName = "Platform name is required";
-        // }
+        // Basic validation
+        if (!formData.platformName || !formData.platformName.trim()) {
+            newErrors.platformName = t("platform_required") || "Platform is required";
+        }
         
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -56,12 +62,44 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
         }
         
         setErrors({});
-        
-        if (onSubmit) {
-            onSubmit(formData);
-        } else {
-            console.log("Form submitted:", formData);
-            // Reset form or show success message
+
+        // Ensure a client is selected
+        if (!formData.client) {
+            setErrors({ client: t("client_required") || "Client is required" });
+            return;
+        }
+
+        const selectedClient = clients?.find((c) => c._id === formData.client) || null;
+
+        // Map frontend form fields to backend schema:
+        // Backend expects: { platform: string, username?: string, password?: string, twoFactor?: { method: 'mobile'|'email', holderName?, username?, password? } }
+        const accountPayload: Record<string, any> = {
+            platform: formData.platformName,
+            username: formData.userName,
+            password: formData.password,
+        };
+
+        // Attach twoFactor only when provided
+        if (formData.twoFactorMethod && formData.twoFactorMethod !== "non") {
+            const method = formData.twoFactorMethod === "mail" ? "email" : formData.twoFactorMethod === "phone" ? "mobile" : undefined;
+            if (method) {
+                accountPayload.twoFactor = {
+                    method,
+                    holderName: method === "mobile" ? formData.phoneOwnerName || undefined : undefined,
+                    username: method === "email" ? formData.mail || undefined : formData.phoneNumber || undefined,
+                    password: method === "email" ? formData.mailPassword || undefined : undefined,
+                };
+            }
+        }
+
+        if (formData.note) accountPayload.note = formData.note;
+
+        setIsSubmitting(true);
+        try {
+            await createClientAccount(formData.client!, accountPayload);
+            const payload: NewAccountSubmitData = { ...formData, clientObject: selectedClient };
+            if (onSubmit) onSubmit(payload);
+            // Reset form
             setFormData({
                 client: "",
                 platformName: "",
@@ -74,6 +112,11 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
                 note: "",
                 mailPassword: "",
             });
+        } catch (err: any) {
+            setErrors((prev) => ({ ...prev, submit: err?.response?.data?.message || err?.message || String(err) }));
+            console.error("Failed to create client account:", err);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -100,10 +143,19 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
                     className="text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
                 >
                     <option value="">{t("select_client") || "Select Client"}</option>
-                    <option value="client1">Client 1</option>
-                    <option value="client2">Client 2</option>
-                    <option value="client3">Client 3</option>
+                    {clientsLoading ? (
+                        <option value="" disabled>{t("loading") || "Loading clients..."}</option>
+                    ) : clients && clients.length > 0 ? (
+                        clients.map((c) => (
+                            <option key={c._id} value={c._id}>
+                                {c.business?.businessName || c.business?.name || c.personal?.fullName || c._id}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="" disabled>{t("no_clients") || "No clients found"}</option>
+                    )}
                 </select>
+                {errors.client && <p className="text-danger-500 mt-1 text-sm">{errors.client}</p>}
             </div>
 
             {/* Platform Name */}
@@ -242,10 +294,12 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
                 <button
                     type="submit"
                     className="btn-primary px-6 py-2"
+                    disabled={isSubmitting}
                 >
-                    {t("create_account") || "Create Account"}
+                    {isSubmitting ? (t("creating") || "Creating...") : (t("create_account") || "Create Account")}
                 </button>
             </div>
+            {errors.submit && <p className="text-danger-500 mt-2 text-sm">{errors.submit}</p>}
         </form>
     );
 };

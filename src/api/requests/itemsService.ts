@@ -77,7 +77,7 @@ export const getItems = async (params?: ItemQueryParams): Promise<ItemListRespon
 export const getItemById = async (id: string): Promise<Item> => {
     return withCache(`/items/${id}`, async () => {
         try {
-            const response = await api.get(`/items/${id}`);
+            const response = await api.get(`/items/${id}?PageCount=all`);
             return response.data.data;
         } catch (error) {
             throw error;

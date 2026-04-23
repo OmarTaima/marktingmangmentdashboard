@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Package as PackageIcon, Plus, Search, Trash2, Copy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLang } from "@/hooks/useLang";
 import { showAlert, showConfirm } from "@/utils/swal";
 import { createItem, getItems, type Item } from "@/api/requests/itemsService";
 import type { Package as PackageType } from "@/api/requests/packagesService";
+import { getPackageById } from "@/api/requests/packagesService";
 import { packagesKeys, useCreatePackage, useDeletePackage, usePackages, useUpdatePackage } from "@/hooks/queries/usePackagesQuery";
 import { useServices } from "@/hooks/queries";
 
@@ -316,6 +317,41 @@ const AddPackagePage = () => {
 
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
+
+    const location = useLocation();
+
+    useEffect(() => {
+        const locState = (location?.state as any)?.editPackageId;
+        const searchId = typeof location?.search === "string" ? new URLSearchParams(location.search).get("id") : null;
+        const pkgId = locState || searchId;
+        if (!pkgId) return;
+
+        let cancelled = false;
+
+        const prefill = async () => {
+            // Try to find package in the already-loaded list
+            const existing = packagesList.find((p) => String(p._id || p.id) === String(pkgId));
+            if (existing) {
+                startEditPackage(existing);
+                return;
+            }
+
+            // Otherwise fetch package from API
+            try {
+                const fetched = await getPackageById(String(pkgId));
+                if (!cancelled && fetched) startEditPackage(fetched as PackageType);
+            } catch (err: any) {
+                if (!cancelled) setError(err?.message || tr("package_load_failed", "Failed to load package"));
+            }
+        };
+
+        void prefill();
+
+        return () => {
+            cancelled = true;
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [packagesList, location?.state, location?.search]);
 
     const removeItemSelection = (itemId: string) => {
         setSelectedItemIds((prev) => prev.filter((id) => id !== itemId));

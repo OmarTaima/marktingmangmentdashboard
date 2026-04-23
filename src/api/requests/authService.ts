@@ -165,7 +165,7 @@ export const logout = async (refreshToken?: string): Promise<void> => {
  */
 export const getCurrentUser = async (): Promise<{ user: AuthResponse["user"] } | null> => {
     try {
-        const resp = await axiosInstance.get(`${AUTH_ENDPOINT}/me`);
+        const resp = await axiosInstance.get(`${AUTH_ENDPOINT}/me?PageCount=all`);
 
         // API returns { user: {...} }
         const data = resp.data as { user: AuthResponse["user"] };

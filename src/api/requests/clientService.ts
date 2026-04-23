@@ -220,6 +220,7 @@ const transformToFrontendFormat = (backendData: any): Client | null => {
         // Include all additional fields from backend response
         branches: backendData.branches || [],
         socialLinks: normalizeSocialLinks(backendData.socialLinks),
+        accounts: backendData.accounts || [],
         swot: backendData.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] },
         segments: backendData.segments || [],
         competitors: backendData.competitors || [],
@@ -248,6 +249,19 @@ export const createClient = async (clientData: Partial<Client>): Promise<Client 
 };
 
 /**
+ * Create an account for a specific client
+ * POST /clients/:clientId/accounts
+ */
+export const createClientAccount = async (clientId: string, accountData: Record<string, any>): Promise<any> => {
+    try {
+        const response = await axiosInstance.post(`${CLIENTS_ENDPOINT}/${clientId}/accounts`, accountData);
+        return response.data.data || response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
  * Build query string from filter parameters
  */
 const buildQueryString = (filters: ClientFilterParams): string => {
@@ -269,7 +283,7 @@ export const getClients = async (): Promise<Client[]> => {
     try {
         // Request all clients with populated relationships in a single efficient request
         const response = await axiosInstance.get(CLIENTS_ENDPOINT, {
-            
+            params: { PageCount: "all" },
         });
 
         // Handle multiple response shapes: [...], { data: [...] }, { clients: [...] }, or { data: { clients: [...] } }
@@ -302,8 +316,8 @@ export const getClientsWithFilters = async (filters: ClientFilterParams = {}): P
     try {
         const queryString = buildQueryString(filters);
         const url = queryString
-            ? `${CLIENTS_ENDPOINT}?${queryString}`
-            : `${CLIENTS_ENDPOINT}`;
+            ? `${CLIENTS_ENDPOINT}?${queryString}&PageCount=all`
+            : `${CLIENTS_ENDPOINT}?PageCount=all`;
 
         const response = await axiosInstance.get(url);
 
@@ -344,7 +358,7 @@ export const getClientsWithFilters = async (filters: ClientFilterParams = {}): P
 export const exportClientsToCSV = async (filters: ClientFilterParams = {}): Promise<Blob> => {
     try {
         const queryString = buildQueryString(filters);
-        const url = queryString ? `${CLIENTS_ENDPOINT}/export?${queryString}` : `${CLIENTS_ENDPOINT}/export`;
+        const url = queryString ? `${CLIENTS_ENDPOINT}/export?${queryString}&PageCount=all` : `${CLIENTS_ENDPOINT}/export?PageCount=all`;
 
         const response = await axiosInstance.get(url, {
             responseType: "blob",
@@ -385,7 +399,7 @@ export const getClientById = async (clientId: string): Promise<Client | null> =>
         try {
             const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, {
                 params: {
-                    
+                    PageCount: "all",
                 },
             });
 
@@ -397,7 +411,7 @@ export const getClientById = async (clientId: string): Promise<Client | null> =>
             const msg = err?.response?.data?.message || err?.message || "";
             if (typeof msg === "string" && msg.includes("populate")) {
                 // Retry without populate param to avoid server-side nested population
-                const fallbackResp = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`);
+                const fallbackResp = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}`, { params: { PageCount: "all" } });
                 const clientData = fallbackResp.data.client || fallbackResp.data.data || fallbackResp.data;
                 const transformed = transformToFrontendFormat(clientData);
                 return transformed;
@@ -453,6 +467,7 @@ export const deleteClient = async (clientId: string): Promise<any> => {
 // Export all functions as default object for easier importing
 export default {
     createClient,
+    createClientAccount,
     getClients,
     getClientsWithFilters,
     getClientById,

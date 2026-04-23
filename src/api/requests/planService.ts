@@ -113,7 +113,7 @@ export const getAllCampaigns = async (): Promise<Campaign[]> => {
  */
 export const getCampaignsByClientId = async (clientId: string): Promise<Campaign[]> => {
     const response = await axiosInstance.get(CAMPAIGNS_ENDPOINT, {
-        params: { clientId },
+        params: { clientId, PageCount: "all" },
     });
     return normalizeCampaignListResponse(response.data);
 };
@@ -123,7 +123,7 @@ export const getCampaignsByClientId = async (clientId: string): Promise<Campaign
  * GET /campaigns/:campaignId
  */
 export const getCampaignById = async (campaignId: string): Promise<Campaign> => {
-    const response = await axiosInstance.get(`${CAMPAIGNS_ENDPOINT}/${campaignId}`);
+    const response = await axiosInstance.get(`${CAMPAIGNS_ENDPOINT}/${campaignId}`, { params: { PageCount: "all" } });
     return response.data;
 };
 

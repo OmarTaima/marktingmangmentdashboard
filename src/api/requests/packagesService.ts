@@ -16,6 +16,7 @@ export interface PackageItem {
 
 export interface Package {
     _id: string;
+    id?: string;
     nameEn: string;
     nameAr: string;
     price: number;
@@ -98,7 +99,7 @@ export const getPackages = async (params?: PackageQueryParams): Promise<PackageL
 export const getPackageById = async (id: string): Promise<Package> => {
     return withCache(`/packages/${id}`, async () => {
         try {
-            const response = await api.get(`/packages/${id}`);
+            const response = await api.get(`/packages/${id}?PageCount=all`);
             return response.data.data;
         } catch (error) {
             throw error;

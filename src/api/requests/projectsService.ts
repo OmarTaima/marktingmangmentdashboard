@@ -91,7 +91,8 @@ const transformProject = (raw: any): Project => {
 
 export const getProjects = async (params?: Record<string, any>): Promise<Project[]> => {
   try {
-    const response = await axiosInstance.get(PROJECTS_ENDPOINT, { params });
+    const mergedParams = { ...(params || {}), PageCount: "all" };
+    const response = await axiosInstance.get(PROJECTS_ENDPOINT, { params: mergedParams });
     const responseData = response.data;
     let data: any[] = [];
     if (Array.isArray(responseData)) data = responseData;
@@ -118,7 +119,7 @@ export const createProject = async (data: ProjectCreate): Promise<Project> => {
 
 export const getProjectById = async (id: string): Promise<Project | null> => {
   try {
-    const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/${id}`);
+    const response = await axiosInstance.get(`${PROJECTS_ENDPOINT}/${id}`, { params: { PageCount: "all" } });
     const raw = response.data?.project || response.data?.data || response.data;
     return transformProject(raw);
   } catch (error) {

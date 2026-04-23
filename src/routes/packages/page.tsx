@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useLang } from "@/hooks/useLang";
-import { Check, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
+import { Check, Loader2, Plus, RefreshCw, Search, X, Edit, Trash2 } from "lucide-react";
 import { usePackages, useServices, useItems } from "@/hooks/queries";
 import type { Package } from "@/api/requests/packagesService";
 import type { Service } from "@/api/requests/servicesService";
 import { useNavigate } from "react-router-dom";
+import { deletePackage } from "@/api/requests/packagesService";
 
 const PackagesPage = () => {
     const { t, lang } = useLang();
@@ -17,7 +18,7 @@ const PackagesPage = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-    const [error, _setError] = useState<string>("");
+    const [error, setError] = useState<string>("");
 
     // React Query hook
     const { data: packagesResponse, isLoading, refetch } = usePackages({
@@ -136,6 +137,23 @@ const PackagesPage = () => {
 
     const handleRefresh = () => {
         refetch();
+    };
+
+    const handleEditPackage = (id: string) => {
+        if (!id) return;
+        navigate("/packages/add", { state: { editPackageId: id } });
+    };
+
+    const handleDeletePackage = async (id: string) => {
+        if (!id) return;
+        const ok = window.confirm(tr("confirm_delete_package", "Are you sure you want to delete this package?"));
+        if (!ok) return;
+        try {
+            await deletePackage(id);
+            refetch();
+        } catch (err: any) {
+            setError(err?.message || "Failed to delete package");
+        }
     };
 
     return (
@@ -264,9 +282,35 @@ const PackagesPage = () => {
                                         <span className="rounded-full border border-light-300/80 bg-white/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-light-700 shadow-sm dark:border-dark-600 dark:bg-dark-900/70 dark:text-dark-200">
                                             {(pkg.items || []).length} {tr("items", "items")}
                                         </span>
-                                        <span className="text-light-500 dark:text-dark-400 text-[11px] font-semibold uppercase tracking-[0.08em]">
-                                            {tr("package_card", "Package Card")}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-light-500 dark:text-dark-400 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                                                {tr("package_card", "Package Card")}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const id = pkg._id || pkg.id;
+                                                        if (id) handleEditPackage(id);
+                                                    }}
+                                                    title={tr("edit", "Edit")}
+                                                    className="btn-ghost p-1 rounded-full"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const id = pkg._id || pkg.id;
+                                                        if (id) handleDeletePackage(id);
+                                                    }}
+                                                    title={tr("delete", "Delete")}
+                                                    className="btn-ghost p-1 rounded-full text-red-600"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="relative z-10 mb-5 text-center">

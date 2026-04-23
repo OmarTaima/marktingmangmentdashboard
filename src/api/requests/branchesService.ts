@@ -58,7 +58,7 @@ const transformBranchToFrontend = (backendData: any): Branch | null => {
 export const getBranchesByClientId = async (clientId: string): Promise<Branch[]> => {
     return withCache(`/clients/${clientId}/branches`, async () => {
         try {
-            const res = await axiosInstance.get(`/clients/${clientId}/branches`);
+            const res = await axiosInstance.get(`/clients/${clientId}/branches?PageCount=all`);
             let data: any[] = [];
             if (Array.isArray(res.data)) data = res.data;
             else if (Array.isArray(res.data.data)) data = res.data.data;

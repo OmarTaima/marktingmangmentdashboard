@@ -39,6 +39,24 @@ export interface SocialLinks {
     custom: SocialLink[];
 }
 
+export interface ClientAccount {
+    _id?: string;
+    id?: string;
+    platform: string;
+    username?: string;
+    password?: string;
+    twoFactor?: {
+        method?: string; // 'email' | 'mobile'
+        holderName?: string;
+        username?: string;
+        password?: string;
+    };
+    note?: string;
+    deleted?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface SWOT {
     strengths: string[];
     weaknesses: string[];
@@ -94,6 +112,7 @@ export interface Client {
     socialLinks: SocialLinks;
     swot: SWOT;
     competitors: Competitor[];
+    accounts?: ClientAccount[];
     segments?: Segment[];
     createdAt: string;
     updatedAt: string;

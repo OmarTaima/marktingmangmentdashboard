@@ -181,7 +181,7 @@ export const getQuotationById = async (id: string): Promise<{ data: Quotation }>
         try {
             // Try comma-separated nested path first
             const response = await api.get(`/quotations/${id}`, {
-                params: { populate: "packages,packages.items" },
+                params: { populate: "packages,packages.items", PageCount: "all" },
             });
             return normalizeQuotationEntityResponse(response.data);
         } catch (err: any) {
@@ -190,19 +190,19 @@ export const getQuotationById = async (id: string): Promise<{ data: Quotation }>
                 try {
                     // Try array format
                     const fallback = await api.get(`/quotations/${id}`, {
-                        params: { populate: ["packages", "packages.items"] },
+                        params: { populate: ["packages", "packages.items"], PageCount: "all" },
                     });
                     return normalizeQuotationEntityResponse(fallback.data);
                 } catch {
                     try {
                         // Try just packages
                         const simpleFallback = await api.get(`/quotations/${id}`, {
-                            params: { populate: "packages" },
+                            params: { populate: "packages", PageCount: "all" },
                         });
                         return normalizeQuotationEntityResponse(simpleFallback.data);
                     } catch {
                         // Final fallback - no populate
-                        const noPopulate = await api.get(`/quotations/${id}`);
+                        const noPopulate = await api.get(`/quotations/${id}`, { params: { PageCount: "all" } });
                         return normalizeQuotationEntityResponse(noPopulate.data);
                     }
                 }
@@ -237,6 +237,7 @@ export const deleteQuotation = async (id: string): Promise<void> => {
 export const downloadQuotationPDF = async (id: string): Promise<Blob> => {
     try {
         const response = await api.get(`/quotations/${id}/pdf`, {
+            params: { PageCount: "all" },
             responseType: "blob",
         });
 

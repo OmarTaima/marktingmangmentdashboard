@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLang } from "@/hooks/useLang";
-import { NewAccount } from "./Forms/steps/NewAccount";
+import { useClients } from "@/hooks/queries";
+import { NewAccount } from "./Forms/NewAccount";
 
 type Account = {
     id: string;
@@ -27,6 +28,7 @@ const AccountsPage = () => {
 	const [accounts, setAccounts] = useState<Account[]>([]);
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editingData, setEditingData] = useState<EditingAccount | null>(null);
+	const { data: clients = [], isLoading: clientsLoading, refetch } = useClients();
 	
 	const tr = (key: string, fallback: string) => {
 		const value = t(key);
@@ -34,15 +36,62 @@ const AccountsPage = () => {
 	};
 
 	const handleCreateAccount = (data: any) => {
-		const newAccount: Account = {
-			id: Date.now().toString(),
-			...data,
-			createdAt: new Date(),
-		};
-		
-		setAccounts(prevAccounts => [newAccount, ...prevAccounts]);
-		console.log("Account created:", newAccount);
+		// NewAccount already posts to the server; refresh the clients list to load the new account
+		refetch();
 	};
+
+	// Derive flat accounts list from clients response
+	const derivedAccounts = useMemo(() => {
+		const list: Account[] = [];
+		(clients || []).forEach((client: any) => {
+			const clientLabel = client?.business?.businessName || client?.business?.name || client?.personal?.fullName || client?._id;
+			const clientAccounts = Array.isArray(client.accounts) ? client.accounts : [];
+			clientAccounts.forEach((acc: any) => {
+				const id = acc._id || acc.id || `${client._id}-${Math.random().toString(36).slice(2)}`;
+				const two = acc.twoFactor || acc.twoFactor || undefined;
+				let twoFactorMethod: "mail" | "phone" | "non" = "non";
+				let mail: string | undefined;
+				let mailPassword: string | undefined;
+				let phoneOwnerName: string | undefined;
+				let phoneNumber: string | undefined;
+
+				if (two && typeof two === "object") {
+					if (two.method === "email") {
+						twoFactorMethod = "mail";
+						mail = two.username || undefined;
+						mailPassword = two.password || undefined;
+					} else if (two.method === "mobile") {
+						twoFactorMethod = "phone";
+						phoneOwnerName = two.holderName || undefined;
+						phoneNumber = two.username || undefined;
+					}
+				}
+
+				const created = acc.createdAt ? new Date(acc.createdAt) : client.createdAt ? new Date(client.createdAt) : new Date();
+
+				list.push({
+					id,
+					client: clientLabel,
+					platformName: acc.platform || acc.platformName || "",
+					userName: acc.username || "",
+					password: acc.password || "",
+					twoFactorMethod,
+					mail,
+					mailPassword,
+					phoneOwnerName,
+					phoneNumber,
+					note: acc.note || "",
+					createdAt: created,
+				});
+			});
+		});
+		return list;
+	}, [clients]);
+
+	// Keep a local editable copy so inline edits can work; sync when clients change
+	useEffect(() => {
+		setAccounts(derivedAccounts);
+	}, [derivedAccounts]);
 
 	const handleEdit = (account: Account) => {
 		setEditingId(account.id);
