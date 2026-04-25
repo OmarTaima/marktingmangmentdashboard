@@ -77,10 +77,13 @@ type SocialLinksStepProps = {
 };
 
 export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, onPrevious, onUpdate }) => {
+    // Add default values if data is null/undefined
+    const safeData = data || {};
     const { t, lang } = useLang();
+    
     const [businessLinks, setBusinessLinks] = useState<SocialLink[]>(() => {
-        if (data.socialLinks?.business) {
-            return data.socialLinks.business;
+        if (safeData.socialLinks?.business && Array.isArray(safeData.socialLinks.business)) {
+            return safeData.socialLinks.business;
         }
         return mainPlatforms.map((p) => ({ platform: p.name, url: "" }));
     });
@@ -88,36 +91,34 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     const [newCustom, setNewCustom] = useState<SocialLink>(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
     const [urlErrors, setUrlErrors] = useState<Record<string, string>>({});
 
-    const handleBusinessLinkChange = (index: number, value: string) => {
-        setBusinessLinks((prevLinks) => {
-            const updated = [...prevLinks];
-            // Ensure platform is preserved from mainPlatforms if missing
-            const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
-            // Preserve user-entered URL (keep protocol if provided); trim surrounding whitespace
-            const storedUrl = value.trim();
-            updated[index] = { platform, url: storedUrl };
-            if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
-            return updated;
+  const handleBusinessLinkChange = (index: number, value: string) => {
+    setBusinessLinks((prevLinks) => {
+        const updated = [...prevLinks];
+        // Fix: Add safety check for platform existence
+        const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
+        const storedUrl = value.trim();
+        updated[index] = { platform, url: storedUrl };
+        if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
+        return updated;
+    });
+
+    // Fix: Add safety check for mainPlatforms[index]
+    if (value && !validators.isValidURL(value, { allowProtocolLess: true })) {
+        setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
+        return;
+    }
+
+    // Fix: Ensure mainPlatforms[index] exists before passing to validatePlatformUrl
+    if (value && mainPlatforms[index] && !validatePlatformUrl(value, mainPlatforms[index] as Platform)) {
+        setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
+    } else {
+        setUrlErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors[index];
+            return newErrors;
         });
-
-        // Validate URL for the platform
-        // first check general URL validity
-        if (value && !validators.isValidURL(value, { allowProtocolLess: true })) {
-            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
-            return;
-        }
-
-        // then platform-specific check
-        if (value && !validatePlatformUrl(value, mainPlatforms[index] as Platform)) {
-            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
-        } else {
-            setUrlErrors((prev) => {
-                const newErrors = { ...prev };
-                delete newErrors[index];
-                return newErrors;
-            });
-        }
-    };
+    }
+};
 
     const handleAddCustom = () => {
         if (newCustom.platform && newCustom.url) {
@@ -149,20 +150,20 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     };
 
     // Keep local lists in sync with parent data so entered values persist when navigating
-    useEffect(() => {
-        // Ensure business links always have platform names from mainPlatforms
-        if (data.socialLinks?.business) {
-            const businessWithPlatforms = data.socialLinks.business.map((link: SocialLink, index: number) => ({
-                platform: link.platform || mainPlatforms[index]?.name || "",
-                url: link.url || "",
-            }));
-            setBusinessLinks(businessWithPlatforms);
-        } else {
-            setBusinessLinks(mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
-        }
-        setCustomLinks(data.socialLinks?.custom || []);
-    }, [data?.socialLinks]);
-
+   // Fix: Add null/undefined checks in useEffect
+useEffect(() => {
+    // Ensure business links always have platform names from mainPlatforms
+    if (data?.socialLinks?.business && Array.isArray(data.socialLinks.business)) {
+        const businessWithPlatforms = data.socialLinks.business.map((link: SocialLink, index: number) => ({
+            platform: link?.platform || mainPlatforms[index]?.name || "",
+            url: link?.url || "",
+        }));
+        setBusinessLinks(businessWithPlatforms);
+    } else {
+        setBusinessLinks(mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
+    }
+    setCustomLinks(data?.socialLinks?.custom || []);
+}, [data?.socialLinks]);
     useEffect(() => {
         setNewCustom(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
     }, [data?.socialLinksDraft]);
@@ -181,57 +182,58 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
             <div>
                 <h3 className="text-light-900 dark:text-dark-50 mb-3 text-lg font-medium">{t("main_marketing_platforms")}</h3>
                 <div className="space-y-4">
-                    {mainPlatforms.map((platform, index) => {
-                        const Icon = platform.icon;
-                        return (
-                            <div
-                                key={index}
-                                className={cn("flex items-center gap-3", lang === "ar" ? "flex-row-reverse" : "")}
-                            >
-                                <div className={cn("flex w-40 items-center gap-2", lang === "ar" ? "flex-row-reverse" : "")}>
-                                    <Icon className={`${platform.color} h-5 w-5`} />
-                                    <label
-                                        className={cn(
-                                            "text-dark-700 dark:text-secdark-200 text-sm font-medium",
-                                            dirFor(platform.name) === "rtl" ? "text-right" : "text-left",
-                                        )}
-                                    >
-                                        {platform.name}
-                                    </label>
-                                </div>
-                                <div className="flex-1">
-                                    <input
-                                        type="text"
-                                        value={businessLinks[index]?.url || ""}
-                                        onChange={(e) => handleBusinessLinkChange(index, e.target.value)}
-                                        placeholder={
-                                            (t as any)("platform_placeholder", {
-                                                platform: platform.name.toLowerCase().replace(/\s+/g, ""),
-                                            }) as string
-                                        }
-                                        dir={dirFor(
-                                            (t as any)("platform_placeholder", {
-                                                platform: platform.name.toLowerCase().replace(/\s+/g, ""),
-                                            }) as string,
-                                        )}
-                                        className={cn(
-                                            "focus:border-light-500 w-full rounded-lg border px-4 py-2 focus:outline-none",
-                                            urlErrors[index] ? "border-danger-500" : "border-light-600",
-                                            dirFor(
-                                                (t as any)("platform_placeholder", {
-                                                    platform: platform.name.toLowerCase().replace(/\s+/g, ""),
-                                                }) as string,
-                                            ) === "rtl"
-                                                ? "text-right"
-                                                : "text-left",
-                                            "text-light-900 dark:bg-dark-800 dark:text-dark-50 bg-white",
-                                        )}
-                                    />
-                                    {urlErrors[index] && <p className="text-danger-500 mt-1 text-xs">{urlErrors[index]}</p>}
-                                </div>
-                            </div>
-                        );
-                    })}
+                   {mainPlatforms.map((platform, index) => {
+    const Icon = platform.icon;
+    const currentLink = businessLinks[index] || { platform: platform.name, url: "" };
+    return (
+        <div
+            key={index}
+            className={cn("flex items-center gap-3", lang === "ar" ? "flex-row-reverse" : "")}
+        >
+            <div className={cn("flex w-40 items-center gap-2", lang === "ar" ? "flex-row-reverse" : "")}>
+                <Icon className={`${platform.color} h-5 w-5`} />
+                <label
+                    className={cn(
+                        "text-dark-700 dark:text-secdark-200 text-sm font-medium",
+                        dirFor(platform.name) === "rtl" ? "text-right" : "text-left",
+                    )}
+                >
+                    {platform.name}
+                </label>
+            </div>
+            <div className="flex-1">
+                <input
+                    type="text"
+                    value={currentLink.url}
+                    onChange={(e) => handleBusinessLinkChange(index, e.target.value)}
+                    placeholder={
+                        (t as any)("platform_placeholder", {
+                            platform: platform.name.toLowerCase().replace(/\s+/g, ""),
+                        }) as string
+                    }
+                    dir={dirFor(
+                        (t as any)("platform_placeholder", {
+                            platform: platform.name.toLowerCase().replace(/\s+/g, ""),
+                        }) as string,
+                    )}
+                    className={cn(
+                        "focus:border-light-500 w-full rounded-lg border px-4 py-2 focus:outline-none",
+                        urlErrors[index] ? "border-danger-500" : "border-light-600",
+                        dirFor(
+                            (t as any)("platform_placeholder", {
+                                platform: platform.name.toLowerCase().replace(/\s+/g, ""),
+                            }) as string,
+                        ) === "rtl"
+                            ? "text-right"
+                            : "text-left",
+                        "text-light-900 dark:bg-dark-800 dark:text-dark-50 bg-white",
+                    )}
+                />
+                {urlErrors[index] && <p className="text-danger-500 mt-1 text-xs">{urlErrors[index]}</p>}
+            </div>
+        </div>
+    );
+})}
                 </div>
             </div>
 
