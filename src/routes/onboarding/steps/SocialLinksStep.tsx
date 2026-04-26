@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
-import { Plus, Trash2, Edit2, X } from "lucide-react";
+import { Plus, Trash2, Edit2 } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX, SiThreads } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
