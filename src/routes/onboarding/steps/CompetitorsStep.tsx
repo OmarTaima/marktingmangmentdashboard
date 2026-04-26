@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Edit2, X } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import validators from "@/constants/validators";
@@ -41,6 +41,12 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
     const { t } = useLang();
     const [competitors, setCompetitors] = useState<Competitor[]>(data.competitors || []);
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editingSwotItem, setEditingSwotItem] = useState<{
+        category: keyof CompetitorSwot | null;
+        index: number | null;
+        value: string;
+    }>({ category: null, index: null, value: "" });
     const [currentCompetitor, setCurrentCompetitor] = useState<Competitor>(
         data.competitorsDraft ||
             data.currentCompetitorDraft || {
@@ -63,7 +69,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleAddCompetitor = () => {
+    const handleAddOrUpdateCompetitor = () => {
         const newErrors: Record<string, string> = {};
 
         // Require competitor name (backend requires `name`)
@@ -87,11 +93,26 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
             newErrors.website = (t("invalid_website") as string) || "";
         }
 
-        // Persist the competitor; show non-blocking errors for URLs
-        setErrors(newErrors);
-        const next = [...competitors, normalizedCompetitor];
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        let next: Competitor[];
+        if (editingIndex !== null) {
+            // Update existing competitor
+            next = [...competitors];
+            next[editingIndex] = normalizedCompetitor;
+            setEditingIndex(null);
+        } else {
+            // Add new competitor
+            next = [...competitors, normalizedCompetitor];
+        }
+        
         setCompetitors(next);
         if (typeof onUpdate === "function") onUpdate({ competitors: next });
+        
+        // Reset form
         setCurrentCompetitor({
             name: "",
             description: "",
@@ -103,12 +124,68 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
             swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
         });
         setSwotInput({ strength: "", weakness: "", opportunity: "", threat: "" });
+        setErrors({});
+    };
+
+    const handleEditCompetitor = (index: number) => {
+        const competitorToEdit = competitors[index];
+        setCurrentCompetitor(JSON.parse(JSON.stringify(competitorToEdit))); // Deep clone to avoid reference issues
+        setEditingIndex(index);
+        setErrors({});
+        setEditingSwotItem({ category: null, index: null, value: "" });
+        setSwotInput({ strength: "", weakness: "", opportunity: "", threat: "" });
+        // Scroll to form
+        document.getElementById("competitor-form")?.scrollIntoView({ behavior: "smooth" });
     };
 
     const handleRemoveCompetitor = (index: number) => {
         const next = competitors.filter((_, i) => i !== index);
         setCompetitors(next);
         if (typeof onUpdate === "function") onUpdate({ competitors: next });
+        
+        // If we're editing the competitor that was just deleted, reset the form
+        if (editingIndex === index) {
+            setEditingIndex(null);
+            setCurrentCompetitor({
+                name: "",
+                description: "",
+                website: "",
+                facebook: "",
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+            });
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingIndex(null);
+        setCurrentCompetitor({
+            name: "",
+            description: "",
+            website: "",
+            facebook: "",
+            instagram: "",
+            tiktok: "",
+            twitter: "",
+            swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+        });
+        setSwotInput({ strength: "", weakness: "", opportunity: "", threat: "" });
+        setEditingSwotItem({ category: null, index: null, value: "" });
+        setErrors({});
+        if (typeof onUpdate === "function") onUpdate({ 
+            competitorsDraft: {
+                name: "",
+                description: "",
+                website: "",
+                facebook: "",
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+            }
+        });
     };
 
     const handleAddSwotItem = (category: keyof CompetitorSwot & string) => {
@@ -127,6 +204,30 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
         }
     };
 
+    const handleEditSwotItem = (category: keyof CompetitorSwot, index: number, currentValue: string) => {
+        setEditingSwotItem({ category, index, value: currentValue });
+    };
+
+    const handleUpdateSwotItem = () => {
+        const { category, index, value } = editingSwotItem;
+        if (category !== null && index !== null && value.trim()) {
+            setCurrentCompetitor((prev) => ({
+                ...(prev || {}),
+                swot: {
+                    ...(prev?.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] }),
+                    [category]: (prev?.swot?.[category] || []).map((item, i) => 
+                        i === index ? value.trim() : item
+                    ),
+                },
+            }));
+            setEditingSwotItem({ category: null, index: null, value: "" });
+        }
+    };
+
+    const handleCancelEditSwotItem = () => {
+        setEditingSwotItem({ category: null, index: null, value: "" });
+    };
+
     const handleRemoveSwotItem = (category: keyof CompetitorSwot & string, itemIndex: number) => {
         setCurrentCompetitor((prev) => ({
             ...(prev || {}),
@@ -135,12 +236,17 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                 [category]: (prev?.swot?.[category] || []).filter((_, i) => i !== itemIndex),
             },
         }));
+        
+        // If we were editing this item, cancel edit mode
+        if (editingSwotItem.category === category && editingSwotItem.index === itemIndex) {
+            setEditingSwotItem({ category: null, index: null, value: "" });
+        }
     };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        // Auto-add current draft if it has any content
+        // Auto-add current draft if it has any content and we're not editing
         let finalCompetitors = [...competitors];
         const hasContent = Object.values(currentCompetitor).some((v) => {
             if (Array.isArray(v)) return v.length > 0;
@@ -149,7 +255,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
             return !!(v && String(v).trim());
         });
 
-        if (hasContent) {
+        if (editingIndex === null && hasContent) {
             // Require name when adding draft competitor
             if (!currentCompetitor.name || !currentCompetitor.name.trim()) {
                 setErrors({ name: (t(fieldValidations.competitorName.messageKey) as string) || "Competitor name is required" });
@@ -157,7 +263,6 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
             }
 
             // Validate website if provided
-            // Preserve URLs as entered before validating/saving
             const normalized = {
                 ...currentCompetitor,
                 website: currentCompetitor.website ? currentCompetitor.website.trim() : "",
@@ -189,26 +294,29 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
         });
     };
 
-    // Keep competitors and current competitor draft synced with parent data
+    // Keep competitors synced with parent data
     useEffect(() => {
         setCompetitors(data.competitors || []);
     }, [data?.competitors]);
 
     useEffect(() => {
-        setCurrentCompetitor(
-            data.competitorsDraft ||
-                data.currentCompetitorDraft || {
-                    name: "",
-                    description: "",
-                    website: "",
-                    facebook: "",
-                    instagram: "",
-                    tiktok: "",
-                    twitter: "",
-                    swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
-                },
-        );
-    }, [data?.competitorsDraft, data?.currentCompetitorDraft]);
+        // Only update currentCompetitor from parent if we're not in editing mode
+        if (editingIndex === null) {
+            setCurrentCompetitor(
+                data.competitorsDraft ||
+                    data.currentCompetitorDraft || {
+                        name: "",
+                        description: "",
+                        website: "",
+                        facebook: "",
+                        instagram: "",
+                        tiktok: "",
+                        twitter: "",
+                        swot: { strengths: [], weaknesses: [], opportunities: [], threats: [] },
+                    },
+            );
+        }
+    }, [data?.competitorsDraft, data?.currentCompetitorDraft, editingIndex]);
 
     useEffect(() => {
         if (typeof onUpdate === "function") onUpdate({ competitors });
@@ -224,7 +332,20 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
 
             <p className="text-light-600 dark:text-dark-400 mb-4 text-sm transition-colors duration-300">{t("competitor_analysis_help")}</p>
 
-            <div className="bg-dark-50 dark:bg-dark-800/50 space-y-4 rounded-lg p-4">
+            <div id="competitor-form" className="bg-dark-50 dark:bg-dark-800/50 space-y-4 rounded-lg p-4">
+                {editingIndex !== null && (
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="text-dark-700 dark:text-secdark-200 text-sm font-medium">{t("editing_competitor")}</p>
+                        <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="text-light-600 hover:text-light-900 text-sm"
+                        >
+                            {t("cancel")}
+                        </button>
+                    </div>
+                )}
+                
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4">
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -232,11 +353,10 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("competitor_name")}</label>
                                 <input
                                     type="text"
-                                    value={currentCompetitor.name}
+                                    value={currentCompetitor.name || ""}
                                     onChange={(e) => {
                                         const updated = { ...currentCompetitor, name: e.target.value };
                                         setCurrentCompetitor(updated);
-                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                         if (errors.name) setErrors({ ...errors, name: "" });
                                     }}
                                     className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 transition-colors duration-300 focus:outline-none ${errors.name ? "border-danger-500" : "border-light-600"}`}
@@ -247,12 +367,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("website_url")}</label>
                                 <input
                                     type="text"
-                                    value={currentCompetitor.website}
+                                    value={currentCompetitor.website || ""}
                                     onChange={(e) => {
                                         const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, website: stored };
                                         setCurrentCompetitor(updated);
-                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                         if (errors.website) setErrors({ ...errors, website: "" });
                                     }}
                                     placeholder={t("website_placeholder")}
@@ -266,11 +385,10 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                         <div className="mt-3">
                             <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("description")}</label>
                             <textarea
-                                value={currentCompetitor.description}
+                                value={currentCompetitor.description || ""}
                                 onChange={(e) => {
                                     const updated = { ...currentCompetitor, description: e.target.value };
                                     setCurrentCompetitor(updated);
-                                    if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     if (errors.description) setErrors({ ...errors, description: "" });
                                 }}
                                 rows={3}
@@ -289,12 +407,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 </label>
                                 <input
                                     type="text"
-                                    value={currentCompetitor.facebook}
+                                    value={currentCompetitor.facebook || ""}
                                     onChange={(e) => {
                                         const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, facebook: stored };
                                         setCurrentCompetitor(updated);
-                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     }}
                                     placeholder="https://facebook.com/..."
                                     dir={dirFor("https://facebook.com/...")}
@@ -310,12 +427,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                 </label>
                                 <input
                                     type="text"
-                                    value={currentCompetitor.instagram}
+                                    value={currentCompetitor.instagram || ""}
                                     onChange={(e) => {
                                         const stored = e.target.value ? e.target.value.trim() : "";
                                         const updated = { ...currentCompetitor, instagram: stored };
                                         setCurrentCompetitor(updated);
-                                        if (typeof onUpdate === "function") onUpdate({ competitorsDraft: updated });
                                     }}
                                     placeholder="https://instagram.com/..."
                                     dir={dirFor("https://instagram.com/...")}
@@ -332,9 +448,11 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                     return (
                                         <div
                                             key={category}
-                                            className="space-y-1"
+                                            className="space-y-2"
                                         >
                                             <label className="text-light-600 dark:text-dark-400 block text-xs font-medium">{t(category)}</label>
+                                            
+                                            {/* Add new SWOT item input */}
                                             <div className="flex gap-1">
                                                 <input
                                                     type="text"
@@ -347,30 +465,78 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                                         }
                                                     }}
                                                     className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 flex-1 rounded border bg-white px-2 py-1 text-sm transition-colors duration-300"
+                                                    placeholder={t(`add_${inputKey}`)}
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => handleAddSwotItem(category)}
-                                                    className="text-light-500 px-2"
+                                                    className="text-light-500 px-2 hover:text-light-700"
                                                     aria-label={`add-${category}`}
                                                 >
                                                     <Plus size={14} />
                                                 </button>
                                             </div>
-                                            <div className="space-y-1">
+                                            
+                                            {/* List of SWOT items with edit capability */}
+                                            <div className="space-y-2">
                                                 {(currentCompetitor.swot?.[category] || []).map((item: string, idx: number) => (
                                                     <div
                                                         key={idx}
                                                         className="dark:bg-dark-800 flex items-center justify-between rounded bg-white px-2 py-1 text-xs"
                                                     >
-                                                        <span className="text-light-900 dark:text-dark-50 break-words">{item}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveSwotItem(category, idx)}
-                                                            className="text-danger-500"
-                                                        >
-                                                            <Trash2 size={12} />
-                                                        </button>
+                                                        {editingSwotItem.category === category && editingSwotItem.index === idx ? (
+                                                            <div className="flex flex-1 items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingSwotItem.value}
+                                                                    onChange={(e) => setEditingSwotItem({ ...editingSwotItem, value: e.target.value })}
+                                                                    onKeyPress={(e) => {
+                                                                        if (e.key === "Enter") {
+                                                                            e.preventDefault();
+                                                                            handleUpdateSwotItem();
+                                                                        }
+                                                                    }}
+                                                                    className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 flex-1 rounded border bg-white px-2 py-1 text-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                                    autoFocus
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleUpdateSwotItem}
+                                                                    className="text-primary-600 hover:text-primary-700"
+                                                                >
+                                                                    {t("save")}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCancelEditSwotItem}
+                                                                    className="text-light-500 hover:text-light-700"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <span className="text-light-900 dark:text-dark-50 flex-1 break-words">{item}</span>
+                                                                <div className="flex gap-1">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleEditSwotItem(category, idx, item)}
+                                                                        className="text-danger-500 hover:text-danger-600"
+                                                                        title={t("edit")}
+                                                                    >
+                                                                        <Edit2 size={12} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveSwotItem(category, idx)}
+                                                                        className="text-red-500 hover:text-red-600"
+                                                                        title={t("remove")}
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -380,15 +546,34 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                             </div>
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-4 flex gap-2">
                             <button
                                 type="button"
-                                onClick={handleAddCompetitor}
+                                onClick={handleAddOrUpdateCompetitor}
                                 className="btn-ghost flex items-center gap-2"
                             >
-                                <Plus size={16} />
-                                {t("add_competitor")}
+                                {editingIndex !== null ? (
+                                    <>
+                                        <Edit2 size={16} />
+                                        {t("update_competitor")}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus size={16} />
+                                        {t("add_competitor")}
+                                    </>
+                                )}
                             </button>
+                            
+                            {editingIndex !== null && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    className="btn-ghost text-light-600 flex items-center gap-2"
+                                >
+                                    {t("cancel")}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -402,7 +587,9 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                             {competitors.map((competitor, index) => (
                                 <div
                                     key={index}
-                                    className="border-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3 transition-colors duration-300"
+                                    className={`border-light-600 dark:border-dark-700 dark:bg-dark-800 rounded-lg border bg-white p-3 transition-colors duration-300 ${
+                                        editingIndex === index ? "ring-primary-500 ring-2" : ""
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
@@ -420,8 +607,16 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => handleRemoveCompetitor(index)}
+                                                onClick={() => handleEditCompetitor(index)}
                                                 className="text-danger-500 hover:text-danger-600"
+                                                title={t("edit_competitor")}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveCompetitor(index)}
+                                                className="text-red-500 hover:text-red-600"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -432,7 +627,7 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                                 {competitor.swot?.strengths && competitor.swot.strengths.length > 0 && (
                                                     <div>
-                                                        <strong className="text-green-600">Strengths:</strong>
+                                                        <strong className="text-green-600">{t("strengths")}:</strong>
                                                         <ul className="list-inside list-disc">
                                                             {(competitor.swot?.strengths || []).map((s, i) => (
                                                                 <li key={i}>{s}</li>
@@ -442,10 +637,30 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
                                                 )}
                                                 {competitor.swot?.weaknesses && competitor.swot.weaknesses.length > 0 && (
                                                     <div>
-                                                        <strong className="text-danger-600">Weaknesses:</strong>
+                                                        <strong className="text-danger-600">{t("weaknesses")}:</strong>
                                                         <ul className="list-inside list-disc">
                                                             {(competitor.swot?.weaknesses || []).map((w, i) => (
                                                                 <li key={i}>{w}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {competitor.swot?.opportunities && competitor.swot.opportunities.length > 0 && (
+                                                    <div>
+                                                        <strong className="text-blue-600">{t("opportunities")}:</strong>
+                                                        <ul className="list-inside list-disc">
+                                                            {(competitor.swot?.opportunities || []).map((o, i) => (
+                                                                <li key={i}>{o}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {competitor.swot?.threats && competitor.swot.threats.length > 0 && (
+                                                    <div>
+                                                        <strong className="text-yellow-600">{t("threats")}:</strong>
+                                                        <ul className="list-inside list-disc">
+                                                            {(competitor.swot?.threats || []).map((t, i) => (
+                                                                <li key={i}>{t}</li>
                                                             ))}
                                                         </ul>
                                                     </div>
@@ -478,5 +693,3 @@ export const CompetitorsStep: FC<CompetitorsStepProps> = ({ data = {}, onNext, o
         </form>
     );
 };
-
-// component props are typed via CompetitorsStepProps above

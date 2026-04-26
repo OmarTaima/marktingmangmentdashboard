@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Loader2 } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import fieldValidations from "@/constants/validations";
 
@@ -15,7 +15,7 @@ type Segment = {
     governorate?: string[];
     note?: string;
     productName?: string[];
-    population?: number[];
+    population?: number; // Changed from array to number
 };
 
 type SegmentsStepProps = {
@@ -23,33 +23,14 @@ type SegmentsStepProps = {
     onNext: (payload: any) => void;
     onPrevious: (payload: any) => void;
     onUpdate?: (payload: any) => void;
+    isLoading?: boolean; // Add loading prop
 };
 
-export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevious, onUpdate }) => {
+export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevious, onUpdate, isLoading = false }) => {
     const { t } = useLang();
-    // helper to normalize population into a single number (first valid) or undefined
-    const normalizePopulation = (val: any): number | undefined => {
-        if (val === undefined || val === null || val === "") return undefined;
-        if (Array.isArray(val)) {
-            const first = val.length > 0 ? val[0] : undefined;
-            const n = first === undefined || first === null ? NaN : Number(first);
-            return Number.isNaN(n) ? undefined : n;
-        }
-        if (typeof val === "string") {
-            const parts = val
-                .toString()
-                .split(/[,;\n]+/)
-                .map((s: string) => s.trim())
-                .filter(Boolean);
-            const n = parts.length > 0 ? Number(parts[0]) : NaN;
-            return Number.isNaN(n) ? undefined : n;
-        }
-        if (typeof val === "number") {
-            return Number.isNaN(val) ? undefined : val;
-        }
-        return undefined;
-    };
+    
     const [segments, setSegments] = useState<Segment[]>(data.segments || []);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [currentSegment, setCurrentSegment] = useState<Segment>(
         data.segmentsDraft || {
             name: "",
@@ -60,12 +41,13 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             area: [],
             governorate: [],
             note: "",
+            population: undefined,
         },
     );
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const [newProductName, setNewProductName] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
-    // Keep textual editors for age ranges. Areas and governorate use chip-style inputs now.
     const [newArea, setNewArea] = useState<string>("");
     const [newGovernorate, setNewGovernorate] = useState<string>("");
     const [newAgeRange, setNewAgeRange] = useState<string>("");
@@ -80,7 +62,7 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
         if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
     };
 
-    const handleAddSegment = () => {
+    const handleAddOrUpdateSegment = () => {
         const newErrors: Record<string, string> = {};
 
         // Validate name is required
@@ -90,7 +72,7 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             return;
         }
 
-        // Clean the segment data - remove empty strings and keep only meaningful values
+        // Clean the segment data
         const cleanedSegment: Segment = {
             name: currentSegment.name.trim(),
         };
@@ -103,7 +85,6 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             cleanedSegment.description = currentSegment.description.trim();
         }
 
-        // Use ageRange array from currentSegment (set by the age range input)
         if (currentSegment.ageRange && Array.isArray(currentSegment.ageRange) && currentSegment.ageRange.length > 0) {
             cleanedSegment.ageRange = currentSegment.ageRange.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
         }
@@ -112,8 +93,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             cleanedSegment.area = currentSegment.area.filter((i) => i.trim().length > 0);
         }
 
-        if (currentSegment.population !== undefined && currentSegment.population !== null) {
-            cleanedSegment.population = normalizePopulation(currentSegment.population) as any;
+        // Fix: Handle population as number, not array
+        if (currentSegment.population !== undefined && currentSegment.population !== null && currentSegment.population !== 0) {
+            cleanedSegment.population = currentSegment.population;
         }
 
         if (currentSegment.governorate && currentSegment.governorate.length > 0) {
@@ -129,9 +111,17 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             cleanedSegment.gender = ["all"];
         }
 
-        // incomeLevel removed — not included in payload
-
-        const next = [...segments, cleanedSegment];
+        let next: Segment[];
+        if (editingIndex !== null) {
+            // Update existing segment
+            next = [...segments];
+            next[editingIndex] = cleanedSegment;
+            setEditingIndex(null);
+        } else {
+            // Add new segment
+            next = [...segments, cleanedSegment];
+        }
+        
         setSegments(next);
         const emptySegment: Segment = {
             name: "",
@@ -141,7 +131,7 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             productName: [],
             area: [],
             governorate: [],
-            population: [],
+            population: undefined,
             note: "",
         };
         if (typeof onUpdate === "function") onUpdate({ segments: next, segmentsDraft: emptySegment });
@@ -149,21 +139,98 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
         setNewProductName("");
         setNewArea("");
         setNewGovernorate("");
+        setNewAgeRange("");
         setErrors({});
+    };
+
+    const handleEditSegment = (index: number) => {
+        const segmentToEdit = { ...segments[index] };
+        // Ensure arrays are properly initialized and population is handled correctly
+        setCurrentSegment({
+            ...segmentToEdit,
+            productName: segmentToEdit.productName || [],
+            ageRange: segmentToEdit.ageRange || [],
+            area: segmentToEdit.area || [],
+            governorate: segmentToEdit.governorate || [],
+            population: segmentToEdit.population !== undefined ? segmentToEdit.population : undefined,
+        });
+        setEditingIndex(index);
+        setErrors({});
+        // Reset input fields
+        setNewProductName("");
+        setNewArea("");
+        setNewGovernorate("");
+        setNewAgeRange("");
+        // Scroll to form
+        document.getElementById("segment-form")?.scrollIntoView({ behavior: "smooth" });
     };
 
     const handleRemoveSegment = (index: number) => {
         const next = segments.filter((_, i) => i !== index);
         setSegments(next);
         if (typeof onUpdate === "function") onUpdate({ segments: next });
+        
+        // If we're editing the segment that was just deleted, reset the form
+        if (editingIndex === index) {
+            setEditingIndex(null);
+            setCurrentSegment({
+                name: "",
+                description: "",
+                ageRange: [],
+                gender: ["all"],
+                productName: [],
+                area: [],
+                governorate: [],
+                population: undefined,
+                note: "",
+            });
+        }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCancelEdit = () => {
+        setEditingIndex(null);
+        setCurrentSegment({
+            name: "",
+            description: "",
+            ageRange: [],
+            gender: ["all"],
+            productName: [],
+            area: [],
+            governorate: [],
+            population: undefined,
+            note: "",
+        });
+        setNewProductName("");
+        setNewArea("");
+        setNewGovernorate("");
+        setNewAgeRange("");
+        setErrors({});
+        if (typeof onUpdate === "function") onUpdate({ 
+            segmentsDraft: {
+                name: "",
+                description: "",
+                ageRange: [],
+                gender: ["all"],
+                productName: [],
+                area: [],
+                governorate: [],
+                population: undefined,
+                note: "",
+            }
+        });
+    };
 
-        // Auto-add current draft if it has content
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Prevent multiple submissions
+        if (isSubmitting || isLoading) return;
+        
+        setIsSubmitting(true);
+
+        // Auto-add current draft if it has content and we're not editing
         let finalSegments = [...segments];
-        if (currentSegment.name?.trim()) {
+        if (editingIndex === null && currentSegment.name?.trim()) {
             // Clean the segment data
             const cleanedSegment: Segment = {
                 name: currentSegment.name.trim(),
@@ -173,12 +240,10 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 cleanedSegment.description = currentSegment.description.trim();
             }
 
-            // map ageRange array from currentSegment
             if (currentSegment.ageRange && Array.isArray(currentSegment.ageRange) && currentSegment.ageRange.length > 0) {
                 cleanedSegment.ageRange = currentSegment.ageRange.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
             }
 
-            // map gender to array
             if (currentSegment.gender && Array.isArray(currentSegment.gender)) {
                 cleanedSegment.gender = currentSegment.gender.length > 0 ? currentSegment.gender : ["all"];
             } else if (currentSegment.gender && typeof currentSegment.gender === "string") {
@@ -187,14 +252,13 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 cleanedSegment.gender = ["all"];
             }
 
-            // interests removed — nothing to keep here
-
             if (currentSegment.productName && Array.isArray(currentSegment.productName) && currentSegment.productName.length > 0) {
                 cleanedSegment.productName = currentSegment.productName.map((s) => (typeof s === "string" ? s.trim() : s)).filter(Boolean);
             }
 
-            if (currentSegment.population !== undefined && currentSegment.population !== null) {
-                cleanedSegment.population = normalizePopulation(currentSegment.population) as any;
+            // Fix: Handle population as number
+            if (currentSegment.population !== undefined && currentSegment.population !== null && currentSegment.population !== 0) {
+                cleanedSegment.population = currentSegment.population;
             }
 
             if (currentSegment.area && currentSegment.area.length > 0) {
@@ -204,42 +268,32 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
             if (currentSegment.governorate && currentSegment.governorate.length > 0) {
                 cleanedSegment.governorate = currentSegment.governorate.filter((i) => i.trim().length > 0);
             }
-            // incomeLevel removed — not included in payload
 
             finalSegments = [...segments, cleanedSegment];
         }
 
-        // Normalize population for backend: send a single number (server expects number)
-        const normalizedForServer = finalSegments.map((s) => {
-            let val: number | undefined;
-            if (Array.isArray(s.population)) {
-                const n = s.population.length > 0 ? Number(s.population[0]) : undefined;
-                val = !Number.isNaN(n) ? n : undefined;
-            } else if (s.population !== undefined && s.population !== null && s.population !== "") {
-                const n = Number(s.population);
-                val = !Number.isNaN(n) ? n : undefined;
-            }
-            return {
-                ...s,
-                // send population as a number (server validation expects a number)
-                population: typeof val === "number" ? val : undefined,
-            } as any;
-        });
-
-        onNext({
-            segments: normalizedForServer,
-            segmentsDraft: {
-                name: "",
-                description: "",
-                ageRange: [],
-                gender: ["all"],
-                productName: [],
-                area: [],
-                governorate: [],
-                population: [],
-                note: "",
-            },
-        });
+        try {
+            // Call onNext and wait for it to complete (assuming it returns a promise)
+            await onNext({
+                segments: finalSegments,
+                segmentsDraft: {
+                    name: "",
+                    description: "",
+                    ageRange: [],
+                    gender: ["all"],
+                    productName: [],
+                    area: [],
+                    governorate: [],
+                    population: undefined,
+                    note: "",
+                },
+            });
+        } catch (error) {
+            console.error("Error submitting segments:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+        
         setNewProductName("");
         setNewArea("");
         setNewGovernorate("");
@@ -251,74 +305,110 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
     }, [data?.segments]);
 
     useEffect(() => {
-        const draft = (data.segmentsDraft as any) || null;
-        const normalized = draft
-            ? {
-                  ...draft,
-                  productName: Array.isArray(draft.productName) ? draft.productName : draft.productName ? [draft.productName] : [],
-                  area: Array.isArray(draft.area)
-                      ? draft.area
-                      : draft.area
-                        ? ("" + draft.area)
-                              .split(/[,;\n]+/)
-                              .map((s: string) => s.trim())
-                              .filter(Boolean)
-                        : [],
-                  governorate: Array.isArray(draft.governorate)
-                      ? draft.governorate
-                      : draft.governorate
-                        ? ("" + draft.governorate)
-                              .split(/[,;\n]+/)
-                              .map((s: string) => s.trim())
-                              .filter(Boolean)
-                        : [],
-                  population: Array.isArray(draft.population)
-                      ? draft.population.map((n: any) => Number(n)).filter((n: number) => !Number.isNaN(n))
-                      : draft.population
-                        ? ("" + draft.population)
-                              .split(/[,;\n]+/)
-                              .map((s: string) => Number((s || "").trim()))
-                              .filter((n: number) => !Number.isNaN(n))
-                        : [],
-              }
-            : {
-                  name: "",
-                  description: "",
-                  ageRange: [],
-                  gender: ["all"],
-                  productName: [],
-                  area: [],
-                  governorate: [],
-                  population: [],
-                  note: "",
-              };
+        // Only update currentSegment from parent if we're not in editing mode
+        if (editingIndex === null) {
+            const draft = (data.segmentsDraft as any) || null;
+            const normalized = draft
+                ? {
+                      ...draft,
+                      productName: Array.isArray(draft.productName) ? draft.productName : draft.productName ? [draft.productName] : [],
+                      area: Array.isArray(draft.area)
+                          ? draft.area
+                          : draft.area
+                            ? ("" + draft.area)
+                                  .split(/[,;\n]+/)
+                                  .map((s: string) => s.trim())
+                                  .filter(Boolean)
+                            : [],
+                      governorate: Array.isArray(draft.governorate)
+                          ? draft.governorate
+                          : draft.governorate
+                            ? ("" + draft.governorate)
+                                  .split(/[,;\n]+/)
+                                  .map((s: string) => s.trim())
+                                  .filter(Boolean)
+                            : [],
+                      // Fix: Handle population as single number
+                      population: typeof draft.population === "number" 
+                          ? draft.population 
+                          : draft.population !== undefined && draft.population !== null && draft.population !== ""
+                              ? Number(draft.population)
+                              : undefined,
+                  }
+                : {
+                      name: "",
+                      description: "",
+                      ageRange: [],
+                      gender: ["all"],
+                      productName: [],
+                      area: [],
+                      governorate: [],
+                      population: undefined,
+                      note: "",
+                  };
 
-        setCurrentSegment(normalized as Segment);
+            setCurrentSegment(normalized as Segment);
+        }
         setNewProductName("");
         setNewArea("");
         setNewGovernorate("");
-    }, [data?.segmentsDraft]);
+        setNewAgeRange("");
+    }, [data?.segmentsDraft, editingIndex]);
 
     useEffect(() => {
         if (typeof onUpdate === "function") onUpdate({ segments });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [segments]);
 
+    // Determine if the submit button should be disabled
+    const isButtonDisabled = isSubmitting || isLoading;
+
     return (
         <form
             onSubmit={handleSubmit}
             className="space-y-4"
         >
+            {/* Loading Overlay */}
+            {(isSubmitting || isLoading) && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-dark-50 dark:bg-dark-800 rounded-lg p-8 shadow-xl">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="text-primary-600 h-12 w-12 animate-spin" />
+                            <p className="text-light-900 dark:text-dark-50 text-lg font-semibold">
+                                {t("creating_client") || "Creating your client..."}
+                            </p>
+                            <p className="text-light-600 dark:text-dark-400 text-sm">
+                                {t("please_wait") || "Please wait, this may take a moment"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <h2 className="text-light-900 dark:text-dark-50 mb-4 text-xl font-semibold">{t("target_segments")}</h2>
 
             <p className="text-light-600 dark:text-dark-400 mb-4 text-sm">{t("target_segments_help")}</p>
 
-            <div className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
+            <div id="segment-form" className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
+                {editingIndex !== null && (
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="text-dark-700 dark:text-secdark-200 text-sm font-medium">{t("editing_segment")}</p>
+                        <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="text-light-600 hover:text-light-900 text-sm"
+                            disabled={isButtonDisabled}
+                        >
+                            {t("cancel")}
+                        </button>
+                    </div>
+                )}
+                
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("segment_name")}</label>
                     <input
                         type="text"
-                        value={currentSegment.name}
+                        value={currentSegment.name || ""}
                         onChange={(e) => {
                             const next = { ...currentSegment, name: e.target.value } as Segment;
                             setCurrentSegment(next);
@@ -326,7 +416,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
                         placeholder={t("segment_name_placeholder") as string}
-                        className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.name ? "border-danger-500" : "border-light-600"}`}
+                        disabled={isButtonDisabled}
+                        className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${errors.name ? "border-danger-500" : "border-light-600"}`}
                     />
                     {errors.name && <p className="text-danger-500 mt-1 text-sm">{errors.name}</p>}
                 </div>
@@ -334,15 +425,16 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("description")}</label>
                     <textarea
-                        value={currentSegment.description}
+                        value={currentSegment.description || ""}
                         onChange={(e) => {
                             const next = { ...currentSegment, description: e.target.value } as Segment;
                             setCurrentSegment(next);
                             if (errors.description) setErrors({ ...errors, description: "" });
                         }}
                         rows={2}
+                        disabled={isButtonDisabled}
                         placeholder={t("describe_segment_placeholder") as string}
-                        className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none ${errors.description ? "border-danger-500" : "border-light-600"}`}
+                        className={`text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${errors.description ? "border-danger-500" : "border-light-600"}`}
                     />
                     {errors.description && <p className="text-danger-500 mt-1 text-sm">{errors.description}</p>}
                 </div>
@@ -367,8 +459,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                     if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                 }
                             }}
+                            disabled={isButtonDisabled}
                             placeholder={t("product_name_placeholder") as string}
-                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <button
                             type="button"
@@ -381,7 +474,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                 setNewProductName("");
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
-                            className="btn-ghost flex items-center gap-2"
+                            disabled={isButtonDisabled}
+                            className="btn-ghost flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus size={14} />
                             {t("add")}
@@ -403,7 +497,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                         setCurrentSegment(next);
                                         if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                     }}
-                                    className="text-danger-600"
+                                    disabled={isButtonDisabled}
+                                    className="text-danger-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -429,13 +524,15 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                         addAgeRange();
                                     }
                                 }}
+                                disabled={isButtonDisabled}
                                 placeholder={t("age_range_placeholder") as string}
-                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             <button
                                 type="button"
                                 onClick={() => addAgeRange()}
-                                className="btn-ghost flex items-center gap-2"
+                                disabled={isButtonDisabled}
+                                className="btn-ghost flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Plus size={14} />
                                 {t("add")}
@@ -457,7 +554,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                             setCurrentSegment(next);
                                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                         }}
-                                        className="text-danger-600"
+                                        disabled={isButtonDisabled}
+                                        className="text-danger-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Trash2 size={12} />
                                     </button>
@@ -474,7 +572,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                 setCurrentSegment(next);
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
-                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                            disabled={isButtonDisabled}
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <option value="all">{t("all")}</option>
                             <option value="male">{t("male")}</option>
@@ -504,8 +603,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                     if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                 }
                             }}
+                            disabled={isButtonDisabled}
                             placeholder={t("governorate_placeholder") as string}
-                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <button
                             type="button"
@@ -518,7 +618,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                 setNewGovernorate("");
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
-                            className="btn-ghost flex items-center gap-2"
+                            disabled={isButtonDisabled}
+                            className="btn-ghost flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus size={14} />
                             {t("add")}
@@ -540,7 +641,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                         setCurrentSegment(next);
                                         if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                     }}
-                                    className="text-danger-600"
+                                    disabled={isButtonDisabled}
+                                    className="text-danger-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -569,8 +671,9 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                     if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                 }
                             }}
+                            disabled={isButtonDisabled}
                             placeholder={t("area_placeholder") as string}
-                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                            className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <button
                             type="button"
@@ -583,7 +686,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                 setNewArea("");
                                 if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                             }}
-                            className="btn-ghost flex items-center gap-2"
+                            disabled={isButtonDisabled}
+                            className="btn-ghost flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Plus size={14} />
                             {t("add")}
@@ -605,7 +709,8 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                                         setCurrentSegment(next);
                                         if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                                     }}
-                                    className="text-danger-600"
+                                    disabled={isButtonDisabled}
+                                    className="text-danger-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -616,31 +721,54 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
 
                 <div>
                     <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("population")}</label>
-
                     <input
                         type="number"
                         inputMode="numeric"
-                        value={(currentSegment.population && currentSegment.population[0]) ?? ""}
+                        value={currentSegment.population !== undefined && currentSegment.population !== null ? currentSegment.population : ""}
                         onChange={(e) => {
                             const v = e.target.value;
-                            const num = v === "" ? NaN : Number(v);
-                            const next = { ...currentSegment, population: Number.isNaN(num) ? [] : [num] } as Segment;
+                            const num = v === "" ? undefined : Number(v);
+                            const next = { ...currentSegment, population: num } as Segment;
                             setCurrentSegment(next);
                             if (typeof onUpdate === "function") onUpdate({ segmentsDraft: next });
                         }}
+                        disabled={isButtonDisabled}
                         placeholder={t("population_placeholder") as string}
-                        className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                        className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full rounded-lg border bg-white px-4 py-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                 </div>
 
-                <button
-                    type="button"
-                    onClick={handleAddSegment}
-                    className="btn-ghost flex items-center gap-2"
-                >
-                    <Plus size={16} />
-                    {t("add_segment")}
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={handleAddOrUpdateSegment}
+                        disabled={isButtonDisabled}
+                        className="btn-ghost flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {editingIndex !== null ? (
+                            <>
+                                <Edit2 size={16} />
+                                {t("update_segment")}
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={16} />
+                                {t("add_segment")}
+                            </>
+                        )}
+                    </button>
+                    
+                    {editingIndex !== null && (
+                        <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            disabled={isButtonDisabled}
+                            className="btn-ghost text-light-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {t("cancel")}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {segments.length > 0 && (
@@ -649,33 +777,48 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                     {segments.map((segment, index) => (
                         <div
                             key={index}
-                            className="border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-start justify-between rounded-lg border bg-white p-3"
+                            className={`border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-start justify-between rounded-lg border bg-white p-3 transition-colors duration-300 ${
+                                editingIndex === index ? "ring-primary-500 ring-2" : ""
+                            }`}
                         >
                             <div className="flex-1">
                                 <h4 className="text-light-900 dark:text-dark-50 font-medium">{segment.name}</h4>
                                 <p className="text-light-600 dark:text-dark-400 text-sm">{segment.description}</p>
-                                <div className="text-dark-500 dark:text-dark-400 mt-2 flex gap-4 text-xs">
-                                    {segment.ageRange && (Array.isArray(segment.ageRange) ? segment.ageRange.length > 0 : !!segment.ageRange) && (
-                                        <span>Age: {Array.isArray(segment.ageRange) ? segment.ageRange.join(", ") : segment.ageRange}</span>
+                                <div className="text-dark-500 dark:text-dark-400 mt-2 flex flex-wrap gap-4 text-xs">
+                                    {segment.ageRange && segment.ageRange.length > 0 && (
+                                        <span>Age: {segment.ageRange.join(", ")}</span>
                                     )}
-                                    {segment.gender && Array.isArray(segment.gender) && !segment.gender.includes("all") && (
+                                    {segment.gender && Array.isArray(segment.gender) && !segment.gender.includes("all") && segment.gender.length > 0 && (
                                         <span>Gender: {segment.gender.join(", ")}</span>
                                     )}
-                                    {segment.productName && Array.isArray(segment.productName) && segment.productName.length > 0 && (
+                                    {segment.productName && segment.productName.length > 0 && (
                                         <span>Product: {segment.productName.join(", ")}</span>
                                     )}
-                                    {segment.population && Array.isArray(segment.population) && segment.population.length > 0 && (
-                                        <span>Population: {segment.population.join(", ")}</span>
+                                    {segment.population !== undefined && segment.population !== null && (
+                                        <span>Population: {segment.population.toLocaleString()}</span>
                                     )}
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => handleRemoveSegment(index)}
-                                className="text-danger-500 hover:text-danger-600"
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleEditSegment(index)}
+                                    disabled={isButtonDisabled}
+                                    className="text-danger-600 hover:text-danger-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={t("edit_segment")}
+                                >
+                                    <Edit2 size={16} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveSegment(index)}
+                                    disabled={isButtonDisabled}
+                                    className="text-red-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={t("remove_segment")}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -685,15 +828,18 @@ export const SegmentsStep: FC<SegmentsStepProps> = ({ data = {}, onNext, onPrevi
                 <button
                     type="button"
                     onClick={() => onPrevious({ segments })}
-                    className="btn-ghost px-6 py-2"
+                    disabled={isButtonDisabled}
+                    className="btn-ghost px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {t("previous")}
                 </button>
                 <button
                     type="submit"
-                    className="btn-primary px-6 py-2"
+                    disabled={isButtonDisabled}
+                    className="btn-primary px-6 py-2 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {t("next")}
+                    {(isSubmitting || isLoading) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {t("complete")}
                 </button>
             </div>
         </form>

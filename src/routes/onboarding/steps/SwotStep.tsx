@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FC, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit2, X } from "lucide-react";
 import { useLang } from "@/hooks/useLang";
 import type { OnboardingStepProps } from "../types";
 
@@ -8,6 +8,12 @@ type Swot = {
     weaknesses: string[];
     opportunities: string[];
     threats: string[];
+};
+
+type EditingSwotItem = {
+    category: keyof Swot | null;
+    index: number | null;
+    value: string;
 };
 
 type SwotSectionProps = {
@@ -20,58 +26,132 @@ type SwotSectionProps = {
     swot: Swot;
     handleAdd: (category: keyof Swot, inputKey: string) => void;
     handleRemove: (category: keyof Swot, index: number) => void;
+    handleEdit: (category: keyof Swot, index: number, value: string) => void;
+    handleUpdate: () => void;
+    handleCancelEdit: () => void;
+    editingItem: EditingSwotItem;
+    setEditingItem: React.Dispatch<React.SetStateAction<EditingSwotItem>>;
     placeholder: string;
+    t: (key: string) => string;
 };
 
-// Reusable SWOT input section
-const SwotSection: FC<SwotSectionProps> = ({ title, category, inputKey, color, inputs, setInputs, swot, handleAdd, handleRemove, placeholder }) => (
-    <div className="space-y-2">
-        <h3 className={`text-md font-medium ${color}`}>{title}</h3>
+// Reusable SWOT input section with edit functionality
+const SwotSection: FC<SwotSectionProps> = ({ 
+    title, 
+    category, 
+    inputKey, 
+    color, 
+    inputs, 
+    setInputs, 
+    swot, 
+    handleAdd, 
+    handleRemove, 
+    handleEdit,
+    handleUpdate,
+    handleCancelEdit,
+    editingItem,
+    setEditingItem,
+    placeholder,
+    t 
+}) => {
+    const isEditing = editingItem.category === category && editingItem.index !== null;
+    
+    return (
+        <div className="space-y-2">
+            <h3 className={`text-md font-medium ${color}`}>{title}</h3>
 
-        {/* Input and Add Button */}
-        <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-                type="text"
-                value={inputs[inputKey]}
-                onChange={(e) => setInputs((prev) => ({ ...prev, [inputKey]: e.target.value }))}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAdd(category, inputKey);
-                    }
-                }}
-                placeholder={placeholder}
-                className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
-            />
-            <button
-                type="button"
-                onClick={() => handleAdd(category, inputKey)}
-                className="btn-ghost w-full sm:w-auto sm:!px-3"
-            >
-                <Plus size={16} />
-            </button>
-        </div>
-
-        {/* List of added SWOT items */}
-        <div className="space-y-1">
-            {swot[category].map((item, index) => (
-                <div
-                    key={index}
-                    className="bg-dark-50 dark:bg-dark-800/50 flex items-center justify-between rounded px-3 py-2"
+            {/* Input and Add Button */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                    type="text"
+                    value={inputs[inputKey]}
+                    onChange={(e) => setInputs((prev) => ({ ...prev, [inputKey]: e.target.value }))}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAdd(category, inputKey);
+                        }
+                    }}
+                    placeholder={placeholder}
+                    className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 focus:border-light-500 w-full flex-1 rounded-lg border bg-white px-4 py-2 focus:outline-none"
+                />
+                <button
+                    type="button"
+                    onClick={() => handleAdd(category, inputKey)}
+                    className="btn-ghost w-full sm:w-auto sm:!px-3"
                 >
-                    <span className="text-light-900 dark:text-dark-50 text-sm">{item}</span>
-                    <button
-                        type="button"
-                        onClick={() => handleRemove(category, index)}
-                        className="text-danger-500 hover:text-danger-600 dark:text-danger-400"
+                    <Plus size={16} />
+                </button>
+            </div>
+
+            {/* List of added SWOT items with edit capability */}
+            <div className="space-y-1">
+                {swot[category].map((item, index) => (
+                    <div
+                        key={index}
+                        className="bg-dark-50 dark:bg-dark-800/50 flex items-center justify-between rounded px-3 py-2"
                     >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
-            ))}
+                        {isEditing && editingItem.index === index ? (
+                            <div className="flex flex-1 items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={editingItem.value}
+                                    onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                                    onKeyPress={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleUpdate();
+                                        }
+                                    }}
+                                    className="border-light-600 text-light-900 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-50 flex-1 rounded border bg-white px-2 py-1 text-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleUpdate}
+                                    className="text-primary-600 hover:text-primary-700"
+                                    title={t("save")}
+                                >
+                                    {t("save")}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    className="text-light-500 hover:text-light-700"
+                                    title={t("cancel")}
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <span className="text-light-900 dark:text-dark-50 text-sm break-words flex-1">{item}</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEdit(category, index, item)}
+                                        className="text-danger-600 hover:text-danger-700"
+                                        title={t("edit")}
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemove(category, index)}
+                                        className="text-red-500 hover:text-red-600 dark:text-red-400"
+                                        title={t("remove")}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, onUpdate }) => {
     const { t } = useLang();
@@ -93,6 +173,12 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
         },
     );
 
+    const [editingItem, setEditingItem] = useState<EditingSwotItem>({
+        category: null,
+        index: null,
+        value: "",
+    });
+
     const handleAdd = (category: keyof Swot, inputKey: string) => {
         const value = inputs[inputKey] || "";
         if (value.trim()) {
@@ -107,6 +193,30 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
         }
     };
 
+    const handleEdit = (category: keyof Swot, index: number, value: string) => {
+        setEditingItem({ category, index, value });
+    };
+
+    const handleUpdate = () => {
+        const { category, index, value } = editingItem;
+        if (category !== null && index !== null && value.trim()) {
+            setSwot(
+                (prev) =>
+                    ({
+                        ...prev,
+                        [category]: (prev[category] || []).map((item, i) => 
+                            i === index ? value.trim() : item
+                        ),
+                    }) as Swot,
+            );
+            setEditingItem({ category: null, index: null, value: "" });
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingItem({ category: null, index: null, value: "" });
+    };
+
     const handleRemove = (category: keyof Swot, index: number) => {
         setSwot(
             (prev) =>
@@ -115,6 +225,11 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
                     [category]: (prev[category] || []).filter((_, i) => i !== index),
                 }) as Swot,
         );
+        
+        // If we were editing this item, cancel edit mode
+        if (editingItem.category === category && editingItem.index === index) {
+            setEditingItem({ category: null, index: null, value: "" });
+        }
     };
 
     // Keep a ref of last-swot we reported to parent to avoid echoing identical updates
@@ -231,7 +346,13 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    handleEdit={handleEdit}
+                    handleUpdate={handleUpdate}
+                    handleCancelEdit={handleCancelEdit}
+                    editingItem={editingItem}
+                    setEditingItem={setEditingItem}
                     placeholder={`${t("swot_add_placeholder")} ${t("strengths")}`}
+                    t={t}
                 />
                 <SwotSection
                     title={t("weaknesses_title")}
@@ -243,7 +364,13 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    handleEdit={handleEdit}
+                    handleUpdate={handleUpdate}
+                    handleCancelEdit={handleCancelEdit}
+                    editingItem={editingItem}
+                    setEditingItem={setEditingItem}
                     placeholder={`${t("swot_add_placeholder")} ${t("weaknesses")}`}
+                    t={t}
                 />
                 <SwotSection
                     title={t("opportunities_title")}
@@ -255,7 +382,13 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    handleEdit={handleEdit}
+                    handleUpdate={handleUpdate}
+                    handleCancelEdit={handleCancelEdit}
+                    editingItem={editingItem}
+                    setEditingItem={setEditingItem}
                     placeholder={`${t("swot_add_placeholder")} ${t("opportunities")}`}
+                    t={t}
                 />
                 <SwotSection
                     title={t("threats_title")}
@@ -267,7 +400,13 @@ export const SwotStep: FC<OnboardingStepProps> = ({ data, onNext, onPrevious, on
                     swot={swot}
                     handleAdd={handleAdd}
                     handleRemove={handleRemove}
+                    handleEdit={handleEdit}
+                    handleUpdate={handleUpdate}
+                    handleCancelEdit={handleCancelEdit}
+                    editingItem={editingItem}
+                    setEditingItem={setEditingItem}
                     placeholder={`${t("swot_add_placeholder")} ${t("threats")}`}
+                    t={t}
                 />
             </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit2, X } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiX, SiThreads } from "react-icons/si";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
@@ -90,51 +90,81 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     const [customLinks, setCustomLinks] = useState<SocialLink[]>(data.socialLinks?.custom || []);
     const [newCustom, setNewCustom] = useState<SocialLink>(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
     const [urlErrors, setUrlErrors] = useState<Record<string, string>>({});
+    const [editingCustomIndex, setEditingCustomIndex] = useState<number | null>(null);
 
-  const handleBusinessLinkChange = (index: number, value: string) => {
-    setBusinessLinks((prevLinks) => {
-        const updated = [...prevLinks];
-        // Fix: Add safety check for platform existence
-        const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
-        const storedUrl = value.trim();
-        updated[index] = { platform, url: storedUrl };
-        if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
-        return updated;
-    });
-
-    // Fix: Add safety check for mainPlatforms[index]
-    if (value && !validators.isValidURL(value, { allowProtocolLess: true })) {
-        setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
-        return;
-    }
-
-    // Fix: Ensure mainPlatforms[index] exists before passing to validatePlatformUrl
-    if (value && mainPlatforms[index] && !validatePlatformUrl(value, mainPlatforms[index] as Platform)) {
-        setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
-    } else {
-        setUrlErrors((prev) => {
-            const newErrors = { ...prev };
-            delete newErrors[index];
-            return newErrors;
+    const handleBusinessLinkChange = (index: number, value: string) => {
+        setBusinessLinks((prevLinks) => {
+            const updated = [...prevLinks];
+            // Fix: Add safety check for platform existence
+            const platform = updated[index]?.platform || mainPlatforms[index]?.name || "";
+            const storedUrl = value.trim();
+            updated[index] = { platform, url: storedUrl };
+            if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: updated, custom: customLinks } });
+            return updated;
         });
-    }
-};
 
-    const handleAddCustom = () => {
+        // Fix: Add safety check for mainPlatforms[index]
+        if (value && !validators.isValidURL(value, { allowProtocolLess: true })) {
+            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
+            return;
+        }
+
+        // Fix: Ensure mainPlatforms[index] exists before passing to validatePlatformUrl
+        if (value && mainPlatforms[index] && !validatePlatformUrl(value, mainPlatforms[index] as Platform)) {
+            setUrlErrors((prev) => ({ ...prev, [index]: t("invalid_website") }));
+        } else {
+            setUrlErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors[index];
+                return newErrors;
+            });
+        }
+    };
+
+    const handleAddOrUpdateCustom = () => {
         if (newCustom.platform && newCustom.url) {
-            // Preserve custom URL as entered (trim whitespace)
-            const normalized = { ...newCustom, url: newCustom.url.trim() };
-            const next = [...customLinks, normalized];
+            const normalized = { platform: newCustom.platform.trim(), url: newCustom.url.trim() };
+            
+            let next: SocialLink[];
+            if (editingCustomIndex !== null) {
+                // Update existing custom link
+                next = [...customLinks];
+                next[editingCustomIndex] = normalized;
+                setEditingCustomIndex(null);
+            } else {
+                // Add new custom link
+                next = [...customLinks, normalized];
+            }
+            
             setCustomLinks(next);
             if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });
             setNewCustom({ platform: "", url: "" });
         }
     };
 
+    const handleEditCustom = (index: number) => {
+        const linkToEdit = customLinks[index];
+        setNewCustom(linkToEdit);
+        setEditingCustomIndex(index);
+        // Scroll to form
+        document.getElementById("custom-platform-form")?.scrollIntoView({ behavior: "smooth" });
+    };
+
     const handleRemoveCustom = (index: number) => {
         const next = customLinks.filter((_, i) => i !== index);
         setCustomLinks(next);
         if (typeof onUpdate === "function") onUpdate({ socialLinks: { business: businessLinks, custom: next } });
+        
+        // If we're editing the link that was just deleted, reset the form
+        if (editingCustomIndex === index) {
+            setEditingCustomIndex(null);
+            setNewCustom({ platform: "", url: "" });
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCustomIndex(null);
+        setNewCustom({ platform: "", url: "" });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -150,27 +180,26 @@ export const SocialLinksStep: FC<SocialLinksStepProps> = ({ data = {}, onNext, o
     };
 
     // Keep local lists in sync with parent data so entered values persist when navigating
-   // Fix: Add null/undefined checks in useEffect
-useEffect(() => {
-    // Ensure business links always have platform names from mainPlatforms
-    if (data?.socialLinks?.business && Array.isArray(data.socialLinks.business)) {
-        const businessWithPlatforms = data.socialLinks.business.map((link: SocialLink, index: number) => ({
-            platform: link?.platform || mainPlatforms[index]?.name || "",
-            url: link?.url || "",
-        }));
-        setBusinessLinks(businessWithPlatforms);
-    } else {
-        setBusinessLinks(mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
-    }
-    setCustomLinks(data?.socialLinks?.custom || []);
-}, [data?.socialLinks]);
     useEffect(() => {
-        setNewCustom(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
-    }, [data?.socialLinksDraft]);
-
-    // Note: handlers call `onUpdate` when the user changes values.
-    // Avoid calling onUpdate from a generic effect here to prevent update loops
-    // between child local state and parent `data` prop.
+        // Ensure business links always have platform names from mainPlatforms
+        if (data?.socialLinks?.business && Array.isArray(data.socialLinks.business)) {
+            const businessWithPlatforms = data.socialLinks.business.map((link: SocialLink, index: number) => ({
+                platform: link?.platform || mainPlatforms[index]?.name || "",
+                url: link?.url || "",
+            }));
+            setBusinessLinks(businessWithPlatforms);
+        } else {
+            setBusinessLinks(mainPlatforms.map((p) => ({ platform: p.name, url: "" })));
+        }
+        setCustomLinks(data?.socialLinks?.custom || []);
+    }, [data?.socialLinks]);
+    
+    useEffect(() => {
+        // Only update newCustom from parent if we're not in editing mode
+        if (editingCustomIndex === null) {
+            setNewCustom(data.socialLinksDraft?.newCustom || { platform: "", url: "" });
+        }
+    }, [data?.socialLinksDraft, editingCustomIndex]);
 
     return (
         <form
@@ -239,7 +268,20 @@ useEffect(() => {
 
             <div>
                 <h3 className="text-light-900 dark:text-dark-50 mb-3 text-lg font-medium">{t("other_platforms")}</h3>
-                <div className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
+                <div id="custom-platform-form" className="bg-dark-50 dark:bg-dark-800/50 space-y-3 rounded-lg p-4">
+                    {editingCustomIndex !== null && (
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className="text-danger-600 text-sm font-medium">{t("editing_platform")}</p>
+                            <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="text-light-600 hover:text-light-900 text-sm"
+                            >
+                                {t("cancel")}
+                            </button>
+                        </div>
+                    )}
+                    
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-dark-700 dark:text-secdark-200 mb-2 block text-sm font-medium">{t("platform_name")}</label>
@@ -269,34 +311,71 @@ useEffect(() => {
                             />
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={handleAddCustom}
-                        className="btn-ghost flex items-center gap-2"
-                    >
-                        <Plus size={16} />
-                        {t("add_platform")}
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={handleAddOrUpdateCustom}
+                            className="btn-ghost flex items-center gap-2"
+                        >
+                            {editingCustomIndex !== null ? (
+                                <>
+                                    <Edit2 size={16} />
+                                    {t("update_platform")}
+                                </>
+                            ) : (
+                                <>
+                                    <Plus size={16} />
+                                    {t("add_platform")}
+                                </>
+                            )}
+                        </button>
+                        
+                        {editingCustomIndex !== null && (
+                            <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="btn-ghost text-light-600 flex items-center gap-2"
+                            >
+                                {t("cancel")}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {customLinks.length > 0 && (
                     <div className="mt-3 space-y-2">
+                        <h3 className="text-dark-700 dark:text-secdark-200 text-sm font-medium">
+                            {t("added_platforms")} ({customLinks.length})
+                        </h3>
                         {customLinks.map((link, index) => (
                             <div
                                 key={index}
-                                className="border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between rounded-lg border bg-white p-3"
+                                className={`border-light-600 dark:border-dark-700 dark:bg-dark-800 flex items-center justify-between rounded-lg border bg-white p-3 transition-colors duration-300 ${
+                                    editingCustomIndex === index ? "ring-primary-500 ring-2" : ""
+                                }`}
                             >
-                                <div>
+                                <div className="flex-1">
                                     <span className="text-light-900 dark:text-dark-50 font-medium">{link.platform}</span>
                                     <p className="text-light-600 dark:text-dark-400 truncate text-sm">{link.url}</p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemoveCustom(index)}
-                                    className="text-danger-500 hover:text-danger-600"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEditCustom(index)}
+                                        className="text-danger-600 hover:text-danger-700"
+                                        title={t("edit_platform")}
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveCustom(index)}
+                                        className="text-red-500 hover:text-red-600"
+                                        title={t("remove_platform")}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
