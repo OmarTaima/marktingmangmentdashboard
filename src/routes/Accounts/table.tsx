@@ -134,7 +134,7 @@ const AccountsPage = () => {
     const getTwoFactorDisplay = (method: string | undefined, account?: Account) => {
         switch(method) {
             case "mail": 
-                return account?.mail ? `📧 ${account.mail}` : "📧 Mail";
+                return account?.mail ? ` ${account.mail}` : " Mail";
             case "phone": 
                 return account?.phoneNumber ? ` ${account.phoneNumber}` : " Phone";
             default: 
@@ -363,8 +363,8 @@ const AccountsPage = () => {
                                                     <td className="px-4 py-3">
                                                         {account.twoFactorMethod === "mail" && account.mail && (
                                                             <div className="text-sm">
-                                                                <div>📧 {account.mail}</div>
-                                                                {account.mailPassword && <div className="text-xs">🔑 {account.mailPassword}</div>}
+                                                                <div> {account.mail}</div>
+                                                                {account.mailPassword && <div className="text-xs"> {account.mailPassword}</div>}
                                                             </div>
                                                         )}
                                                         {account.twoFactorMethod === "phone" && account.phoneNumber && (

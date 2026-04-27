@@ -64,24 +64,82 @@ export function useCreateAccount() {
     return useMutation({
         mutationFn: ({ clientId, accountData }: { clientId: string; accountData: Partial<Account> }) =>
             createAccount(clientId, accountData),
-        onSuccess: (_, variables) => {
-            // Invalidate relevant queries
-            queryClient.invalidateQueries({ queryKey: accountsKeys.list(variables.clientId) });
+        onMutate: async ({ clientId, accountData }) => {
+            await queryClient.cancelQueries({ queryKey: accountsKeys.list(clientId) });
+            await queryClient.cancelQueries({ queryKey: accountsKeys.list('all') });
+
+            const previousClientList = queryClient.getQueryData(accountsKeys.list(clientId));
+            const previousAllList = queryClient.getQueryData(accountsKeys.list('all'));
+
+            const tempId = `temp-${Date.now()}`;
+            const optimisticAccount: any = {
+                _id: tempId,
+                clientId,
+                platformName: accountData.platformName || (accountData as any).platform || '',
+                userName: accountData.userName || (accountData as any).username || '',
+                password: accountData.password || '',
+                twoFactorMethod: accountData.twoFactorMethod || (accountData as any).twoFactorMethod || 'non',
+                mail: (accountData as any).mail || undefined,
+                mailPassword: (accountData as any).mailPassword || undefined,
+                phoneOwnerName: (accountData as any).phoneOwnerName || undefined,
+                phoneNumber: (accountData as any).phoneNumber || undefined,
+                note: accountData.note || '',
+                createdAt: new Date().toISOString(),
+            };
+
+            queryClient.setQueryData(accountsKeys.list(clientId), (old: any) => {
+                if (!old) return [optimisticAccount];
+                if (Array.isArray(old)) return [optimisticAccount, ...old];
+                if (old.data) return { ...old, data: [optimisticAccount, ...old.data] };
+                return old;
+            });
+
+            queryClient.setQueryData(accountsKeys.list('all'), (old: any) => {
+                if (!old) return [optimisticAccount];
+                if (Array.isArray(old)) return [optimisticAccount, ...old];
+                if (old.data) return { ...old, data: [optimisticAccount, ...old.data] };
+                return old;
+            });
+
+            return { previousClientList, previousAllList, tempId };
+        },
+        onError: (err: any, variables, context: any) => {
+            if (context?.previousClientList) {
+                queryClient.setQueryData(accountsKeys.list(variables.clientId), context.previousClientList);
+            }
+            if (context?.previousAllList) {
+                queryClient.setQueryData(accountsKeys.list('all'), context.previousAllList);
+            }
+            Swal.fire({ title: 'Error', text: err?.message || 'Failed to create account', icon: 'error' });
+        },
+        onSuccess: (data, variables, context: any) => {
+            const created = data as Account | null;
+
+            // Replace optimistic entry with server response
+            if (created) {
+                queryClient.setQueryData(accountsKeys.list(variables.clientId), (old: any) => {
+                    if (!old) return [created];
+                    if (Array.isArray(old)) return old.map((a: any) => (a._id === context?.tempId ? created : a));
+                    if (old.data) return { ...old, data: old.data.map((a: any) => (a._id === context?.tempId ? created : a)) };
+                    return old;
+                });
+
+                queryClient.setQueryData(accountsKeys.list('all'), (old: any) => {
+                    if (!old) return [created];
+                    if (Array.isArray(old)) return old.map((a: any) => (a._id === context?.tempId ? created : a));
+                    if (old.data) return { ...old, data: old.data.map((a: any) => (a._id === context?.tempId ? created : a)) };
+                    return old;
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: ['clients', variables.clientId] });
-            
+
             Swal.fire({
-                title: "Success",
-                text: "Account created successfully",
-                icon: "success",
+                title: 'Success',
+                text: 'Account created successfully',
+                icon: 'success',
                 timer: 1500,
                 showConfirmButton: false,
-            });
-        },
-        onError: (error: any) => {
-            Swal.fire({
-                title: "Error",
-                text: error.message || "Failed to create account",
-                icon: "error",
             });
         },
     });

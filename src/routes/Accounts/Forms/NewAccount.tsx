@@ -2,7 +2,7 @@ import { useState, type FC } from "react";
 import { useLang } from "@/hooks/useLang";
 import { dirFor } from "@/utils/direction";
 import { useClients } from "@/hooks/queries/useClientsQuery";
-import { createClientAccount } from "@/api/requests/clientService";
+import { useCreateAccount } from "@/hooks/queries/useAccouts";
 import type { Client } from "@/api/interfaces/clientinterface";
 
 type NewAccountFormData = {
@@ -29,6 +29,7 @@ type NewAccountProps = {
 export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialData }) => {
     const { t } = useLang();
     const { data: clients, isLoading: clientsLoading } = useClients();
+    const createAccountMutation = useCreateAccount();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [formData, setFormData] = useState<NewAccountFormData>(initialData || {
@@ -48,6 +49,7 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("NewAccount.handleSubmit called", formData);
         
         const newErrors: Record<string, string> = {};
         
@@ -96,9 +98,26 @@ export const NewAccount: FC<NewAccountProps> = ({ onSubmit, onCancel, initialDat
 
         setIsSubmitting(true);
         try {
-            await createClientAccount(formData.client!, accountPayload);
+            // Build frontend account shape expected by accoutServices.createAccount
+            const frontendAccount: any = {
+                platformName: formData.platformName,
+                userName: formData.userName,
+                password: formData.password,
+                twoFactorMethod: formData.twoFactorMethod,
+                mail: formData.twoFactorMethod === "mail" ? formData.mail : undefined,
+                mailPassword: formData.twoFactorMethod === "mail" ? formData.mailPassword : undefined,
+                phoneOwnerName: formData.twoFactorMethod === "phone" ? formData.phoneOwnerName : undefined,
+                phoneNumber: formData.twoFactorMethod === "phone" ? formData.phoneNumber : undefined,
+                note: formData.note,
+            };
+
+            console.log("NewAccount: calling mutateAsync", { clientId: formData.client, frontendAccount });
+
+            await createAccountMutation.mutateAsync({ clientId: formData.client!, accountData: frontendAccount });
+
             const payload: NewAccountSubmitData = { ...formData, clientObject: selectedClient };
             if (onSubmit) onSubmit(payload);
+
             // Reset form
             setFormData({
                 client: "",
