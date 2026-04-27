@@ -1,284 +1,103 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Client } from "@/api/interfaces/clientinterface";
 import {
     getClients,
-    getClientsWithFilters,
     getClientById,
     createClient,
     updateClient,
-    patchClient,
     deleteClient,
-    type ClientFilterParams,
 } from "@/api/requests/clientService";
+import Swal from "sweetalert2";
 
-// Query keys
+// Query keys for clients cache
 export const clientsKeys = {
-    all: ["clients"] as const,
-    lists: () => [...clientsKeys.all, "list"] as const,
-    list: (params?: ClientFilterParams) => [...clientsKeys.lists(), params] as const,
-    details: () => [...clientsKeys.all, "detail"] as const,
+    all: ['clients'] as const,
+    lists: () => [...clientsKeys.all, 'list'] as const,
+    list: (id?: string) => [...clientsKeys.lists(), id || 'all'] as const,
+    details: () => [...clientsKeys.all, 'detail'] as const,
     detail: (id: string) => [...clientsKeys.details(), id] as const,
 };
 
-/**
- * Hook to fetch all clients (simple version)
- */
-export const useClients = () => {
+// Hook to fetch all clients
+export function useClients(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: clientsKeys.lists(),
-        queryFn: getClients,
-        staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
-        gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
-        refetchOnWindowFocus: false, // Don't refetch when window regains focus
-        refetchOnMount: false, // Don't refetch on component mount if data exists
-        refetchOnReconnect: false, // Don't refetch on reconnect
-        retry: 1, // Only retry once on failure
+        queryFn: async () => {
+            return await getClients();
+        },
+        enabled: options?.enabled ?? true,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
-};
+}
 
-/**
- * Hook to fetch clients with filters and pagination
- */
-export const useClientsWithFilters = (filters?: ClientFilterParams) => {
+// Hook to fetch single client by id
+export function useClientById(clientId: string, options?: { enabled?: boolean }) {
     return useQuery({
-        queryKey: clientsKeys.list(filters),
-        queryFn: () => getClientsWithFilters(filters),
+        queryKey: clientsKeys.detail(clientId),
+        queryFn: async () => {
+            if (!clientId) return null;
+            return await getClientById(clientId);
+        },
+        enabled: !!clientId && (options?.enabled ?? true),
     });
-};
+}
 
-/**
- * Hook to fetch single client by ID
- */
-export const useClient = (id: string, enabled = true) => {
-    return useQuery({
-        queryKey: clientsKeys.detail(id),
-        queryFn: () => getClientById(id),
-        enabled: !!id && enabled,
-        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-        refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    });
-};
+// Backwards-compatible alias: some files import `useClient`
+export const useClient = useClientById;
 
-/**
- * Hook to create a new client
- */
-export const useCreateClient = () => {
+// Create client
+export function useCreateClient() {
     const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: (data: Partial<Client>) => createClient(data),
-        onMutate: async (newClient) => {
-            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
-            const previous = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
-
-            const tempId = `temp-${Date.now()}`;
-            const optimisticClient: Client = {
-                _id: tempId,
-                ...newClient,
-            } as Client;
-
-            previous.forEach(([key]) => {
-                queryClient.setQueryData(key, (old: any) => {
-                    if (!old) return old;
-                    if (Array.isArray(old)) {
-                        return [optimisticClient, ...old];
-                    }
-                    if (old.data && Array.isArray(old.data)) {
-                        return {
-                            ...old,
-                            data: [optimisticClient, ...old.data],
-                            meta: old.meta ? { ...old.meta, total: (old.meta.total || 0) + 1 } : undefined,
-                        };
-                    }
-                    return old;
-                });
-            });
-
-            return { previous };
-        },
-        onError: (_err, _newClient, context: any) => {
-            if (context?.previous) {
-                context.previous.forEach(([key, data]: [any, any]) => {
-                    queryClient.setQueryData(key, data);
-                });
-            }
-        },
-        onSuccess: (createdClient) => {
-            const queries = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
-            queries.forEach(([key]) => {
-                queryClient.setQueryData(key, (old: any) => {
-                    if (!old) return old;
-                    if (Array.isArray(old)) {
-                        const idx = old.findIndex((c: Client) => c._id?.toString().startsWith("temp-"));
-                        if (idx === -1) return old;
-                        const newData = [...old];
-                        newData[idx] = createdClient;
-                        return newData;
-                    }
-                    if (old.data && Array.isArray(old.data)) {
-                        const idx = old.data.findIndex((c: Client) => c._id?.toString().startsWith("temp-"));
-                        if (idx === -1) return old;
-                        const newData = [...old.data];
-                        newData[idx] = createdClient;
-                        return { ...old, data: newData };
-                    }
-                    return old;
-                });
-            });
+        mutationFn: (data: any) => createClient(data),
+        onSuccess: (_, _variables) => {
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            Swal.fire({ title: 'Success', text: 'Client created', icon: 'success', timer: 1500, showConfirmButton: false });
         },
+        onError: (err: any) => {
+            Swal.fire({ title: 'Error', text: err.message || 'Failed to create client', icon: 'error' });
+        }
     });
-};
+}
 
-/**
- * Hook to update a client
- */
-export const useUpdateClient = () => {
+// Update client
+export function useUpdateClient() {
     const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<Client> }) => updateClient(id, data),
-        onMutate: async ({ id, data }) => {
-            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
-            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(id) });
-
-            const previousLists = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
-            const previousDetail = queryClient.getQueryData(clientsKeys.detail(id));
-
-            previousLists.forEach(([key]) => {
-                queryClient.setQueryData(key, (old: any) => {
-                    if (!old) return old;
-                    if (Array.isArray(old)) {
-                        return old.map((c: Client) => (c._id === id ? { ...c, ...data } : c));
-                    }
-                    if (old.data && Array.isArray(old.data)) {
-                        return {
-                            ...old,
-                            data: old.data.map((c: Client) => (c._id === id ? { ...c, ...data } : c)),
-                        };
-                    }
-                    return old;
-                });
-            });
-
-            if (previousDetail) {
-                queryClient.setQueryData(clientsKeys.detail(id), (old: any) => ({ ...old, ...data }));
-            }
-
-            return { previousLists, previousDetail };
-        },
-        onError: (_err, { id }, context: any) => {
-            if (context?.previousLists) {
-                context.previousLists.forEach(([key, data]: [any, any]) => {
-                    queryClient.setQueryData(key, data);
-                });
-            }
-            if (context?.previousDetail) {
-                queryClient.setQueryData(clientsKeys.detail(id), context.previousDetail);
-            }
-        },
+        mutationFn: ({ clientId, data }: { clientId: string; data: any }) => updateClient(clientId, data),
         onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.clientId) });
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail((variables as any).id) });
+            Swal.fire({ title: 'Success', text: 'Client updated', icon: 'success', timer: 1500, showConfirmButton: false });
         },
+        onError: (err: any) => {
+            Swal.fire({ title: 'Error', text: err.message || 'Failed to update client', icon: 'error' });
+        }
     });
-};
+}
 
-/**
- * Hook to patch client fields
- */
-export const usePatchClient = () => {
+// Delete client
+export function useDeleteClient() {
     const queryClient = useQueryClient();
-
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Record<string, any> }) => patchClient(id, data),
-        onMutate: async ({ id, data }) => {
-            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
-            await queryClient.cancelQueries({ queryKey: clientsKeys.detail(id) });
-
-            const previousLists = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
-            const previousDetail = queryClient.getQueryData(clientsKeys.detail(id));
-
-            previousLists.forEach(([key]) => {
-                queryClient.setQueryData(key, (old: any) => {
-                    if (!old) return old;
-                    if (Array.isArray(old)) {
-                        return old.map((c: Client) => (c._id === id ? { ...c, ...data } : c));
-                    }
-                    if (old.data && Array.isArray(old.data)) {
-                        return {
-                            ...old,
-                            data: old.data.map((c: Client) => (c._id === id ? { ...c, ...data } : c)),
-                        };
-                    }
-                    return old;
-                });
-            });
-
-            if (previousDetail) {
-                queryClient.setQueryData(clientsKeys.detail(id), (old: any) => ({ ...old, ...data }));
-            }
-
-            return { previousLists, previousDetail };
-        },
-        onError: (_err, { id }, context: any) => {
-            if (context?.previousLists) {
-                context.previousLists.forEach(([key, data]: [any, any]) => {
-                    queryClient.setQueryData(key, data);
-                });
-            }
-            if (context?.previousDetail) {
-                queryClient.setQueryData(clientsKeys.detail(id), context.previousDetail);
-            }
-        },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(variables.id) });
+        mutationFn: (clientId: string) => deleteClient(clientId),
+        onSuccess: (_, clientId) => {
             queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: clientsKeys.detail(clientId as unknown as string) });
+            Swal.fire({ title: 'Deleted', text: 'Client deleted', icon: 'success', timer: 1500, showConfirmButton: false });
         },
+        onError: (err: any) => {
+            Swal.fire({ title: 'Error', text: err.message || 'Failed to delete client', icon: 'error' });
+        }
     });
-};
+}
 
-/**
- * Hook to delete a client
- */
-export const useDeleteClient = () => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: deleteClient,
-        onMutate: async (id: string) => {
-            await queryClient.cancelQueries({ queryKey: clientsKeys.lists() });
-            const previous = queryClient.getQueriesData({ queryKey: clientsKeys.lists() });
-
-            previous.forEach(([key]) => {
-                queryClient.setQueryData(key, (old: any) => {
-                    if (!old) return old;
-                    if (Array.isArray(old)) {
-                        return old.filter((c: Client) => c._id !== id);
-                    }
-                    if (old.data && Array.isArray(old.data)) {
-                        return {
-                            ...old,
-                            data: old.data.filter((c: Client) => c._id !== id),
-                            meta: old.meta ? { ...old.meta, total: Math.max(0, (old.meta.total || 0) - 1) } : undefined,
-                        };
-                    }
-                    return old;
-                });
-            });
-
-            return { previous };
-        },
-        onError: (_err, _id, context: any) => {
-            if (context?.previous) {
-                context.previous.forEach(([key, data]: [any, any]) => {
-                    queryClient.setQueryData(key, data);
-                });
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: clientsKeys.lists() });
-            queryClient.refetchQueries({ queryKey: clientsKeys.lists(), type: "all" });
-        },
-    });
+export default {
+    useClients,
+    useClientById,
+    useClient,
+    useCreateClient,
+    useUpdateClient,
+    useDeleteClient,
+    clientsKeys,
 };

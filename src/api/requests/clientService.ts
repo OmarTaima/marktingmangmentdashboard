@@ -261,6 +261,41 @@ export const createClientAccount = async (clientId: string, accountData: Record<
     }
 };
 
+// In your clientService.ts
+export const deleteClientAccount = async (clientId: string, accountId: string): Promise<any> => {
+    try {
+        const response = await axiosInstance.delete(
+    `${CLIENTS_ENDPOINT}/${clientId}/accounts/${accountId}`
+);
+        return response.data.data || response.data;
+    } catch (error) {
+        console.error('❌ Delete account error:', error);
+        throw error;
+    }
+};
+
+export const updateClientAccount = async (clientId: string, accountId: string, accountData: Record<string, any>): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(
+            `${CLIENTS_ENDPOINT}/${clientId}/accounts/${accountId}`,
+            accountData
+        );
+        return response.data.data || response.data;
+    } catch (error) {
+        console.error('❌ Update account error:', error);
+        throw error;
+    }
+};
+
+export const getClientAccounts = async (clientId: string): Promise<any[]> => {
+    try {
+        const response = await axiosInstance.get(`${CLIENTS_ENDPOINT}/${clientId}/accounts`);
+        return response.data.data || response.data || [];
+    } catch (error) {
+        console.error('❌ Get accounts error:', error);
+        throw error;
+    }
+};
 /**
  * Build query string from filter parameters
  */

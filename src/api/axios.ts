@@ -31,12 +31,8 @@ const axiosInstance = axios.create({
         "Content-Type": "application/json",
     },
     timeout: 10000, // 10 seconds timeout - faster failure detection
-    // Performance optimizations
     maxRedirects: 5,
     decompress: true,
-    // Reuse TCP connections
-    httpAgent: undefined,
-    httpsAgent: undefined,
 });
 
 // Initialize default Authorization header from stored token (cookie or localStorage)
@@ -52,29 +48,33 @@ try {
 // Request interceptor (for adding auth tokens)
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Endpoints that don't need authentication
+        // For DELETE requests, ensure no body is sent
+        if (config.method === 'delete') {
+            // Remove any data that might be accidentally attached
+            delete config.data;
+            config.data = undefined;
+            
+            // Also remove any content-type header for DELETE with no body
+            if (config.headers['Content-Type'] && !config.data) {
+                // Keep the header, it's fine
+            }
+        }
+        
+        // Your existing code...
         const publicEndpoints = ["/auth/login", "/auth/register"];
         const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
 
         if (!isPublicEndpoint) {
-            // Get token from cookie or localStorage for protected endpoints
             const token = getStoredToken("accessToken");
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
-            } else {
-                // Warn about missing token for protected endpoints
-                if (!config.url?.includes("/auth/refresh")) {
-                    console.warn("⚠️ No access token found for protected endpoint:", config.url);
-                }
             }
         }
 
-        // Ensure headers are always set
         if (!config.headers["Content-Type"]) {
             config.headers["Content-Type"] = "application/json";
         }
 
-        // Remove any undefined or null headers
         Object.keys(config.headers).forEach((key) => {
             if (config.headers[key] === undefined || config.headers[key] === null) {
                 delete config.headers[key];
